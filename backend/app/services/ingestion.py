@@ -1,0 +1,242 @@
+"""Document ingestion pipeline — parse, OCR, chunk, embed, index."""
+
+from __future__ import annotations
+
+import io
+import uuid
+import logging
+from pathlib import Path
+from typing import Any
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+from app.core.database import async_session_factory
+from app.models.document import Document
+from app.models.chunk import Chunk
+from app.services.vector_store import get_vector_store
+
+logger = logging.getLogger(__name__)
+
+# Global embedding model (lazy-loaded)
+_embedding_model = None
+
+
+def get_embedding_model():
+    """Lazy-load the sentence-transformers model."""
+    global _embedding_model
+    if _embedding_model is None:
+        from sentence_transformers import SentenceTransformer
+        logger.info("Loading embedding model: all-MiniLM-L6-v2")
+        _embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+    return _embedding_model
+
+
+async def process_document(
+    document_id: uuid.UUID,
+    session_factory: async_sessionmaker[AsyncSession] | None = None,
+) -> None:
+    """Process a document: parse → OCR-if-needed → chunk → embed → index."""
+    session_maker = session_factory or async_session_factory
+
+    async with session_maker() as session:
+        result = await session.execute(
+            select(Document).where(Document.id == document_id)
+        )
+        doc = result.scalar_one_or_none()
+        if not doc:
+            logger.error(f"Document {document_id} not found")
+            return
+
+        try:
+            # 1. Parse
+            doc.status = "parsing"
+            await session.flush()
+
+            text, pages = parse_document(doc.file_path, doc.file_type)
+
+            # 2. Chunk
+            doc.status = "chunking"
+            await session.flush()
+
+            chunks = chunk_text(text, doc_id=str(doc.id), doc_title=doc.title, pages=pages)
+            doc.chunk_count = len(chunks)
+
+            # Save chunks to DB
+            db_chunks = []
+            for c in chunks:
+                chunk = Chunk(
+                    document_id=doc.id,
+                    chunk_index=c["chunk_index"],
+                    content=c["content"],
+                    page_number=c.get("page_number"),
+                )
+                session.add(chunk)
+                db_chunks.append(chunk)
+            await session.flush()
+
+            # 3. Embed
+            doc.status = "embedding"
+            await session.flush()
+
+            model = get_embedding_model()
+            texts_to_embed = [c["content"] for c in chunks]
+            embeddings = model.encode(texts_to_embed, show_progress_bar=False).tolist()
+
+            # 4. Index in Chroma
+            doc.status = "indexing"
+            await session.flush()
+
+            vs = get_vector_store()
+            chroma_ids = await vs.add_chunks(chunks, embeddings)
+
+            # Update chunks with chroma IDs
+            for chunk, chroma_id in zip(db_chunks, chroma_ids):
+                chunk.chroma_id = chroma_id
+
+            # 5. Done
+            doc.status = "indexed"
+            doc.page_count = max(pages.values()) if pages else len(set(pages.values())) if pages else None
+            await session.commit()
+            logger.info(f"Document {doc.id} indexed with {len(chunks)} chunks")
+
+        except Exception as e:
+            doc.status = "failed"
+            doc.error_message = str(e)
+            await session.commit()
+            logger.error(f"Failed to process document {doc.id}: {e}", exc_info=True)
+
+
+def parse_document(file_path: str, file_type: str) -> tuple[str, dict[int, int]]:
+    """Parse a document file into plain text."""
+    path = Path(file_path)
+    ext = file_type.lower()
+
+    if ext == "pdf":
+        return _parse_pdf(path)
+    elif ext == "docx":
+        return _parse_docx(path)
+    elif ext == "txt":
+        return _parse_txt(path)
+    else:
+        raise ValueError(f"Unsupported file type: {ext}")
+
+
+def _parse_pdf(path: Path) -> tuple[str, dict[int, int]]:
+    """Parse a PDF file. Falls back to OCR if needed."""
+    try:
+        from pypdf import PdfReader
+
+        reader = PdfReader(str(path))
+        text_parts = []
+        page_map = {}  # char_offset -> page_number
+
+        offset = 0
+        for i, page in enumerate(reader.pages):
+            page_text = page.extract_text() or ""
+            text_parts.append(page_text)
+            page_map[offset] = i + 1
+            offset += len(page_text)
+
+        full_text = "\n".join(text_parts)
+
+        # If extracted text is too sparse, try OCR
+        if len(full_text.strip()) < 50:
+            logger.info("PDF text extraction yielded little text, attempting OCR...")
+            return _parse_pdf_ocr(path)
+
+        return full_text, page_map
+    except Exception as e:
+        logger.warning(f"PDF parsing failed, falling back to OCR: {e}")
+        return _parse_pdf_ocr(path)
+
+
+def _parse_pdf_ocr(path: Path) -> tuple[str, dict[int, int]]:
+    """Parse a PDF using Tesseract OCR (for scanned documents)."""
+    try:
+        from pdf2image import convert_from_path
+        import pytesseract
+
+        images = convert_from_path(str(path), dpi=300)
+        text_parts = []
+        page_map = {}
+        offset = 0
+
+        for i, img in enumerate(images):
+            page_text = pytesseract.image_to_string(img)
+            text_parts.append(page_text)
+            page_map[offset] = i + 1
+            offset += len(page_text)
+
+        return "\n".join(text_parts), page_map
+    except ImportError:
+        logger.error("pdf2image or pytesseract not installed, OCR unavailable")
+        return "", {}
+
+
+def _parse_docx(path: Path) -> tuple[str, dict[int, int]]:
+    """Parse a DOCX file."""
+    try:
+        import docx
+
+        doc = docx.Document(str(path))
+        text_parts = []
+        page_map = {}
+        offset = 0
+
+        for para in doc.paragraphs:
+            if para.text.strip():
+                text_parts.append(para.text)
+                page_map[offset] = 1  # DOCX doesn't have reliable page numbers
+                offset += len(para.text)
+
+        return "\n".join(text_parts), page_map
+    except Exception as e:
+        raise ValueError(f"Failed to parse DOCX: {e}")
+
+
+def _parse_txt(path: Path) -> tuple[str, dict[int, int]]:
+    """Parse a plain text file."""
+    text = path.read_text(encoding="utf-8", errors="replace")
+    return text, {0: 1}
+
+
+def chunk_text(
+    text: str,
+    doc_id: str,
+    doc_title: str,
+    pages: dict[int, int] | None = None,
+    chunk_size: int = 512,
+    overlap: int = 64,
+) -> list[dict[str, Any]]:
+    """Split text into overlapping chunks."""
+    words = text.split()
+    chunks = []
+    start = 0
+
+    while start < len(words):
+        end = min(start + chunk_size, len(words))
+        chunk_words = words[start:end]
+        chunk_text_str = " ".join(chunk_words)
+
+        # Determine page number from character offset
+        char_offset = sum(len(w) + 1 for w in words[:start])
+        page_number = None
+        if pages:
+            sorted_offsets = sorted(pages.keys())
+            for off in reversed(sorted_offsets):
+                if char_offset >= off:
+                    page_number = pages[off]
+                    break
+
+        chunks.append({
+            "document_id": doc_id,
+            "document_title": doc_title,
+            "chunk_index": len(chunks),
+            "content": chunk_text_str,
+            "page_number": page_number,
+        })
+
+        start += chunk_size - overlap
+
+    return chunks
