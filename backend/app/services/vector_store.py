@@ -5,9 +5,6 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-import chromadb
-from chromadb.config import Settings as ChromaSettings
-
 from app.core.config import settings
 
 
@@ -15,6 +12,9 @@ class VectorStore:
     """Wrapper around ChromaDB for document embeddings."""
 
     def __init__(self):
+        import chromadb
+        from chromadb.config import Settings as ChromaSettings
+
         self.client = chromadb.HttpClient(
             host=settings.chroma_host,
             port=settings.chroma_port,

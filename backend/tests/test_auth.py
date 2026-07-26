@@ -3,30 +3,39 @@
 from __future__ import annotations
 
 import uuid
-from unittest.mock import patch
+from unittest.mock import MagicMock
 
 import pytest
 from httpx import AsyncClient
 
 from app.core.security import hash_password, create_access_token, decode_token
+from app.core.dependencies import get_current_user
+
+
+# ── Helpers ──────────────────────────────────────────────
+
+def _override_get_user(app, user):
+    """Override the get_current_user dependency for a test."""
+    async def override():
+        return user
+    app.dependency_overrides[get_current_user] = override
 
 
 # ── Register ─────────────────────────────────────────────
 
 @pytest.mark.asyncio
-async def test_register_success(test_client: AsyncClient, mock_db_session):
+async def test_register_success(test_client: AsyncClient, mock_db_session, app):
     """Test successful user registration returns tokens and user data."""
-    mock_db_session.execute.return_value.scalar_one_or_none.return_value = None
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=None)
 
-    with patch("app.api.auth.get_session", return_value=mock_db_session):
-        response = await test_client.post(
-            "/api/auth/register",
-            json={
-                "email": "newuser@example.com",
-                "password": "securepass123",
-                "full_name": "New User",
-            },
-        )
+    response = await test_client.post(
+        "/api/auth/register",
+        json={
+            "email": "newuser@example.com",
+            "password": "securepass123",
+            "full_name": "New User",
+        },
+    )
 
     assert response.status_code == 201
     data = response.json()
@@ -40,16 +49,15 @@ async def test_register_success(test_client: AsyncClient, mock_db_session):
 @pytest.mark.asyncio
 async def test_register_duplicate_email(test_client: AsyncClient, mock_db_session, sample_user):
     """Test registration with existing email returns 409."""
-    mock_db_session.execute.return_value.scalar_one_or_none.return_value = sample_user
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=sample_user)
 
-    with patch("app.api.auth.get_session", return_value=mock_db_session):
-        response = await test_client.post(
-            "/api/auth/register",
-            json={
-                "email": "testuser@example.com",
-                "password": "securepass123",
-            },
-        )
+    response = await test_client.post(
+        "/api/auth/register",
+        json={
+            "email": "testuser@example.com",
+            "password": "securepass123",
+        },
+    )
 
     assert response.status_code == 409
     assert "Email already registered" in response.json()["detail"]
@@ -73,16 +81,15 @@ async def test_register_short_password(test_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_login_success(test_client: AsyncClient, mock_db_session, sample_user):
     """Test successful login returns tokens and user data."""
-    mock_db_session.execute.return_value.scalar_one_or_none.return_value = sample_user
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=sample_user)
 
-    with patch("app.api.auth.get_session", return_value=mock_db_session):
-        response = await test_client.post(
-            "/api/auth/login",
-            json={
-                "email": "testuser@example.com",
-                "password": "testpassword123",
-            },
-        )
+    response = await test_client.post(
+        "/api/auth/login",
+        json={
+            "email": "testuser@example.com",
+            "password": "testpassword123",
+        },
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -94,16 +101,15 @@ async def test_login_success(test_client: AsyncClient, mock_db_session, sample_u
 @pytest.mark.asyncio
 async def test_login_wrong_password(test_client: AsyncClient, mock_db_session, sample_user):
     """Test login with wrong password returns 401."""
-    mock_db_session.execute.return_value.scalar_one_or_none.return_value = sample_user
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=sample_user)
 
-    with patch("app.api.auth.get_session", return_value=mock_db_session):
-        response = await test_client.post(
-            "/api/auth/login",
-            json={
-                "email": "testuser@example.com",
-                "password": "wrongpassword",
-            },
-        )
+    response = await test_client.post(
+        "/api/auth/login",
+        json={
+            "email": "testuser@example.com",
+            "password": "wrongpassword",
+        },
+    )
 
     assert response.status_code == 401
     assert "Invalid email or password" in response.json()["detail"]
@@ -112,16 +118,15 @@ async def test_login_wrong_password(test_client: AsyncClient, mock_db_session, s
 @pytest.mark.asyncio
 async def test_login_nonexistent_user(test_client: AsyncClient, mock_db_session):
     """Test login with non-existent email returns 401."""
-    mock_db_session.execute.return_value.scalar_one_or_none.return_value = None
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=None)
 
-    with patch("app.api.auth.get_session", return_value=mock_db_session):
-        response = await test_client.post(
-            "/api/auth/login",
-            json={
-                "email": "nobody@example.com",
-                "password": "testpassword123",
-            },
-        )
+    response = await test_client.post(
+        "/api/auth/login",
+        json={
+            "email": "nobody@example.com",
+            "password": "testpassword123",
+        },
+    )
 
     assert response.status_code == 401
 
@@ -130,16 +135,15 @@ async def test_login_nonexistent_user(test_client: AsyncClient, mock_db_session)
 async def test_login_inactive_user(test_client: AsyncClient, mock_db_session, sample_user):
     """Test login with inactive user returns 403."""
     sample_user.is_active = False
-    mock_db_session.execute.return_value.scalar_one_or_none.return_value = sample_user
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=sample_user)
 
-    with patch("app.api.auth.get_session", return_value=mock_db_session):
-        response = await test_client.post(
-            "/api/auth/login",
-            json={
-                "email": "testuser@example.com",
-                "password": "testpassword123",
-            },
-        )
+    response = await test_client.post(
+        "/api/auth/login",
+        json={
+            "email": "testuser@example.com",
+            "password": "testpassword123",
+        },
+    )
 
     assert response.status_code == 403
     assert "Account is deactivated" in response.json()["detail"]
@@ -150,13 +154,12 @@ async def test_login_inactive_user(test_client: AsyncClient, mock_db_session, sa
 @pytest.mark.asyncio
 async def test_refresh_success(test_client: AsyncClient, mock_db_session, sample_user, sample_refresh_token):
     """Test successful token refresh returns new tokens."""
-    mock_db_session.execute.return_value.scalar_one_or_none.return_value = sample_user
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=sample_user)
 
-    with patch("app.api.auth.get_session", return_value=mock_db_session):
-        response = await test_client.post(
-            "/api/auth/refresh",
-            json={"refresh_token": sample_refresh_token},
-        )
+    response = await test_client.post(
+        "/api/auth/refresh",
+        json={"refresh_token": sample_refresh_token},
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -181,7 +184,6 @@ async def test_refresh_invalid_token(test_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_refresh_expired_token(test_client: AsyncClient):
     """Test refresh with expired token returns 401."""
-    # Create an expired token with past timestamp
     from datetime import datetime, timedelta, timezone
     from jose import jwt
 
@@ -204,20 +206,21 @@ async def test_refresh_expired_token(test_client: AsyncClient):
 # ── Me ───────────────────────────────────────────────────
 
 @pytest.mark.asyncio
-async def test_get_me_authenticated(test_client: AsyncClient, sample_user, sample_user_token):
+async def test_get_me_authenticated(test_client: AsyncClient, sample_user, sample_user_token, app):
     """Test /me returns user data when authenticated."""
-    with patch("app.core.dependencies.get_current_user") as mock_get_user:
-        mock_get_user.return_value = sample_user
-        with patch("app.api.auth.get_current_user", return_value=sample_user):
-            response = await test_client.get(
-                "/api/auth/me",
-                headers={"Authorization": f"Bearer {sample_user_token}"},
-            )
+    _override_get_user(app, sample_user)
+
+    response = await test_client.get(
+        "/api/auth/me",
+        headers={"Authorization": f"Bearer {sample_user_token}"},
+    )
 
     assert response.status_code == 200
     data = response.json()
     assert data["email"] == "testuser@example.com"
     assert data["full_name"] == "Test User"
+
+    app.dependency_overrides.clear()
 
 
 @pytest.mark.asyncio
@@ -238,11 +241,9 @@ async def test_change_password_success(sample_user, sample_user_token):
     """
     from app.core.security import hash_password, verify_password
 
-    # Test: password hashing round-trip
     original_hash = sample_user.hashed_password
     assert verify_password("testpassword123", original_hash) is True
 
-    # Test: new password hashing
     new_hash = hash_password("newsecurepass456")
     assert verify_password("newsecurepass456", new_hash) is True
     assert verify_password("testpassword123", new_hash) is False
@@ -253,10 +254,7 @@ async def test_change_password_wrong_current(sample_user):
     """Verify wrong current password is rejected by security utilities."""
     from app.core.security import verify_password
 
-    # The sample user has hash of "testpassword123"
-    # Verify that wrong password fails verification
     assert verify_password("wrongpassword", sample_user.hashed_password) is False
-    # Verify that correct password passes verification
     assert verify_password("testpassword123", sample_user.hashed_password) is True
 
 

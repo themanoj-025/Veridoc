@@ -168,33 +168,38 @@ class TestReciprocalRankFusion:
 class TestQueryRewrite:
     """Tests for query rewriting logic."""
 
-    def test_rewrite_long_query_no_change(self):
+    @pytest.mark.asyncio
+    async def test_rewrite_long_query_no_change(self):
         """Test that long queries are not rewritten."""
         history = [{"role": "user", "content": "What is machine learning?"}]
-        result = rewrite_query("What is deep learning?", history)
+        result = await rewrite_query("What is deep learning?", history)
         assert result is None  # Not rewritten because it's long enough
 
-    def test_rewrite_short_follow_up(self):
+    @pytest.mark.asyncio
+    async def test_rewrite_short_follow_up(self):
         """Test that short follow-ups get context prepended."""
         history = [{"role": "user", "content": "What is machine learning?"}]
-        result = rewrite_query("explain more", history)
+        result = await rewrite_query("explain more", history)
         assert result == "What is machine learning? explain more"
 
-    def test_rewrite_no_history(self):
+    @pytest.mark.asyncio
+    async def test_rewrite_no_history(self):
         """Test that no history means no rewriting."""
-        result = rewrite_query("explain more", [])
+        result = await rewrite_query("explain more", [])
         assert result is None
 
-    def test_rewrite_with_question_word(self):
+    @pytest.mark.asyncio
+    async def test_rewrite_with_question_word(self):
         """Test that short queries with question words are not rewritten."""
         history = [{"role": "user", "content": "Tell me about AI"}]
-        result = rewrite_query("What is it?", history)
+        result = await rewrite_query("What is it?", history)
         assert result is None  # Has question word, not a vague follow-up
 
-    def test_query_rewrite_function(self):
+    @pytest.mark.asyncio
+    async def test_query_rewrite_function(self):
         """Test the static query_rewrite function."""
         history = [{"role": "user", "content": "What is machine learning?"}]
-        result = query_rewrite("tell more", history)
+        result = await query_rewrite("tell more", history)
         assert "machine learning" in result
 
 
@@ -297,7 +302,8 @@ class TestRetrievalEdgeCases:
         assert len(merged_small_k) == 2
         assert len(merged_large_k) == 2
 
-    def test_query_rewrite_empty_history(self):
+    @pytest.mark.asyncio
+    async def test_query_rewrite_empty_history(self):
         """Test query_rewrite with empty history returns original query."""
-        result = query_rewrite("test", [])
+        result = await query_rewrite("test", [])
         assert result == "test"

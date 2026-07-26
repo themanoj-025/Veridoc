@@ -39,9 +39,25 @@ def patch_settings():
 @pytest_asyncio.fixture
 async def mock_db_session():
     """Create a mock async database session."""
+    from datetime import datetime, timezone
+
     session = AsyncMock()
     session.execute = AsyncMock()
+
+    async def _refresh_side_effect(obj):
+        """Simulate DB refresh by setting server-default fields."""
+        import uuid as _uuid
+        if hasattr(obj, 'id') and obj.id is None:
+            obj.id = _uuid.uuid4()
+        if hasattr(obj, 'is_active') and obj.is_active is None:
+            obj.is_active = True
+        if hasattr(obj, 'is_verified') and obj.is_verified is None:
+            obj.is_verified = False
+        if hasattr(obj, 'created_at') and obj.created_at is None:
+            obj.created_at = datetime.now(timezone.utc)
+
     session.flush = AsyncMock()
+    session.refresh = AsyncMock(side_effect=_refresh_side_effect)
     session.commit = AsyncMock()
     session.rollback = AsyncMock()
     session.close = AsyncMock()
@@ -163,19 +179,32 @@ def temp_upload_dir(tmp_path):
 
 # ── FastAPI Test Client ─────────────────────────────────
 
+from app.core.database import get_session as db_get_session
+
 @pytest_asyncio.fixture
-async def test_client() -> AsyncGenerator[AsyncClient, None]:
+async def test_client(mock_db_session) -> AsyncGenerator[AsyncClient, None]:
     """Create a FastAPI test client with mocked dependencies."""
-    # Patch database init
-    with patch("app.core.database.init_db", AsyncMock()), \
-         patch("app.core.database.close_db", AsyncMock()), \
-         patch("app.core.database.get_session"):
+    from app.main import app
 
-        from app.main import app
+    # Override the lifespan to avoid real DB init
+    app.router.lifespan = None
 
-        # Override the lifespan to avoid real DB init
-        app.router.lifespan = None
+    # Override DB session dependency
+    async def override_get_session():
+        yield mock_db_session
 
-        transport = ASGITransport(app=app)  # type: ignore[arg-type]
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            yield client
+    app.dependency_overrides[db_get_session] = override_get_session
+
+    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        yield client
+
+    # Clean up overrides
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def app():
+    """Provide the FastAPI app instance for dependency overrides."""
+    from app.main import app as _app
+    return _app

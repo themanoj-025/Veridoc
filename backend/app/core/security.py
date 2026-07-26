@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -30,9 +31,11 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def _create_token(data: dict, expires_delta: timedelta) -> str:
     to_encode = data.copy()
+    now = datetime.now(timezone.utc)
     to_encode.update({
-        "exp": datetime.now(timezone.utc) + expires_delta,
-        "iat": datetime.now(timezone.utc),
+        "exp": now + expires_delta,
+        "iat": now,
+        "jti": str(time.time_ns()),  # Unique token ID (nanosecond precision)
     })
     return jwt.encode(to_encode, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 

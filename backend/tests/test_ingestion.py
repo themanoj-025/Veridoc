@@ -42,7 +42,7 @@ class TestTextParsing:
     def test_parse_txt_unicode(self, tmp_path):
         """Test parsing a text file with unicode characters."""
         txt_file = tmp_path / "unicode.txt"
-        txt_file.write_text("Café résumé naïve 😊")
+        txt_file.write_text("Café résumé naïve 😊", encoding="utf-8")
 
         text, pages = _parse_txt(txt_file)
         assert "Café" in text
@@ -152,7 +152,10 @@ async def test_process_document_not_found():
     from app.services.ingestion import process_document
 
     mock_session = AsyncMock()
-    mock_session.execute.return_value.scalar_one_or_none.return_value = None
+    mock_session.execute = AsyncMock()
+    mock_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=None)
+    mock_session.__aenter__.return_value = mock_session
+
     mock_factory = MagicMock()
     mock_factory.return_value = mock_session
 
@@ -184,16 +187,25 @@ async def test_process_document_success(tmp_path):
     )
 
     # Mock session
+    import datetime as dt
+
     mock_session = AsyncMock()
-    mock_session.execute.return_value.scalar_one_or_none.return_value = doc
+    mock_session.execute = AsyncMock()
+    mock_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=doc)
+    mock_session.__aenter__.return_value = mock_session
+
+    # Ensure doc has required fields set (as DB would via server_default)
+    if doc.created_at is None:
+        doc.created_at = dt.datetime.now(dt.timezone.utc)
 
     mock_factory = MagicMock()
     mock_factory.return_value = mock_session
 
     # Mock the heavy dependencies
     with patch("app.services.ingestion.get_embedding_model") as mock_embed:
+        import numpy as np
         mock_model = MagicMock()
-        mock_model.encode = MagicMock(return_value=[[0.1] * 384])
+        mock_model.encode = MagicMock(return_value=np.array([[0.1] * 384]))
         mock_embed.return_value = mock_model
 
         with patch("app.services.ingestion.get_vector_store") as mock_vs:

@@ -42,3 +42,6 @@ eval/squad_dev_v2.0.json
 
 # Logs
 *.log
+
+# warning files
+=0.30.0
