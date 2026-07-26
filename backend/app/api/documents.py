@@ -6,7 +6,7 @@ import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
-from sqlalchemy import select, func, delete
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
@@ -14,7 +14,6 @@ from app.core.dependencies import get_current_user
 from app.core.config import settings
 from app.models.user import User
 from app.models.document import Document
-from app.models.chunk import Chunk
 from app.schemas.document import (
     DocumentUploadResponse,
     DocumentResponse,

@@ -9,10 +9,7 @@ Fetch evaluation data for Veridoc:
 Usage: python scripts/fetch_eval_data.py
 """
 
-import json
-import sys
 from pathlib import Path
-from datetime import datetime
 
 import httpx
 
@@ -86,7 +83,6 @@ def fetch_gutenberg_book():
     try:
         # Create a simple PDF with the first page rendered to an image
         from PIL import Image, ImageDraw, ImageFont
-        import io
 
         text_preview = response.text[:2000]
 

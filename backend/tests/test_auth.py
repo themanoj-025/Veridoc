@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 import uuid
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import select
 
 from app.core.security import hash_password, create_access_token, decode_token
-from app.models.user import User
 
 
 # ── Register ─────────────────────────────────────────────

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import uuid
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -12,7 +11,6 @@ from app.services.ingestion import (
     parse_document,
     chunk_text,
     _parse_txt,
-    _parse_docx,
 )
 
 
@@ -168,7 +166,6 @@ async def test_process_document_success(tmp_path):
     """Test the full document processing pipeline with mocks."""
     from app.services.ingestion import process_document
     from app.models.document import Document
-    from app.models.chunk import Chunk
 
     # Create a test document model
     doc_id = uuid.uuid4()

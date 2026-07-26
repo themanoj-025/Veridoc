@@ -2,16 +2,12 @@
 
 from __future__ import annotations
 
-import json
 import time
 import logging
-from pathlib import Path
 from typing import Any
 
 from app.services.retrieval import HybridRetriever
 from app.services.llm_provider import get_llm
-from app.services.ingestion import get_embedding_model
-from app.services.vector_store import get_vector_store
 
 logger = logging.getLogger(__name__)
 

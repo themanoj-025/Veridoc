@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
-from typing import AsyncGenerator, Generator
+from typing import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import pytest_asyncio
-from fastapi import FastAPI
 from httpx import AsyncClient, ASGITransport
 
 from app.core.config import settings
