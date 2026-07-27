@@ -160,9 +160,9 @@ def mock_bm25():
 
 @pytest.fixture
 def mock_bm25_builder(mock_bm25):
-    """Patch the BM25 index builder."""
-    with patch("app.services.retrieval._build_bm25_index") as mock_build:
-        mock_build.return_value = mock_bm25
+    """Patch the BM25 index builder in the retrieval package."""
+    with patch("app.services.retrieval.bm25.get_bm25_index") as mock_build:
+        mock_build.return_value = (mock_bm25, [])  # Returns (index, chunks) tuple
         yield mock_build
 
 

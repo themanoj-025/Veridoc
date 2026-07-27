@@ -4,16 +4,16 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
-from sqlalchemy import String, Text, Integer, DateTime, Float, ForeignKey, JSON, func
+from sqlalchemy import String, Text, Integer, DateTime, Float, ForeignKey, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
 if TYPE_CHECKING:
-    pass
+    from app.models.citation_record import CitationRecord
 
 
 class Message(Base):
@@ -27,9 +27,6 @@ class Message(Base):
     )
     role: Mapped[str] = mapped_column(String(50), nullable=False)  # user, assistant
     content: Mapped[str] = mapped_column(Text, nullable=False)
-
-    # Citations (JSON array of {chunk_id, document_id, text, page_number, score})
-    citations: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     # Performance tracking
     latency_ms: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -45,3 +42,5 @@ class Message(Base):
 
     # Relationships
     conversation = relationship("Conversation", back_populates="messages")
+    citation_records = relationship("CitationRecord", back_populates="message",
+                                      lazy="selectin", cascade="all, delete-orphan")

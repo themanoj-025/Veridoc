@@ -29,7 +29,7 @@ async def test_register_success(test_client: AsyncClient, mock_db_session, app):
     mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=None)
 
     response = await test_client.post(
-        "/api/auth/register",
+        "/api/v1/auth/register",
         json={
             "email": "newuser@example.com",
             "password": "securepass123",
@@ -52,7 +52,7 @@ async def test_register_duplicate_email(test_client: AsyncClient, mock_db_sessio
     mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=sample_user)
 
     response = await test_client.post(
-        "/api/auth/register",
+        "/api/v1/auth/register",
         json={
             "email": "testuser@example.com",
             "password": "securepass123",
@@ -67,7 +67,7 @@ async def test_register_duplicate_email(test_client: AsyncClient, mock_db_sessio
 async def test_register_short_password(test_client: AsyncClient):
     """Test registration with short password returns 422."""
     response = await test_client.post(
-        "/api/auth/register",
+        "/api/v1/auth/register",
         json={
             "email": "newuser@example.com",
             "password": "short",
@@ -84,7 +84,7 @@ async def test_login_success(test_client: AsyncClient, mock_db_session, sample_u
     mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=sample_user)
 
     response = await test_client.post(
-        "/api/auth/login",
+        "/api/v1/auth/login",
         json={
             "email": "testuser@example.com",
             "password": "testpassword123",
@@ -104,7 +104,7 @@ async def test_login_wrong_password(test_client: AsyncClient, mock_db_session, s
     mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=sample_user)
 
     response = await test_client.post(
-        "/api/auth/login",
+        "/api/v1/auth/login",
         json={
             "email": "testuser@example.com",
             "password": "wrongpassword",
@@ -121,7 +121,7 @@ async def test_login_nonexistent_user(test_client: AsyncClient, mock_db_session)
     mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=None)
 
     response = await test_client.post(
-        "/api/auth/login",
+        "/api/v1/auth/login",
         json={
             "email": "nobody@example.com",
             "password": "testpassword123",
@@ -138,7 +138,7 @@ async def test_login_inactive_user(test_client: AsyncClient, mock_db_session, sa
     mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=sample_user)
 
     response = await test_client.post(
-        "/api/auth/login",
+        "/api/v1/auth/login",
         json={
             "email": "testuser@example.com",
             "password": "testpassword123",
@@ -157,7 +157,7 @@ async def test_refresh_success(test_client: AsyncClient, mock_db_session, sample
     mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=sample_user)
 
     response = await test_client.post(
-        "/api/auth/refresh",
+        "/api/v1/auth/refresh",
         json={"refresh_token": sample_refresh_token},
     )
 
@@ -175,7 +175,7 @@ async def test_refresh_success(test_client: AsyncClient, mock_db_session, sample
 async def test_refresh_invalid_token(test_client: AsyncClient):
     """Test refresh with invalid token returns 401."""
     response = await test_client.post(
-        "/api/auth/refresh",
+        "/api/v1/auth/refresh",
         json={"refresh_token": "invalid-token"},
     )
     assert response.status_code == 401
@@ -197,7 +197,7 @@ async def test_refresh_expired_token(test_client: AsyncClient):
     expired_token = jwt.encode(expired_payload, settings.jwt_secret, algorithm="HS256")
 
     response = await test_client.post(
-        "/api/auth/refresh",
+        "/api/v1/auth/refresh",
         json={"refresh_token": expired_token},
     )
     assert response.status_code == 401
@@ -211,7 +211,7 @@ async def test_get_me_authenticated(test_client: AsyncClient, sample_user, sampl
     _override_get_user(app, sample_user)
 
     response = await test_client.get(
-        "/api/auth/me",
+        "/api/v1/auth/me",
         headers={"Authorization": f"Bearer {sample_user_token}"},
     )
 
@@ -220,13 +220,14 @@ async def test_get_me_authenticated(test_client: AsyncClient, sample_user, sampl
     assert data["email"] == "testuser@example.com"
     assert data["full_name"] == "Test User"
 
-    app.dependency_overrides.clear()
+    # Only remove our override — leave the session override from test_client
+    app.dependency_overrides.pop(get_current_user, None)
 
 
 @pytest.mark.asyncio
 async def test_get_me_unauthenticated(test_client: AsyncClient):
     """Test /me returns 401 when not authenticated."""
-    response = await test_client.get("/api/auth/me")
+    response = await test_client.get("/api/v1/auth/me")
     assert response.status_code == 401
 
 

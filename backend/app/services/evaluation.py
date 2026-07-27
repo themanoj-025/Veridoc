@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import time
-import logging
 from typing import Any
 
-from app.services.retrieval import HybridRetriever
+import structlog
+
+from app.services.retrieval.hybrid import HybridRetriever
 from app.services.llm_provider import get_llm
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 async def faithfulness_check(

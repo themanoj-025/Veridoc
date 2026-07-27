@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
+from app.core.rate_limit import limiter
 from app.core.security import (
     hash_password,
     verify_password,
@@ -27,11 +28,12 @@ from app.schemas.auth import (
     PasswordChange,
 )
 
-router = APIRouter(prefix="/api/auth", tags=["auth"])
+router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 
-@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-async def register(body: UserCreate, session: AsyncSession = Depends(get_session)):
+@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED, operation_id="auth_register")
+@limiter.limit("5/minute")
+async def register(request: Request, body: UserCreate, session: AsyncSession = Depends(get_session)):
     """Register a new user with email and password."""
     # Check if email already exists
     result = await session.execute(select(User).where(User.email == body.email))
@@ -53,6 +55,7 @@ async def register(body: UserCreate, session: AsyncSession = Depends(get_session
     access_token = create_access_token(user.id)
     refresh_token = create_refresh_token(user.id)
 
+    await session.close()
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
@@ -60,8 +63,9 @@ async def register(body: UserCreate, session: AsyncSession = Depends(get_session
     )
 
 
-@router.post("/login", response_model=TokenResponse)
-async def login(body: UserLogin, session: AsyncSession = Depends(get_session)):
+@router.post("/login", response_model=TokenResponse, operation_id="auth_login")
+@limiter.limit("5/minute")
+async def login(request: Request, body: UserLogin, session: AsyncSession = Depends(get_session)):
     """Authenticate a user and return JWT tokens."""
     result = await session.execute(select(User).where(User.email == body.email))
     user = result.scalar_one_or_none()
@@ -81,6 +85,7 @@ async def login(body: UserLogin, session: AsyncSession = Depends(get_session)):
     access_token = create_access_token(user.id)
     refresh_token = create_refresh_token(user.id)
 
+    await session.close()
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
@@ -88,7 +93,7 @@ async def login(body: UserLogin, session: AsyncSession = Depends(get_session)):
     )
 
 
-@router.post("/refresh", response_model=TokenResponse)
+@router.post("/refresh", response_model=TokenResponse, operation_id="auth_refresh")
 async def refresh(
     body: TokenRefresh,
     session: AsyncSession = Depends(get_session),
@@ -116,6 +121,7 @@ async def refresh(
     access_token = create_access_token(uid)
     new_refresh_token = create_refresh_token(uid)
 
+    await session.close()
     return TokenResponse(
         access_token=access_token,
         refresh_token=new_refresh_token,
@@ -123,13 +129,18 @@ async def refresh(
     )
 
 
-@router.get("/me", response_model=UserResponse)
-async def get_me(user: User = Depends(get_current_user)):
+@router.get("/me", response_model=UserResponse, operation_id="auth_get_me")
+async def get_me(
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
     """Get the currently authenticated user's profile."""
-    return UserResponse.model_validate(user)
+    result = UserResponse.model_validate(user)
+    await session.close()
+    return result
 
 
-@router.post("/change-password")
+@router.post("/change-password", operation_id="auth_change_password")
 async def change_password(
     body: PasswordChange,
     user: User = Depends(get_current_user),
@@ -144,5 +155,6 @@ async def change_password(
 
     user.hashed_password = hash_password(body.new_password)
     session.add(user)
+    await session.close()
     return {"message": "Password changed successfully"}
 

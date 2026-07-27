@@ -30,7 +30,7 @@ api.interceptors.response.use(
       try {
         const refreshToken = localStorage.getItem("refresh_token");
         if (refreshToken) {
-          const { data } = await axios.post(`${API_BASE}/api/auth/refresh`, {
+          const { data } = await axios.post(`${API_BASE}/api/v1/auth/refresh`, {
             refresh_token: refreshToken,
           });
           localStorage.setItem("access_token", data.access_token);
@@ -53,14 +53,14 @@ api.interceptors.response.use(
 // ── Auth ──
 export const auth = {
   register: (email: string, password: string, fullName?: string) =>
-    api.post("/api/auth/register", { email, password, full_name: fullName }),
+    api.post("/api/v1/auth/register", { email, password, full_name: fullName }),
   login: (email: string, password: string) =>
-    api.post("/api/auth/login", { email, password }),
+    api.post("/api/v1/auth/login", { email, password }),
   refresh: (refreshToken: string) =>
-    api.post("/api/auth/refresh", { refresh_token: refreshToken }),
-  me: () => api.get("/api/auth/me"),
+    api.post("/api/v1/auth/refresh", { refresh_token: refreshToken }),
+  me: () => api.get("/api/v1/auth/me"),
   changePassword: (currentPassword: string, newPassword: string) =>
-    api.post("/api/auth/change-password", { current_password: currentPassword, new_password: newPassword }),
+    api.post("/api/v1/auth/change-password", { current_password: currentPassword, new_password: newPassword }),
 };
 
 // ── Documents ──
@@ -69,26 +69,26 @@ export const documents = {
     const formData = new FormData();
     formData.append("file", file);
     if (title) formData.append("title", title);
-    return api.post("/api/documents/upload", formData, {
+    return api.post("/api/v1/documents/upload", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
-  list: () => api.get("/api/documents/"),
-  get: (id: string) => api.get(`/api/documents/${id}`),
+  list: () => api.get("/api/v1/documents/"),
+  get: (id: string) => api.get(`/api/v1/documents/${id}`),
   update: (id: string, data: { title?: string }) =>
-    api.patch(`/api/documents/${id}`, data),
-  delete: (id: string) => api.delete(`/api/documents/${id}`),
-  reindex: (id: string) => api.post(`/api/documents/${id}/reindex`),
+    api.patch(`/api/v1/documents/${id}`, data),
+  delete: (id: string) => api.delete(`/api/v1/documents/${id}`),
+  reindex: (id: string) => api.post(`/api/v1/documents/${id}/reindex`),
 };
 
 // ── Conversations ──
 export const conversations = {
   create: (data: { title?: string; document_ids?: string[] }) =>
-    api.post("/api/chat/conversations", data),
-  list: () => api.get("/api/chat/conversations"),
-  get: (id: string) => api.get(`/api/chat/conversations/${id}`),
-  delete: (id: string) => api.delete(`/api/chat/conversations/${id}`),
-  messages: (id: string) => api.get(`/api/chat/conversations/${id}/messages`),
+    api.post("/api/v1/chat/conversations", data),
+  list: () => api.get("/api/v1/chat/conversations"),
+  get: (id: string) => api.get(`/api/v1/chat/conversations/${id}`),
+  delete: (id: string) => api.delete(`/api/v1/chat/conversations/${id}`),
+  messages: (id: string) => api.get(`/api/v1/chat/conversations/${id}/messages`),
 };
 
 // ── Chat (SSE) ──
@@ -102,7 +102,7 @@ export function streamChat(
   const controller = new AbortController();
   const token = localStorage.getItem("access_token");
 
-  fetch(`${API_BASE}/api/chat/stream`, {
+  fetch(`${API_BASE}/api/v1/chat/stream`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

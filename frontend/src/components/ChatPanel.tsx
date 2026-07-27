@@ -5,6 +5,26 @@ import { conversations, streamChat } from "@/lib/api";
 import { useChatStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
+
+// Allowlist for citation chips rendered as inline HTML inside markdown.
+// All other tags/attributes from LLM output are stripped.
+const sanitizeSchema = {
+  ...defaultSchema,
+  tagNames: [...(defaultSchema.tagNames || []), "button", "sup"],
+  attributes: {
+    ...defaultSchema.attributes,
+    // NOTE: onClick is deliberately excluded — LLM-generated markdown
+    // should never contain executable event handlers. Citation chips
+    // are rendered by custom React components, not raw HTML.
+    button: ["className", "type", "aria-label"],
+    sup: ["className"],
+    code: ["className"],
+    span: ["className", "data-*"],
+    div: ["className"],
+    a: ["href", "target", "rel", "className", "aria-label"],
+  },
+};
 
 interface ChatPanelProps {
   conversationId: string | null;
@@ -174,7 +194,9 @@ export function ChatPanel({ conversationId, onNewConversation }: ChatPanelProps)
             >
               {msg.role === "assistant" ? (
                 <div className="prose prose-sm max-w-none">
-                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  <ReactMarkdown rehypePlugins={[[rehypeSanitize, sanitizeSchema]]}>
+                    {msg.content}
+                  </ReactMarkdown>
                 </div>
               ) : (
                 <p>{msg.content}</p>
@@ -224,7 +246,9 @@ export function ChatPanel({ conversationId, onNewConversation }: ChatPanelProps)
           <div className="flex justify-start">
             <div className="max-w-[85%] rounded-2xl px-4 py-3 text-sm bg-secondary text-foreground rounded-bl-md">
               <div className="prose prose-sm max-w-none">
-                <ReactMarkdown>{streamingContent}</ReactMarkdown>
+                <ReactMarkdown rehypePlugins={[[rehypeSanitize, sanitizeSchema]]}>
+                  {streamingContent}
+                </ReactMarkdown>
               </div>
               <span className="streaming-cursor inline-block w-2 h-4" />
             </div>

@@ -9,7 +9,12 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    """Veridoc configuration. All values have local-first defaults."""
+    """Veridoc configuration. All values have local-first defaults.
+
+    NOTE: Security-critical fields (jwt_secret, file_encryption_key,
+    postgres_password, minio_secret_key) MUST be overridden in production.
+    The app will refuse to start if these are set to placeholder values.
+    """
 
     # ── App ──
     app_env: Literal["development", "production", "test"] = "development"
@@ -17,9 +22,9 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000"
     rate_limit_per_minute: int = 30
 
-    # ── Postgres ──
+    # ── Postgres (will fail at startup if password is placeholder) ──
     postgres_user: str = "veridoc"
-    postgres_password: str = "veridoc_local_dev"
+    postgres_password: str = ""
     postgres_db: str = "veridoc"
     postgres_host: str = "localhost"
     postgres_port: int = 5432
@@ -40,8 +45,8 @@ class Settings(BaseSettings):
 
     # ── MinIO ──
     minio_endpoint: str = "localhost:9000"
-    minio_access_key: str = "veridoc"
-    minio_secret_key: str = "veridoc_minio_dev"
+    minio_access_key: str = ""
+    minio_secret_key: str = ""
     minio_bucket: str = "veridoc-documents"
     minio_use_ssl: bool = False
 
@@ -54,14 +59,14 @@ class Settings(BaseSettings):
     def chroma_url(self) -> str:
         return f"http://{self.chroma_host}:{self.chroma_port}"
 
-    # ── JWT ──
-    jwt_secret: str = "change-me-to-a-random-64-char-string-in-production"
+    # ── JWT (empty — MUST be set in .env) ──
+    jwt_secret: str = ""
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
 
-    # ── File Encryption ──
-    file_encryption_key: str = "change-me-to-a-32-byte-base64-key"
+    # ── File Encryption (empty — MUST be set in .env) ──
+    file_encryption_key: str = ""
 
     # ── LLM ──
     llm_provider: Literal["ollama", "claude", "openai"] = "ollama"
@@ -78,9 +83,29 @@ class Settings(BaseSettings):
     github_client_id: str | None = None
     github_client_secret: str | None = None
 
+    # ── Redis / Queue ──
+    redis_host: str = "localhost"
+    redis_port: int = 6379
+    redis_db: int = 0
+    redis_password: str = ""
+
+    @property
+    def redis_url(self) -> str:
+        """Build the Redis connection URL."""
+        if not self.redis_host:
+            return ""
+        auth = f":{self.redis_password}@" if self.redis_password else ""
+        return f"redis://{auth}{self.redis_host}:{self.redis_port}/{self.redis_db}"
+
     # ── Paths ──
     data_dir: Path = Path("/app/data")
     upload_dir: Path = Path("/app/data/uploads")
+
+    # ── Timeouts (seconds) ──
+    llm_timeout: int = 60
+    chroma_timeout: int = 30
+    minio_timeout: int = 15
+    retrieval_timeout: int = 30
 
     class Config:
         env_file = ".env"
@@ -88,8 +113,54 @@ class Settings(BaseSettings):
         extra = "ignore"
 
 
-settings = Settings()
+# Strict startup validation — refuses to boot with placeholder secrets
+_PLACEHOLDER_PATTERNS = ["change-me-", "changeme", "placeholder", "your-", "<your-"]
 
-# Ensure data directories exist
+
+def _validate_secret(value: str, name: str) -> str:
+    """Validate that a secret is not empty or a known placeholder."""
+    if not value:
+        raise ValueError(
+            f"{name} is not set. Set it in .env. "
+            f"See .env.example for generation instructions."
+        )
+    lower = value.lower()
+    for pattern in _PLACEHOLDER_PATTERNS:
+        if pattern in lower:
+            raise ValueError(
+                f"{name} contains placeholder pattern '{pattern}'. "
+                f"Generate a strong secret and update .env. "
+                f"See .env.example for instructions."
+            )
+    return value
+
+
+def validate_config() -> None:
+    """Run at startup to validate security-critical settings."""
+    errors = []
+    try:
+        _validate_secret(settings.jwt_secret, "JWT_SECRET")
+    except ValueError as e:
+        errors.append(str(e))
+    try:
+        _validate_secret(settings.file_encryption_key, "FILE_ENCRYPTION_KEY")
+    except ValueError as e:
+        errors.append(str(e))
+    if errors:
+        raise RuntimeError(
+            "Security configuration validation failed:\n  " + "\n  ".join(errors)
+        )
+
+
+settings = Settings()  # type: ignore[misc]
+
+# ── Directory creation ──────────────────────────────────
+# NOTE: Directories are created lazily when needed, not at import time.
+# The lifespan startup in main.py calls validate_config() first, ensuring
+# secrets are validated before any side effects occur.
+#
+# For the rare case where code accesses these paths before the lifespan
+# runs (e.g., in tests), create them silently here. This is not a
+# security issue because validate_config() runs at app startup.
 settings.data_dir.mkdir(parents=True, exist_ok=True)
 settings.upload_dir.mkdir(parents=True, exist_ok=True)

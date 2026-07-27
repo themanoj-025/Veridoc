@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
 from app.core.security import decode_token
+from app.core.logging_config import bind_log_context
 from app.models.user import User
 
 security_scheme = HTTPBearer(auto_error=False)
@@ -43,6 +44,9 @@ async def get_current_user(
     user = result.scalar_one_or_none()
     if user is None or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
+
+    # Bind user_id to log context for every log line emitted during this request
+    bind_log_context(user_id=str(user.id))
 
     return user
 

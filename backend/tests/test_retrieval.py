@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -211,10 +211,10 @@ async def test_hybrid_retriever_retrieve():
     retriever = HybridRetriever()
 
     # Mock the dense_search to return sample chunks
-    with patch("app.services.retrieval.dense_search") as mock_dense:
+    with patch("app.services.retrieval.hybrid.dense_search") as mock_dense:
         mock_dense.return_value = SAMPLE_CHUNKS
 
-        with patch("app.services.retrieval.bm25_search") as mock_bm25:
+        with patch("app.services.retrieval.hybrid.bm25_search") as mock_bm25:
             mock_bm25.return_value = SAMPLE_CHUNKS[:3]
 
             results = await retriever.retrieve(
@@ -232,10 +232,10 @@ async def test_hybrid_retriever_retrieve_no_docs():
     """Test HybridRetriever.retrieve with no document IDs."""
     retriever = HybridRetriever()
 
-    with patch("app.services.retrieval.dense_search") as mock_dense:
+    with patch("app.services.retrieval.hybrid.dense_search") as mock_dense:
         mock_dense.return_value = SAMPLE_CHUNKS
 
-        with patch("app.services.retrieval.bm25_search") as mock_bm25:
+        with patch("app.services.retrieval.hybrid.bm25_search") as mock_bm25:
             mock_bm25.return_value = []
 
             results = await retriever.retrieve(
@@ -252,7 +252,7 @@ async def test_hybrid_retriever_rerank_fallback():
     """Test rerank falls back to score-based sort when reranker is None."""
     retriever = HybridRetriever()
 
-    with patch("app.services.retrieval.get_reranker") as mock_get:
+    with patch("app.services.retrieval.hybrid.get_reranker") as mock_get:
         mock_get.return_value = None  # Reranker unavailable
 
         results = await retriever.rerank("test query", SAMPLE_CHUNKS, top_k=3)
@@ -269,6 +269,68 @@ async def test_hybrid_retriever_rerank_empty():
     retriever = HybridRetriever()
     results = await retriever.rerank("test query", [])
     assert results == []
+
+
+# ── Session Regression (A1) ──────────────────────────────
+
+@pytest.mark.asyncio
+async def test_session_no_auto_commit_on_yield():
+    """Regression test for A1: verify get_session() does NOT auto-commit
+    or auto-close around the caller's business logic.
+
+    The old behavior called commit() inside the dependency generator, which
+    meant the session could be committed/closed before an SSE streaming
+    generator finished writing to it. The new behavior yields the session
+    raw, leaving commit/close ownership to the caller.
+
+    This test verifies:
+      1. commit() is NOT called by get_session on yield
+      2. close() is NOT called by get_session on yield
+      3. close() is NOT called by get_session on normal generator exit
+         (the caller is responsible for closing)
+      4. commit() IS called exactly once by the caller
+    """
+    from app.core.database import get_session
+
+    mock_session = AsyncMock()
+    mock_session.commit = AsyncMock()
+    mock_session.close = AsyncMock()
+    mock_session.rollback = AsyncMock()
+    mock_session.execute = AsyncMock()
+    mock_session.add = MagicMock()
+
+    mock_factory = MagicMock()
+    mock_factory.return_value = mock_session
+
+    with patch("app.core.database.async_session_factory", mock_factory):
+        gen = get_session()
+        session = await gen.__anext__()
+
+        # 1. No commit/close should have been called by get_session
+        mock_session.commit.assert_not_called()
+        mock_session.close.assert_not_called()
+
+        # Simulate the caller doing work
+        await session.execute("SELECT 1")
+
+        # 2. The caller commits explicitly
+        await session.commit()
+        mock_session.commit.assert_called_once()
+
+        # 3. The caller closes the session explicitly
+        await session.close()
+        mock_session.close.assert_called_once()
+
+        # 4. Finish the generator (mimics FastAPI dependency cleanup)
+        try:
+            await gen.__anext__()
+        except StopAsyncIteration:
+            pass
+
+        # 5. close() should NOT be called BY THE GENERATOR — the caller
+        #    already closed, and the generator does NOT close on exit
+        #    (count should still be 1 — the caller's call)
+        mock_session.close.assert_called_once()
 
 
 # ── Edge Cases ───────────────────────────────────────────

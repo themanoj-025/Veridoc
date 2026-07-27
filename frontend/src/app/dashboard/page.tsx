@@ -7,6 +7,7 @@ import { documents, conversations, auth as authApi } from "@/lib/api";
 import { ChatPanel } from "@/components/ChatPanel";
 import { DocumentList } from "@/components/DocumentList";
 import { DocumentViewer } from "@/components/DocumentViewer";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { cn } from "@/lib/utils";
 
 export default function Dashboard() {
@@ -37,7 +38,7 @@ export default function Dashboard() {
   const loadDocuments = async () => {
     try {
       const res = await documents.list();
-      setDocList(res.data.documents || []);
+      setDocList(res.data.items || []);
     } catch (err) {
       console.error("Failed to load documents:", err);
     }
@@ -46,7 +47,7 @@ export default function Dashboard() {
   const loadConversations = async () => {
     try {
       const res = await conversations.list();
-      setConvList(res.data.conversations || []);
+      setConvList(res.data.items || []);
     } catch (err) {
       console.error("Failed to load conversations:", err);
     }
@@ -172,7 +173,9 @@ export default function Dashboard() {
           "md:block",
           mobileView !== "viewer" && "hidden md:hidden"
         )}>
-          <DocumentViewer documentId={selectedDocId} />
+          <ErrorBoundary name="Document Viewer">
+            <DocumentViewer documentId={selectedDocId} />
+          </ErrorBoundary>
         </div>
 
         {/* Chat panel */}
@@ -181,10 +184,12 @@ export default function Dashboard() {
           "md:flex",
           mobileView !== "chat" && "hidden"
         )}>
-          <ChatPanel
-            conversationId={conversationId}
-            onNewConversation={handleNewConversation}
-          />
+          <ErrorBoundary name="Chat Panel">
+            <ChatPanel
+              conversationId={conversationId}
+              onNewConversation={handleNewConversation}
+            />
+          </ErrorBoundary>
         </div>
       </div>
 

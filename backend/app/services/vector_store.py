@@ -18,7 +18,19 @@ class VectorStore:
         self.client = chromadb.HttpClient(
             host=settings.chroma_host,
             port=settings.chroma_port,
-            settings=ChromaSettings(anonymized_telemetry=False),
+            settings=ChromaSettings(
+                anonymized_telemetry=False,
+                chroma_server_grpc_max_message_length=settings.chroma_timeout * 1000 * 1000,
+            ),
+        )
+        # Apply HTTP timeout — the underlying httpx client respects this
+        # by setting a read timeout on the transport adapter
+        import httpx
+        transport = httpx.AsyncHTTPTransport(retries=1)
+        self.client._client = httpx.AsyncClient(
+            transport=transport,
+            timeout=httpx.Timeout(settings.chroma_timeout),
+            follow_redirects=True,
         )
         self.collection_name = settings.chroma_collection
         self._collection = None
@@ -93,9 +105,42 @@ class VectorStore:
                 })
         return chunks
 
+    async def get_all_chunks(self, document_ids: list[str] | None = None) -> list[dict[str, Any]]:
+        """Retrieve ALL chunks for the given document IDs (not just top-k).
+
+        Used by the BM25 indexer to build a complete lexical index over
+        the full document corpus, rather than only the top dense results.
+        """
+        where = None
+        if document_ids:
+            where = {"document_id": {"$in": document_ids}}
+
+        results = self.collection.get(
+            where=where,
+            include=["documents", "metadatas"],
+        )
+
+        chunks: list[dict[str, Any]] = []
+        if results["ids"]:
+            for i in range(len(results["ids"])):
+                meta = results["metadatas"][i] if results["metadatas"] else {}
+                chunks.append({
+                    "chunk_id": results["ids"][i],
+                    "content": results["documents"][i] if results["documents"] else "",
+                    "document_id": meta.get("document_id", ""),
+                    "document_title": meta.get("document_title", ""),
+                    "page_number": meta.get("page_number"),
+                })
+        return chunks
+
     async def delete_document(self, document_id: str) -> None:
         """Delete all chunks for a document."""
         self.collection.delete(where={"document_id": document_id})
+
+        # Invalidate BM25 cache when documents are deleted
+        # (lazy import avoids circular dep: vector_store → retrieval.bm25 → retrieval.dense → vector_store)
+        from app.services.retrieval.bm25 import invalidate_bm25_index as _invalidate  # type: ignore[import]
+        _invalidate()
 
     async def count_documents(self) -> int:
         """Get the total number of chunks in the collection."""

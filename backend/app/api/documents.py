@@ -6,7 +6,7 @@ import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
@@ -19,17 +19,20 @@ from app.schemas.document import (
     DocumentResponse,
     DocumentUpdate,
     DocumentListResponse,
-    IngestionStatus,
+    IngestionStatus    ,
 )
+from app.services.job_queue import get_job_queue
 from app.services.ingestion import process_document
+from app.models.chunk import Chunk
+from app.core.logging_config import bind_log_context
 
-router = APIRouter(prefix="/api/documents", tags=["documents"])
+router = APIRouter(prefix="/api/v1/documents", tags=["documents"])
 
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc", ".txt"}
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 
 
-@router.post("/upload", response_model=DocumentUploadResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/upload", response_model=DocumentUploadResponse, status_code=status.HTTP_201_CREATED, operation_id="documents_upload")
 async def upload_document(
     file: UploadFile = File(...),
     title: str | None = Form(None),
@@ -80,49 +83,70 @@ async def upload_document(
     await session.flush()
     await session.refresh(doc)
 
-    # Start async processing with its own session
-    import asyncio
-    from app.core.database import async_session_factory
-    asyncio.create_task(process_document(doc.id, session_factory=async_session_factory))
+    # Enqueue background ingestion via job queue
+    await get_job_queue().enqueue_job(
+        process_document,
+        doc.id,
+        session_factory=None,
+        job_id=str(doc.id),
+        max_retries=3,
+    )
 
+    await session.close()
     return DocumentUploadResponse.model_validate(doc)
 
 
-@router.get("/", response_model=DocumentListResponse)
+@router.get("/", response_model=DocumentListResponse, operation_id="documents_list")
 async def list_documents(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
+    limit: int = 50,
+    offset: int = 0,
 ):
-    """List all documents for the current user."""
+    """List documents for the current user with pagination."""
+    # Get total count
+    count_result = await session.execute(
+        select(func.count(Document.id)).where(Document.user_id == user.id)
+    )
+    total = count_result.scalar() or 0
+
     result = await session.execute(
         select(Document)
         .where(Document.user_id == user.id)
         .order_by(Document.created_at.desc())
+        .limit(limit)
+        .offset(offset)
     )
     docs = result.scalars().all()
+    await session.close()
     return DocumentListResponse(
-        documents=[DocumentResponse.model_validate(d) for d in docs],
-        total=len(docs),
+        items=[DocumentResponse.model_validate(d) for d in docs],
+        total=total,
+        limit=limit,
+        offset=offset,
     )
 
 
-@router.get("/{document_id}", response_model=DocumentResponse)
+@router.get("/{document_id}", response_model=DocumentResponse, operation_id="documents_get")
 async def get_document(
     document_id: uuid.UUID,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
     """Get a specific document's details."""
+    bind_log_context(document_id=str(document_id))
     result = await session.execute(
         select(Document).where(Document.id == document_id, Document.user_id == user.id)
     )
     doc = result.scalar_one_or_none()
     if not doc:
+        await session.close()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    await session.close()
     return DocumentResponse.model_validate(doc)
 
 
-@router.patch("/{document_id}", response_model=DocumentResponse)
+@router.patch("/{document_id}", response_model=DocumentResponse, operation_id="documents_update")
 async def update_document(
     document_id: uuid.UUID,
     body: DocumentUpdate,
@@ -130,6 +154,7 @@ async def update_document(
     session: AsyncSession = Depends(get_session),
 ):
     """Update document metadata (e.g., title)."""
+    bind_log_context(document_id=str(document_id))
     result = await session.execute(
         select(Document).where(Document.id == document_id, Document.user_id == user.id)
     )
@@ -142,16 +167,61 @@ async def update_document(
     session.add(doc)
     await session.flush()
     await session.refresh(doc)
+    await session.close()
     return DocumentResponse.model_validate(doc)
 
 
-@router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.get("/{document_id}/content", operation_id="documents_get_content")
+async def get_document_content(
+    document_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    """Get a document's text content and chunks for the frontend viewer."""
+    bind_log_context(document_id=str(document_id))
+    result = await session.execute(
+        select(Document).where(Document.id == document_id, Document.user_id == user.id)
+    )
+    doc = result.scalar_one_or_none()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+
+    # Get chunks
+    chunks_result = await session.execute(
+        select(Chunk)
+        .where(Chunk.document_id == doc.id)
+        .order_by(Chunk.chunk_index)
+    )
+    chunks = chunks_result.scalars().all()
+
+    return {
+        "id": str(doc.id),
+        "title": doc.title,
+        "filename": doc.filename,
+        "file_type": doc.file_type,
+        "status": doc.status,
+        "page_count": doc.page_count,
+        "chunk_count": doc.chunk_count,
+        "chunks": [
+            {
+                "index": c.chunk_index,
+                "content": c.content,
+                "page_number": c.page_number,
+            }
+            for c in chunks
+        ],
+    }
+    await session.close()
+
+
+@router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT, operation_id="documents_delete")
 async def delete_document(
     document_id: uuid.UUID,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
     """Delete a document and its chunks."""
+    bind_log_context(document_id=str(document_id))
     result = await session.execute(
         select(Document).where(Document.id == document_id, Document.user_id == user.id)
     )
@@ -172,15 +242,17 @@ async def delete_document(
 
     # Delete from database
     await session.delete(doc)
+    await session.close()
 
 
-@router.post("/{document_id}/reindex", response_model=IngestionStatus)
+@router.post("/{document_id}/reindex", response_model=IngestionStatus, operation_id="documents_reindex")
 async def reindex_document(
     document_id: uuid.UUID,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
     """Re-index a document (re-chunk and re-embed)."""
+    bind_log_context(document_id=str(document_id))
     result = await session.execute(
         select(Document).where(Document.id == document_id, Document.user_id == user.id)
     )
@@ -193,10 +265,16 @@ async def reindex_document(
     session.add(doc)
     await session.flush()
 
-    import asyncio
-    from app.core.database import async_session_factory
-    asyncio.create_task(process_document(doc.id, session_factory=async_session_factory))
+    # Enqueue reindex job
+    await get_job_queue().enqueue_job(
+        process_document,
+        doc.id,
+        session_factory=None,
+        job_id=f"reindex-{doc.id}",
+        max_retries=3,
+    )
 
+    await session.close()
     return IngestionStatus(
         document_id=doc.id,
         status="pending",

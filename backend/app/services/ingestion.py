@@ -3,19 +3,20 @@
 from __future__ import annotations
 
 import uuid
-import logging
 from pathlib import Path
 from typing import Any
 
+import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.database import async_session_factory
 from app.models.document import Document
 from app.models.chunk import Chunk
+from app.services.chunking import recursive_chunk_text
 from app.services.vector_store import get_vector_store
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 # Global embedding model (lazy-loaded)
 _embedding_model = None
@@ -97,6 +98,11 @@ async def process_document(
             doc.status = "indexed"
             doc.page_count = max(pages.values()) if pages else len(set(pages.values())) if pages else None
             await session.commit()
+
+            # Invalidate BM25 cache so subsequent queries pick up the new content
+            # (lazy import avoids circular dep: ingestion → retrieval.bm25 → retrieval.dense → ingestion)
+            from app.services.retrieval.bm25 import invalidate_bm25_index as _invalidate  # type: ignore[import]
+            _invalidate()
             logger.info(f"Document {doc.id} indexed with {len(chunks)} chunks")
 
         except Exception as e:
@@ -205,37 +211,20 @@ def chunk_text(
     doc_id: str,
     doc_title: str,
     pages: dict[int, int] | None = None,
-    chunk_size: int = 512,
-    overlap: int = 64,
+    chunk_size: int = 1500,
+    overlap: int = 200,
 ) -> list[dict[str, Any]]:
-    """Split text into overlapping chunks."""
-    words = text.split()
-    chunks = []
-    start = 0
+    """Split text into chunks respecting natural language boundaries.
 
-    while start < len(words):
-        end = min(start + chunk_size, len(words))
-        chunk_words = words[start:end]
-        chunk_text_str = " ".join(chunk_words)
-
-        # Determine page number from character offset
-        char_offset = sum(len(w) + 1 for w in words[:start])
-        page_number = None
-        if pages:
-            sorted_offsets = sorted(pages.keys())
-            for off in reversed(sorted_offsets):
-                if char_offset >= off:
-                    page_number = pages[off]
-                    break
-
-        chunks.append({
-            "document_id": doc_id,
-            "document_title": doc_title,
-            "chunk_index": len(chunks),
-            "content": chunk_text_str,
-            "page_number": page_number,
-        })
-
-        start += chunk_size - overlap
-
-    return chunks
+    Delegates to the recursive boundary-aware splitter in
+    ``app.services.chunking`` which tries paragraph → sentence → word
+    boundaries before falling back to character-level splits.
+    """
+    return recursive_chunk_text(
+        text=text,
+        doc_id=doc_id,
+        doc_title=doc_title,
+        pages=pages,
+        chunk_size=chunk_size,
+        chunk_overlap=overlap,
+    )

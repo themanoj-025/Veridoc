@@ -7,6 +7,8 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
+from app.schemas.base import PaginatedResponse
+
 
 class DocumentUploadResponse(BaseModel):
     id: uuid.UUID
@@ -42,9 +44,13 @@ class DocumentUpdate(BaseModel):
     title: str | None = None
 
 
-class DocumentListResponse(BaseModel):
-    documents: list[DocumentResponse]
-    total: int
+class DocumentListResponse(PaginatedResponse[DocumentResponse]):
+    """Paginated list of documents.
+
+    Inherits ``items`` (the documents), ``total``, ``limit``, ``offset``
+    from ``PaginatedResponse``.
+    """
+    pass
 
 
 class IngestionStatus(BaseModel):
