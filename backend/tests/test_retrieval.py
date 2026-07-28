@@ -168,30 +168,20 @@ class TestQueryRewrite:
     """Tests for query rewriting logic."""
 
     @pytest.mark.asyncio
-    async def test_rewrite_long_query_no_change(self):
-        """Test that long queries are not rewritten."""
+    async def test_rewrite_long_query_no_rewrite(self):
+        """Test that long queries without demonstratives are not rewritten."""
         history = [{"role": "user", "content": "What is machine learning?"}]
-        result = await rewrite_query("What is deep learning?", history)
-        assert result is None  # Not rewritten because it's long enough
+        result = await rewrite_query("What is deep learning and how does it work?", history)
+        assert result is None
 
     @pytest.mark.asyncio
-    async def test_rewrite_short_follow_up(self):
-        """Test that a demonstrative-containing short query gets rewritten.
-
-        With the new LLM-based rewrite, the function returns None when
-        no LLM is available (tests). The old heuristic fallback is dead
-        code and has been removed. The LLM rewrite path is tested via
-        integration with a mock LLM provider.
-        """
+    async def test_rewrite_short_follow_up_no_llm(self):
+        """Test short query rewrite returns None when no LLM available."""
         history = [
             {"role": "user", "content": "What is machine learning?"},
             {"role": "assistant", "content": "Machine learning is..."},
         ]
-        # With the LLM-based rewrite, when no LLM is available,
-        # it falls back to returning None (use original query).
-        # This is the expected behavior — the LLM rewrite is an optimization.
         result = await rewrite_query("explain more", history)
-        # No LLM available in tests, so returns None (falls back to original query)
         assert result is None
 
     @pytest.mark.asyncio
@@ -199,13 +189,6 @@ class TestQueryRewrite:
         """Test that no history means no rewriting."""
         result = await rewrite_query("explain more", [])
         assert result is None
-
-    @pytest.mark.asyncio
-    async def test_rewrite_long_query_no_change(self):
-        """Test that long queries are not rewritten."""
-        history = [{"role": "user", "content": "What is machine learning?"}]
-        result = await rewrite_query("What is deep learning and how does it work?", history)
-        assert result is None  # Not rewritten because it's long and no demonstrative
 
     @pytest.mark.asyncio
     async def test_rewrite_with_mock_llm(self):

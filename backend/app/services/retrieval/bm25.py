@@ -18,7 +18,18 @@ import structlog
 
 logger = structlog.get_logger(__name__)
 
-# Cached BM25 indexes: cache_key -> (BM25Okapi, list_of_chunks)
+# Cached BM25 indexes: cache_key -> (BM25Okapi, list_of_chunks).
+#
+# This is intentionally a module-level dict (NOT a service singleton).
+# It is a **performance cache** that:
+#   - Avoids O(chunks) BM25 index rebuild on every query
+#   - Is invalidated via invalidate_bm25_index() when documents change
+#   - Has a well-defined lifecycle (cache keyed by sorted document IDs)
+#
+# Unlike _vector_store / _provider / etc., this cache does not represent
+# an injectable service dependency — it is an internal implementation
+# detail of the BM25 retrieval module.  The surrounding getter functions
+# (get_vector_store, get_llm, etc.) are already container-aware via DI.
 _bm25_indexes: dict[str, Any] = {}
 
 # Sentinel to detect first-call NLTK download requests

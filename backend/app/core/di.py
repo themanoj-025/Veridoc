@@ -56,7 +56,7 @@ from __future__ import annotations
 from contextvars import ContextVar
 from typing import Any
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 
 # ContextVar that holds the active DIContainer for the current asyncio context.
 # Set during the FastAPI lifespan, read by all getter functions.
@@ -178,15 +178,4 @@ def init_container(app: FastAPI) -> DIContainer:
     return container
 
 
-def get_di_container_dep(request: Request) -> DIContainer | None:
-    """FastAPI ``Depends`` that yields the DI container from ``app.state``.
 
-    Usage::
-
-        @router.get(...)
-        async def handler(
-            container: DIContainer | None = Depends(get_di_container_dep),
-        ):
-            vs = container.vector_store if container else None
-    """
-    return getattr(request.app.state, "container", None)

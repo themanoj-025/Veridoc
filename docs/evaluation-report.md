@@ -1,6 +1,6 @@
 # Veridoc -- Evaluation Report
 
-*Generated: 2026-07-28 15:31:48 UTC*
+*Generated: 2026-07-28 17:11:10 UTC*
 *Environment: Python 3.14.5, Standalone pipeline logic test*
 *Full end-to-end metrics require live Docker stack (Postgres, Chroma, Ollama). See Reproduction section below.*
 

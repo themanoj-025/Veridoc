@@ -1,10 +1,10 @@
-"""FastAPI dependencies — auth, DB sessions, rate limiting."""
+"""FastAPI dependencies — auth, DB sessions, DI container, rate limiting."""
 
 from __future__ import annotations
 
 import uuid
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -49,6 +49,20 @@ async def get_current_user(
     bind_log_context(user_id=str(user.id))
 
     return user
+
+
+def get_di_container_dep(request: Request):
+    """FastAPI ``Depends`` that yields the DI container from ``app.state``.
+
+    Usage::
+
+        from app.core.dependencies import get_di_container_dep
+
+        @router.get(...)
+        async def handler(container=Depends(get_di_container_dep)):
+            vs = container.vector_store if container else None
+    """
+    return getattr(request.app.state, "container", None)
 
 
 async def get_optional_user(
