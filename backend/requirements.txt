@@ -50,7 +50,7 @@ aiofiles==24.1.0
 sse-starlette==2.1.0
 
 # ── Rate Limiting ──
-slowapi==0.1.9
+slowapi==0.1.10
 
 # ── Job Queue (ARQ + Redis) ──
 arq==0.26.1
