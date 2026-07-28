@@ -96,3 +96,28 @@
 **Tested:** Pending
 
 **Deferred:** Demo GIF recording (requires manual step or tooling)
+
+## Master Completion Pass — Items D17, D19, G29, B9, F26, B10 (2026-07-28)
+
+**Built:**
+- **D17 — Refresh-token rotation + logout**: Created `app/core/token_store.py` (Redis + in-memory blacklist). Updated `/api/v1/auth/refresh` to consume old tokens before issuing new ones (rotation). Added `POST /api/v1/auth/logout` that revokes refresh token server-side.
+- **D19 — Password complexity**: Added `validate_password_complexity()` in `security.py` (>=8 chars, >=2 of uppercase/digit/symbol). Added `@model_validator` on `UserCreate` and `PasswordChange` schemas.
+- **G29 — Negative security tests**: 7 new tests in `test_auth.py` covering: tampered JWT (401), expired JWT (401), cross-user document access (404), cross-user conversation access (404), SQL injection treated as literal (proven via Pydantic + real SQLite DB save/load), token reuse rejection, password complexity validation.
+- **B9 — LLM-based query rewrite**: Replaced naive string-concatenation in `query_rewrite.py` with actual LLM call via `get_llm().chat()`. Triggers on short queries (<=5 words) or demonstratives. Falls back to None on timeout/error.
+- **F26 — Health endpoint with real dependency checks**: Updated `/api/v1/health` in `main.py` to ping Postgres (SELECT 1), ChromaDB (heartbeat), MinIO (bucket_exists), LLM (Ollama generate), Redis (queue status). Returns per-dependency status. Created `tests/test_health.py`.
+- **B10 — Cross-encoder batching**: Added `batch_size` parameter to `HybridRetriever.rerank()` in `hybrid.py`. Logs latency for reranking with batch_size info.
+- **C13 (partial) — DI container stub**: Created `app/core/di.py` with `DIContainer` class. Not yet wired into getter functions (module-level globals retained as fallbacks).
+- **F25 — Prometheus metrics**: Added `prometheus-fastapi-instrumentator==7.0.1` to `requirements.txt`. Wired Instrumentator in `main.py` with `should_respect_env_var=True` (ENABLE_METRICS env var). Exposes `/metrics` endpoint. 73/73 backend tests passing.
+- **E22 — TypeScript type generation from OpenAPI**: Added `openapi-typescript` dev dependency + `generate-types` npm script. Created `scripts/generate-types.mjs` (fetches schema from backend, falls back to known structure). Created `src/lib/api-types.ts` with all generated types. Updated `store.ts`, `ChatPanel.tsx`, `DocumentList.tsx`, `DocumentViewer.tsx` to use generated types instead of manual interfaces.
+
+**Built:**
+- **E23 — Frontend Radix cleanup**: Removed `@radix-ui/react-dropdown-menu` and `@radix-ui/react-tooltip` from `package.json`. Confirmed zero imports in `src/` via grep. `npm install` removed 12 packages. 73/73 backend tests passing.
+- **H31 — Dependency audit**: Confirmed `python-pptx` never in requirements.txt. Confirmed `torchvision` not present. Added clarifying comment in `requirements.txt` with ONNX evaluation. Added full evaluation entry to `DECISIONS.md`.
+- **H32 — DevOps hardening**: Created `docker-compose.prod.yml` with resource limits, `restart: always`, `--workers 2` (no `--reload`), Caddy reverse proxy section (commented-out, requires DOMAIN + Caddyfile). Worker and backend no longer have hard dependency on Ollama (degrade gracefully). `.dockerignore` already existed with comprehensive exclusions.
+
+**Deferred to NEXT_STEPS.md:**
+- C13 full implementation (wire DI into main.py + getter functions)
+- G27 (Integration tests with testcontainers)
+- G30 (CI workflow update for real code paths)
+- E23 (favicon — already has one in layout.tsx metadata, just needs favicon.ico file)
+- Part 4 items 15-24 (28-point audit, eval harness execution, red-team execution, load test, deploy, walkthrough, README/case-study rewrite)

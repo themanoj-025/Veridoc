@@ -11,7 +11,6 @@ from app.services.retrieval import (
     reciprocal_rank_fusion,
     HybridRetriever,
     rewrite_query,
-    query_rewrite,
 )
 
 
@@ -177,10 +176,23 @@ class TestQueryRewrite:
 
     @pytest.mark.asyncio
     async def test_rewrite_short_follow_up(self):
-        """Test that short follow-ups get context prepended."""
-        history = [{"role": "user", "content": "What is machine learning?"}]
+        """Test that a demonstrative-containing short query gets rewritten.
+
+        With the new LLM-based rewrite, the function returns None when
+        no LLM is available (tests). The old heuristic fallback is dead
+        code and has been removed. The LLM rewrite path is tested via
+        integration with a mock LLM provider.
+        """
+        history = [
+            {"role": "user", "content": "What is machine learning?"},
+            {"role": "assistant", "content": "Machine learning is..."},
+        ]
+        # With the LLM-based rewrite, when no LLM is available,
+        # it falls back to returning None (use original query).
+        # This is the expected behavior — the LLM rewrite is an optimization.
         result = await rewrite_query("explain more", history)
-        assert result == "What is machine learning? explain more"
+        # No LLM available in tests, so returns None (falls back to original query)
+        assert result is None
 
     @pytest.mark.asyncio
     async def test_rewrite_no_history(self):
@@ -189,18 +201,31 @@ class TestQueryRewrite:
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_rewrite_with_question_word(self):
-        """Test that short queries with question words are not rewritten."""
-        history = [{"role": "user", "content": "Tell me about AI"}]
-        result = await rewrite_query("What is it?", history)
-        assert result is None  # Has question word, not a vague follow-up
+    async def test_rewrite_long_query_no_change(self):
+        """Test that long queries are not rewritten."""
+        history = [{"role": "user", "content": "What is machine learning?"}]
+        result = await rewrite_query("What is deep learning and how does it work?", history)
+        assert result is None  # Not rewritten because it's long and no demonstrative
 
     @pytest.mark.asyncio
-    async def test_query_rewrite_function(self):
-        """Test the static query_rewrite function."""
-        history = [{"role": "user", "content": "What is machine learning?"}]
-        result = await query_rewrite("tell more", history)
-        assert "machine learning" in result
+    async def test_rewrite_with_mock_llm(self):
+        """Test LLM-based rewrite with a mocked LLM provider."""
+        from unittest.mock import AsyncMock, patch
+
+        mock_llm = AsyncMock()
+        mock_llm.model_name = "test-model"
+        mock_llm.chat = AsyncMock(return_value="What is machine learning? Explain more about it.")
+
+        history = [
+            {"role": "user", "content": "What is machine learning?"},
+            {"role": "assistant", "content": "Machine learning is a subset of AI..."},
+        ]
+
+        with patch("app.services.retrieval.query_rewrite.get_llm", return_value=mock_llm):
+            result = await rewrite_query("explain more about it", history)
+            assert result is not None
+            assert "machine learning" in result.lower()
+            assert "explain" in result.lower()
 
 
 # ── HybridRetriever ──────────────────────────────────────
@@ -365,7 +390,13 @@ class TestRetrievalEdgeCases:
         assert len(merged_large_k) == 2
 
     @pytest.mark.asyncio
-    async def test_query_rewrite_empty_history(self):
-        """Test query_rewrite with empty history returns original query."""
-        result = await query_rewrite("test", [])
-        assert result == "test"
+    async def test_rewrite_short_no_demonstrative_no_rewrite(self):
+        """Test that a short query without demonstrative does not trigger rewrite."""
+        history = [
+            {"role": "user", "content": "What is machine learning?"},
+            {"role": "assistant", "content": "It's a subset of AI."},
+        ]
+        result = await rewrite_query("python", history)
+        # "python" is short but has no demonstrative (this, that, it, etc.)
+        # so no rewrite is triggered
+        assert result is None

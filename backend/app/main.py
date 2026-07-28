@@ -17,6 +17,8 @@ from app.core.logging_config import (
     configure_logging,
     generate_request_id,
 )
+from sqlalchemy import text
+
 from app.services.job_queue import get_job_queue
 from app.api import auth, documents, chat
 
@@ -94,6 +96,22 @@ else:
     logger.warning("slowapi not installed, rate limiting disabled")
 
 
+# ── Prometheus Metrics ──────────────────────────────────
+try:
+    from prometheus_fastapi_instrumentator import Instrumentator
+
+    instrumentator = Instrumentator(
+        should_group_status_codes=True,
+        should_ignore_untemplated=True,
+        should_respect_env_var=True,
+        env_var_name="ENABLE_METRICS",
+    )
+    instrumentator.instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
+    logger.info("Prometheus metrics enabled at /metrics")
+except ImportError:
+    logger.warning("prometheus-fastapi-instrumentator not installed, metrics disabled")
+
+
 # ── Routers ──────────────────────────────────────────────
 app.include_router(auth.router)
 app.include_router(documents.router)
@@ -122,12 +140,117 @@ async def correlation_id_middleware(request: Request, call_next):
 # ── Health ───────────────────────────────────────────────
 @app.get("/api/v1/health")
 async def health_check():
-    """Health check endpoint."""
-    return {
-        "status": "ok",
-        "version": "0.1.0",
-        "environment": settings.app_env,
+    """Health check endpoint — pings Postgres, ChromaDB, MinIO, and the LLM provider.
+
+    Returns ``200`` only when all dependencies are reachable.
+    Returns ``503`` when one or more dependencies are down, with per-dependency status.
+    """
+    import asyncio
+    from datetime import datetime
+
+    deps = {
+        "postgres": {"status": "unknown"},
+        "chroma": {"status": "unknown"},
+        "minio": {"status": "unknown"},
+        "llm": {"status": "unknown"},
+        "redis": {"status": "unknown"},
     }
+
+    async def _check_postgres():
+        try:
+            from app.core.database import async_session_factory
+            async with async_session_factory() as session:
+                await asyncio.wait_for(
+                    session.execute(text("SELECT 1")),
+                    timeout=5.0,
+                )
+            deps["postgres"] = {"status": "ok"}
+        except Exception as e:
+            deps["postgres"] = {"status": "error", "error": str(e)}
+
+    async def _check_chroma():
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(f"{settings.chroma_url}/api/v1/heartbeat")
+                if resp.status_code == 200:
+                    deps["chroma"] = {"status": "ok"}
+                else:
+                    deps["chroma"] = {"status": "error", "error": f"HTTP {resp.status_code}"}
+        except Exception as e:
+            deps["chroma"] = {"status": "error", "error": str(e)}
+
+    async def _check_minio():
+        try:
+            from minio import Minio
+            client = Minio(
+                settings.minio_endpoint,
+                access_key=settings.minio_access_key,
+                secret_key=settings.minio_secret_key,
+                secure=settings.minio_use_ssl,
+            )
+            client.bucket_exists(settings.minio_bucket)
+            deps["minio"] = {"status": "ok"}
+        except Exception as e:
+            deps["minio"] = {"status": "error", "error": str(e)}
+
+    async def _check_llm():
+        try:
+            from app.services.llm_provider import get_llm
+            llm = get_llm()
+            # Provider-specific ping
+            if llm.model_name.startswith("ollama/"):
+                import httpx
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    resp = await client.post(
+                        f"{settings.ollama_base_url}/api/generate",
+                        json={"model": settings.ollama_model, "prompt": "hi", "stream": False},
+                    )
+                    if resp.status_code == 200:
+                        deps["llm"] = {"status": "ok"}
+                    else:
+                        deps["llm"] = {"status": "error", "error": f"HTTP {resp.status_code}"}
+            else:
+                deps["llm"] = {"status": "ok", "note": f"Provider health not checked: {llm.model_name}"}
+        except Exception as e:
+            deps["llm"] = {"status": "error", "error": str(e)}
+
+    async def _check_redis():
+        try:
+            from app.services.job_queue import get_job_queue
+            q = get_job_queue()
+            status = await q.get_queue_status()
+            deps["redis"] = {
+                "status": "ok" if status.get("connected", False) else "unavailable",
+                "mode": status.get("mode", "unknown"),
+            }
+        except Exception as e:
+            deps["redis"] = {"status": "error", "error": str(e)}
+
+
+    await asyncio.gather(
+        _check_postgres(),
+        _check_chroma(),
+        _check_minio(),
+        _check_llm(),
+        _check_redis(),
+    )
+
+    all_ok = all(d["status"] == "ok" for d in deps.values())
+    overall_status = "ok" if all_ok else "degraded"
+    status_code = 200 if all_ok else 503
+
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "status": overall_status,
+            "version": "0.1.0",
+            "environment": settings.app_env,
+            "timestamp": datetime.utcnow().isoformat(),
+            "dependencies": deps,
+        },
+    )
 
 
 # ── Global Exception Handler (non-HTTP exceptions only) ──

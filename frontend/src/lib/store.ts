@@ -1,15 +1,9 @@
 "use client";
 
 import { create } from "zustand";
+import type { UserResponse } from "@/lib/api-types";
 
-interface User {
-  id: string;
-  email: string;
-  full_name: string | null;
-  is_active: boolean;
-  is_verified: boolean;
-  created_at: string;
-}
+type User = UserResponse;
 
 interface AuthState {
   user: User | null;

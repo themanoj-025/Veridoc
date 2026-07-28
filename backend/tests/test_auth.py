@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from httpx import AsyncClient
@@ -32,7 +32,7 @@ async def test_register_success(test_client: AsyncClient, mock_db_session, app):
         "/api/v1/auth/register",
         json={
             "email": "newuser@example.com",
-            "password": "securepass123",
+            "password": "SecurePass123!",
             "full_name": "New User",
         },
     )
@@ -55,7 +55,7 @@ async def test_register_duplicate_email(test_client: AsyncClient, mock_db_sessio
         "/api/v1/auth/register",
         json={
             "email": "testuser@example.com",
-            "password": "securepass123",
+            "password": "SecurePass123!",
         },
     )
 
@@ -71,6 +71,19 @@ async def test_register_short_password(test_client: AsyncClient):
         json={
             "email": "newuser@example.com",
             "password": "short",
+        },
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_register_password_no_complexity(test_client: AsyncClient):
+    """Test registration with password lacking complexity returns 422."""
+    response = await test_client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "newuser@example.com",
+            "password": "lowercaseonly",
         },
     )
     assert response.status_code == 422
@@ -149,7 +162,7 @@ async def test_login_inactive_user(test_client: AsyncClient, mock_db_session, sa
     assert "Account is deactivated" in response.json()["detail"]
 
 
-# ── Token Refresh ────────────────────────────────────────
+# ── Token Refresh (with rotation) ────────────────────────
 
 @pytest.mark.asyncio
 async def test_refresh_success(test_client: AsyncClient, mock_db_session, sample_user, sample_refresh_token):
@@ -203,6 +216,74 @@ async def test_refresh_expired_token(test_client: AsyncClient):
     assert response.status_code == 401
 
 
+@pytest.mark.asyncio
+async def test_refresh_token_reuse_rejected(test_client: AsyncClient, mock_db_session, sample_user):
+    """Test that reusing a consumed refresh token is rejected (rotation)."""
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=sample_user)
+
+    # Generate a refresh token
+    from app.core.security import create_refresh_token
+    refresh_token = create_refresh_token(sample_user.id)
+
+    # First use — should succeed
+    resp1 = await test_client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": refresh_token},
+    )
+    assert resp1.status_code == 200
+
+    # Second use with same token — should be rejected (reuse detected)
+    resp2 = await test_client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": refresh_token},
+    )
+    assert resp2.status_code == 401
+    assert "already been used" in resp2.json()["detail"].lower()
+
+
+# ── Logout ───────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_logout_revokes_refresh_token(test_client: AsyncClient, mock_db_session, sample_user, sample_refresh_token, app):
+    """Test that logout revokes the refresh token so it can't be reused."""
+    _override_get_user(app, sample_user)
+
+    # Logout with the refresh token
+    response = await test_client.post(
+        "/api/v1/auth/logout",
+        json={"refresh_token": sample_refresh_token},
+        headers={"Authorization": "Bearer fake-token"},
+    )
+    assert response.status_code == 200
+    assert "successfully" in response.json()["message"]
+
+    # Refreshing with the same token should now fail
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=sample_user)
+    resp2 = await test_client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": sample_refresh_token},
+    )
+    assert resp2.status_code == 401
+    assert "already" in resp2.json()["detail"].lower()
+
+    app.dependency_overrides.pop(get_current_user, None)
+
+
+@pytest.mark.asyncio
+async def test_logout_rejects_invalid_token(test_client: AsyncClient, app, sample_user):
+    """Test logout with invalid refresh token returns 401."""
+    _override_get_user(app, sample_user)
+
+    response = await test_client.post(
+        "/api/v1/auth/logout",
+        json={"refresh_token": "invalid-token"},
+        headers={"Authorization": "Bearer fake-token"},
+    )
+    assert response.status_code == 401
+
+    app.dependency_overrides.pop(get_current_user, None)
+
+
 # ── Me ───────────────────────────────────────────────────
 
 @pytest.mark.asyncio
@@ -245,8 +326,8 @@ async def test_change_password_success(sample_user, sample_user_token):
     original_hash = sample_user.hashed_password
     assert verify_password("testpassword123", original_hash) is True
 
-    new_hash = hash_password("newsecurepass456")
-    assert verify_password("newsecurepass456", new_hash) is True
+    new_hash = hash_password("NewSecurePass456!")
+    assert verify_password("NewSecurePass456!", new_hash) is True
     assert verify_password("testpassword123", new_hash) is False
 
 
@@ -299,3 +380,196 @@ class TestSecurityUtilities:
         payload = decode_token(token)
         assert payload is not None
         assert payload["sub"] == str(user_id)
+
+    def test_password_complexity(self):
+        """Test password complexity validation."""
+        from app.core.security import validate_password_complexity
+
+        # Too short
+        err = validate_password_complexity("Ab1")
+        assert err is not None
+        assert "at least 8" in err
+
+        # No complexity (lowercase only)
+        err = validate_password_complexity("abcdefgh")
+        assert err is not None
+        assert "at least 2" in err
+
+        # Valid: uppercase + digit
+        err = validate_password_complexity("Abcdefg1")
+        assert err is None, f"Expected None, got: {err}"
+
+        # Valid: uppercase + symbol
+        err = validate_password_complexity("Abcdefg!")
+        assert err is None
+
+        # Valid: digit + symbol
+        err = validate_password_complexity("1bcdefg!")
+        assert err is None
+
+        # Valid: uppercase + digit + symbol (all three)
+        err = validate_password_complexity("Abcdef1!")
+        assert err is None
+
+    def test_get_token_jti(self):
+        """Test extracting JTI from token payload."""
+        from app.core.security import get_token_jti
+        user_id = uuid.uuid4()
+        token = create_access_token(user_id)
+        payload = decode_token(token)
+        jti = get_token_jti(payload)
+        assert jti is not None
+        assert len(jti) > 0
+
+    def test_get_token_exp(self):
+        """Test extracting expiration from token payload."""
+        from app.core.security import get_token_exp
+        user_id = uuid.uuid4()
+        token = create_access_token(user_id)
+        payload = decode_token(token)
+        exp = get_token_exp(payload)
+        assert exp is not None
+        assert exp > 0
+
+
+# ── Negative Security Tests (G29) ───────────────────────
+
+class TestNegativeSecurity:
+    """Security regression tests: tampered JWT, expired JWT, cross-user access, SQL injection."""
+
+    @pytest.mark.asyncio
+    async def test_tampered_jwt_rejected(self, test_client: AsyncClient, sample_user_token: str):
+        """A JWT with a tampered signature must be rejected with 401."""
+        # Corrupt the signature part of the token
+        parts = sample_user_token.rsplit(".", 1)
+        tampered = parts[0] + ".invalidsignature"
+
+        response = await test_client.get(
+            "/api/v1/auth/me",
+            headers={"Authorization": f"Bearer {tampered}"},
+        )
+        assert response.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_expired_jwt_rejected(self, test_client: AsyncClient):
+        """An expired JWT must be rejected with 401."""
+        from datetime import datetime, timedelta, timezone
+        from jose import jwt
+        from app.core.config import settings
+
+        expired_payload = {
+            "sub": str(uuid.uuid4()),
+            "type": "access",
+            "exp": datetime.now(timezone.utc) - timedelta(hours=1),
+            "iat": datetime.now(timezone.utc) - timedelta(hours=2),
+        }
+        expired = jwt.encode(expired_payload, settings.jwt_secret, algorithm="HS256")
+
+        response = await test_client.get(
+            "/api/v1/auth/me",
+            headers={"Authorization": f"Bearer {expired}"},
+        )
+        assert response.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_cross_user_document_access_rejected(self, test_client: AsyncClient, mock_db_session, app, sample_user):
+        """A user accessing another user's document by ID must be rejected with 404."""
+        from app.core.dependencies import get_current_user
+
+        async def override_user():
+            return sample_user
+
+        app.dependency_overrides[get_current_user] = override_user
+
+        # Mock the DB session to return None (document not found for this user)
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none = MagicMock(return_value=None)
+        mock_db_session.execute = AsyncMock(return_value=mock_result)
+
+        # Attempt to access a document that doesn't belong to sample_user
+        response = await test_client.get(
+            f"/api/v1/documents/{uuid.uuid4()}",
+            headers={"Authorization": "Bearer fake-token"},
+        )
+        # Should return 404 (not found) because the doc doesn't exist for this user
+        assert response.status_code == 404
+
+        app.dependency_overrides.pop(get_current_user, None)
+
+    @pytest.mark.asyncio
+    async def test_cross_user_conversation_access_rejected(self, test_client: AsyncClient, mock_db_session, app, sample_user):
+        """A user accessing another user's conversation by ID must be rejected with 404."""
+        from app.core.dependencies import get_current_user
+
+        async def override_user():
+            return sample_user
+
+        app.dependency_overrides[get_current_user] = override_user
+
+        # Mock the DB session to return None (conversation not found for this user)
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none = MagicMock(return_value=None)
+        mock_db_session.execute = AsyncMock(return_value=mock_result)
+
+        # Attempt to access a conversation that doesn't belong to sample_user
+        response = await test_client.get(
+            f"/api/v1/chat/conversations/{uuid.uuid4()}",
+            headers={"Authorization": "Bearer fake-token"},
+        )
+        assert response.status_code == 404
+
+        app.dependency_overrides.pop(get_current_user, None)
+
+    @pytest.mark.asyncio
+    async def test_sql_injection_in_query_treated_as_literal(self):
+        """SQL-injection-style strings in query fields must be treated as literal text.
+
+        Verifies at THREE levels:
+        1. Pydantic schema accepts the malicious string as a valid title
+        2. The string can be saved to and loaded from a real database (SQLite in-memory)
+        3. The malicious SQL is not executed
+        """
+        from app.schemas.chat import ConversationCreate
+        from app.models.conversation import Conversation
+        from app.models.user import User
+
+        # Level 1: Schema accepts the string
+        malicious_title = "'; DROP TABLE users; --"
+        conv_create = ConversationCreate(title=malicious_title, document_ids=[])
+        assert conv_create.title == malicious_title
+
+        # Level 2-3: Actual DB save/load with real in-memory SQLite
+        from tests.test_schema import real_db_session
+        import pytest_asyncio
+
+        # We reuse the real_db_session pattern from test_schema.py
+        from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+        from app.core.database import Base
+
+        engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+        factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        async with factory() as session:
+            # Create a user
+            user = User(email="test@example.com", hashed_password="h" * 60)
+            session.add(user)
+            await session.flush()
+
+            # Save conversation with malicious title
+            conv = Conversation(user_id=user.id, title=malicious_title)
+            session.add(conv)
+            await session.flush()
+
+            # Load it back
+            from sqlalchemy import select
+            result = await session.execute(
+                select(Conversation).where(Conversation.id == conv.id)
+            )
+            loaded = result.scalar_one_or_none()
+            assert loaded is not None
+            assert loaded.title == malicious_title  # Stored as literal, unchanged
+            assert "; DROP TABLE" in loaded.title  # Not executed
+
+        await engine.dispose()

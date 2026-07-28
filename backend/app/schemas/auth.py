@@ -5,13 +5,22 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
+
+from app.core.security import validate_password_complexity
 
 
 class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     full_name: str | None = None
+
+    @model_validator(mode="after")
+    def _check_password_complexity(self) -> "UserCreate":
+        err = validate_password_complexity(self.password)
+        if err:
+            raise ValueError(err)
+        return self
 
 
 class UserLogin(BaseModel):
@@ -44,3 +53,10 @@ class TokenRefresh(BaseModel):
 class PasswordChange(BaseModel):
     current_password: str
     new_password: str = Field(min_length=8, max_length=128)
+
+    @model_validator(mode="after")
+    def _check_password_complexity(self) -> "PasswordChange":
+        err = validate_password_complexity(self.new_password)
+        if err:
+            raise ValueError(err)
+        return self

@@ -17,6 +17,9 @@ passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
 
 # ── ML / Embeddings ──
+# sentence-transformers uses torch internally; torchvision is NOT required.
+# ONNX Runtime would require replacing sentence-transformers with a different
+# embedding/reranking library — evaluated and documented in DECISIONS.md.
 sentence-transformers==3.1.1
 torch==2.4.1
 --extra-index-url https://download.pytorch.org/whl/cpu
@@ -52,6 +55,9 @@ slowapi==0.1.9
 # ── Job Queue (ARQ + Redis) ──
 arq==0.26.1
 redis[hiredis]==5.2.0
+
+# ── Monitoring / Metrics ──
+prometheus-fastapi-instrumentator==7.0.1
 
 # ── Structured Logging ──
 structlog==24.4.0

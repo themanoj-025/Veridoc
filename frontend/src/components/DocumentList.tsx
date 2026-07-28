@@ -2,22 +2,11 @@
 
 import { cn } from "@/lib/utils";
 import { formatFileSize, truncate } from "@/lib/utils";
+import type { DocumentResponse, ConversationResponse } from "@/lib/api-types";
 
-interface Document {
-  id: string;
-  title: string;
-  filename: string;
-  file_type: string;
-  file_size: number;
-  status: string;
-  created_at: string;
-}
-
-interface Conversation {
-  id: string;
-  title: string;
-  created_at: string;
-}
+// Use generated types from the API schema
+type Document = DocumentResponse;
+type Conversation = ConversationResponse;
 
 interface DocumentListProps {
   documents: Document[];

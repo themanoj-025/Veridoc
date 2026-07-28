@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { documents } from "@/lib/api";
+import type { DocumentResponse } from "@/lib/api-types";
 
 interface DocumentViewerProps {
   documentId: string | null;
 }
 
 export function DocumentViewer({ documentId }: DocumentViewerProps) {
-  const [doc, setDoc] = useState<any>(null);
+  const [doc, setDoc] = useState<DocumentResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [highlightId, setHighlightId] = useState<string | null>(null);
 

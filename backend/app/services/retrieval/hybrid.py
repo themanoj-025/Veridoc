@@ -86,20 +86,57 @@ class HybridRetriever:
         query: str,
         chunks: list[dict],
         top_k: int = 5,
+        batch_size: int = 0,
     ) -> list[dict]:
-        """Re-rank chunks using a cross-encoder model."""
+        """Re-rank chunks using a cross-encoder model with batched prediction.
+
+        Parameters
+        ----------
+        query : str
+            The original search query.
+        chunks : list[dict]
+            Candidate chunks to re-rank (typically top-20 from hybrid retrieval).
+        top_k : int
+            Number of top chunks to return after re-ranking.
+        batch_size : int
+            Batch size for the cross-encoder predict call.  ``0`` means "let
+            the underlying ``CrossEncoder.predict`` decide" (typically defaults
+            to batch_size=32 internally).  Explicitly setting it to the chunk
+            count ensures a single batch — good for small candidate sets.
+
+        Returns
+        -------
+        list[dict]
+            Top-k chunks sorted by cross-encoder score descending.
+        """
         reranker = get_reranker()
         if reranker is None or not chunks:
             # Fallback: sort by existing score
             chunks.sort(key=lambda x: x.get("score", 0), reverse=True)
             return chunks[:top_k]
 
+        import time
+
         pairs = [(query, c["content"]) for c in chunks]
-        scores = reranker.predict(pairs)
+
+        # Use explicit batch_size if provided, otherwise let the model decide
+        predict_kwargs: dict[str, Any] = {"batch_size": batch_size} if batch_size > 0 else {}
+
+        start = time.time()
+        scores = reranker.predict(pairs, **predict_kwargs)
+        elapsed_ms = (time.time() - start) * 1000
+
+        logger.info(
+            "Cross-encoder reranked %d pairs in %.1fms (batch_size=%s)",
+            len(pairs),
+            elapsed_ms,
+            str(batch_size) if batch_size > 0 else "default",
+        )
 
         for i, c in enumerate(chunks):
             c["rerank_score"] = float(scores[i])
             c["source"] = "reranked"
+            c["rerank_latency_ms"] = elapsed_ms
 
         chunks.sort(key=lambda x: x.get("rerank_score", 0), reverse=True)
 

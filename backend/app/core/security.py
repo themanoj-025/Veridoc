@@ -14,6 +14,39 @@ from app.core.config import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+# Password complexity: at least 2 of {uppercase, digit, symbol}
+_COMPLEXITY_CATEGORIES = [
+    (lambda c: c.isupper(), "uppercase letter"),
+    (lambda c: c.isdigit(), "digit"),
+    (lambda c: c in "!@#$%^&*()_+-=[]{}|;':\",./<>?`~", "symbol"),
+]
+
+
+def validate_password_complexity(password: str) -> str | None:
+    """Return an error message if *password* fails complexity requirements, or None.
+
+    Requirements:
+      - Length >= 8
+      - At least 2 of: uppercase, digit, symbol
+    """
+    if len(password) < 8:
+        return "Password must be at least 8 characters long"
+
+    matched = 0
+    matched_names = []
+    for check, name in _COMPLEXITY_CATEGORIES:
+        if any(check(c) for c in password):
+            matched += 1
+            matched_names.append(name)
+
+    if matched < 2:
+        return (
+            f"Password must contain at least 2 of: uppercase letter, digit, symbol. "
+            f"Currently has {matched}: {', '.join(matched_names) if matched_names else 'none'}"
+        )
+
+    return None
+
 
 # ── Password Hashing ─────────────────────────────────────
 
@@ -65,6 +98,16 @@ def decode_token(token: str) -> dict | None:
         return payload
     except JWTError:
         return None
+
+
+def get_token_jti(payload: dict) -> str | None:
+    """Extract the JTI (unique token ID) from a decoded token payload."""
+    return payload.get("jti") if payload else None
+
+
+def get_token_exp(payload: dict) -> float | None:
+    """Extract the expiration timestamp from a decoded token payload."""
+    return payload.get("exp") if payload else None
 
 
 # ── File Encryption (at rest) ────────────────────────────

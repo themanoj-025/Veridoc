@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { conversations, streamChat } from "@/lib/api";
 import { useChatStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import type { Citation as CitationType } from "@/lib/api-types";
 import ReactMarkdown from "react-markdown";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 
@@ -31,20 +32,18 @@ interface ChatPanelProps {
   onNewConversation: () => void;
 }
 
-interface Message {
+// Use the generated MessageResponse for message data.
+// We keep a local subset for temp messages before the API response comes back.
+interface LocalMessage {
   id: string;
   role: string;
   content: string;
-  citations?: Array<{
-    chunk_id: string;
-    document_id: string;
-    text: string;
-    page_number?: number;
-    score: number;
-  }>;
+  citations?: CitationType[];
   faithfulness_score?: number;
   created_at: string;
 }
+
+type Message = LocalMessage;
 
 export function ChatPanel({ conversationId, onNewConversation }: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);

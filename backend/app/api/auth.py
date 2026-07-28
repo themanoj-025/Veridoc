@@ -17,6 +17,8 @@ from app.core.security import (
     create_access_token,
     create_refresh_token,
     decode_token,
+    get_token_jti,
+    get_token_exp,
 )
 from app.models.user import User
 from app.schemas.auth import (
@@ -98,7 +100,12 @@ async def refresh(
     body: TokenRefresh,
     session: AsyncSession = Depends(get_session),
 ):
-    """Refresh an expired access token using a refresh token."""
+    """Refresh an expired access token using a refresh token (rotation mode).
+
+    The presented refresh token is consumed (marked as used).  If it was
+    already consumed, the request is rejected — this prevents token-reuse
+    attacks even if a refresh token is stolen.
+    """
     payload = decode_token(body.refresh_token)
     if payload is None or payload.get("type") != "refresh":
         raise HTTPException(
@@ -111,6 +118,17 @@ async def refresh(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
     uid = uuid.UUID(user_id)
+
+    # Refresh-token rotation: consume the old token before issuing a new one
+    # If the token was already consumed, reject the request (reuse detected)
+    from app.core.token_store import validate_and_consume
+    jti = get_token_jti(payload)
+    exp = get_token_exp(payload)
+    if not jti or not await validate_and_consume(jti, user_id, expires_at=exp):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token has already been used. Please log in again.",
+        )
 
     # Fetch the user from DB to return full user info
     result = await session.execute(select(User).where(User.id == uid))
@@ -138,6 +156,36 @@ async def get_me(
     result = UserResponse.model_validate(user)
     await session.close()
     return result
+
+
+@router.post("/logout", operation_id="auth_logout")
+async def logout(
+    body: TokenRefresh,
+    user: User = Depends(get_current_user),
+):
+    """Logout by revoking the current refresh token.
+
+    The access token's short expiry (30 min) means we don't need a full
+    access-token blacklist — the refresh token is the long-lived credential,
+    and revoking it prevents any further token refresh.  The access token
+    will expire naturally.
+
+    See ``DECISIONS.md`` for the tradeoff analysis.
+    """
+    payload = decode_token(body.refresh_token)
+    if payload is None or payload.get("type") != "refresh":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+        )
+
+    from app.core.token_store import revoke_token
+    jti = get_token_jti(payload)
+    exp = get_token_exp(payload)
+    if jti:
+        await revoke_token(jti, user_id=str(user.id), expires_at=exp)
+
+    return {"message": "Logged out successfully"}
 
 
 @router.post("/change-password", operation_id="auth_change_password")
