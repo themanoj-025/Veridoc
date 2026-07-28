@@ -147,12 +147,16 @@ class VectorStore:
         return self.collection.count()
 
 
-# Singleton
-_vector_store: VectorStore | None = None
-
-
 def get_vector_store() -> VectorStore:
-    global _vector_store
-    if _vector_store is None:
-        _vector_store = VectorStore()
-    return _vector_store
+    """Get the VectorStore instance.
+
+    Checks the DI container first (see :class:`app.core.di.DIContainer`).
+    Falls back to an uncached instance when no container is active
+    (standalone scripts, some test scenarios).
+    """
+    from app.core.di import get_di_container
+
+    container = get_di_container()
+    if container is not None:
+        return container.get_or_create_vector_store()
+    return VectorStore()

@@ -18,18 +18,20 @@ from app.services.vector_store import get_vector_store
 
 logger = structlog.get_logger(__name__)
 
-# Global embedding model (lazy-loaded)
-_embedding_model = None
-
-
 def get_embedding_model():
-    """Lazy-load the sentence-transformers model."""
-    global _embedding_model
-    if _embedding_model is None:
-        from sentence_transformers import SentenceTransformer
-        logger.info("Loading embedding model: all-MiniLM-L6-v2")
-        _embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
-    return _embedding_model
+    """Get the sentence-transformers embedding model.
+
+    Checks the DI container first (see :class:`app.core.di.DIContainer`).
+    Falls back to an uncached instance when no container is active.
+    """
+    from app.core.di import get_di_container
+
+    container = get_di_container()
+    if container is not None:
+        return container.get_or_create_embedding_model()
+    from sentence_transformers import SentenceTransformer
+    logger.info("Loading embedding model (standalone): all-MiniLM-L6-v2")
+    return SentenceTransformer("all-MiniLM-L6-v2")
 
 
 async def process_document(

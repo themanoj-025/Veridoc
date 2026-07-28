@@ -186,13 +186,16 @@ class JobQueue:
         return {"mode": "sync_fallback", "connected": False}
 
 
-# Singleton
-_job_queue: JobQueue | None = None
-
-
 def get_job_queue() -> JobQueue:
-    """Get the singleton JobQueue instance."""
-    global _job_queue
-    if _job_queue is None:
-        _job_queue = JobQueue()
-    return _job_queue
+    """Get the JobQueue instance.
+
+    Checks the DI container first (see :class:`app.core.di.DIContainer`).
+    Falls back to an uncached instance when no container is active
+    (standalone scripts, some test scenarios).
+    """
+    from app.core.di import get_di_container
+
+    container = get_di_container()
+    if container is not None:
+        return container.get_or_create_job_queue()
+    return JobQueue()

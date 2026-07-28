@@ -12,23 +12,25 @@ from app.services.retrieval.rrf import reciprocal_rank_fusion
 
 logger = structlog.get_logger(__name__)
 
-# Cross-encoder re-ranker (lazy-loaded)
-_reranker = None
-
-
 def get_reranker():
-    """Lazy-load the cross-encoder re-ranker model."""
-    global _reranker
-    if _reranker is None:
-        try:
-            from sentence_transformers import CrossEncoder
+    """Get the cross-encoder re-ranker model.
 
-            logger.info("Loading cross-encoder re-ranker: ms-marco-MiniLM-L-6-v2")
-            _reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
-        except Exception as e:
-            logger.warning(f"Failed to load cross-encoder: {e}")
-            _reranker = None
-    return _reranker
+    Checks the DI container first (see :class:`app.core.di.DIContainer`).
+    Falls back to an uncached instance when no container is active.
+    """
+    from app.core.di import get_di_container
+
+    container = get_di_container()
+    if container is not None:
+        return container.get_or_create_reranker()
+    # Direct fallback (no caching)
+    try:
+        from sentence_transformers import CrossEncoder
+        logger.info("Loading cross-encoder (standalone): ms-marco-MiniLM-L-6-v2")
+        return CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+    except Exception as e:
+        logger.warning(f"Failed to load cross-encoder: {e}")
+        return None
 
 
 class HybridRetriever:

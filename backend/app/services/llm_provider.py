@@ -169,20 +169,30 @@ class OpenAIProvider(LLMProvider):
 
 # ── Factory ──────────────────────────────────────────────
 
-_provider: LLMProvider | None = None
+
+def _build_llm_provider() -> LLMProvider:
+    """Build the appropriate LLM provider from settings (no caching).
+
+    This function exists separately so it can be called from
+    ``DIContainer.get_or_create_llm()`` without circular imports.
+    """
+    if settings.anthropic_api_key and settings.llm_provider == "claude":
+        return ClaudeProvider()
+    elif settings.openai_api_key and settings.llm_provider == "openai":
+        return OpenAIProvider()
+    return OllamaProvider()
 
 
 def get_llm() -> LLMProvider:
-    """Get the LLM provider based on environment configuration."""
-    global _provider
-    if _provider is not None:
-        return _provider
+    """Get the LLM provider based on environment configuration.
 
-    if settings.anthropic_api_key and settings.llm_provider == "claude":
-        _provider = ClaudeProvider()
-    elif settings.openai_api_key and settings.llm_provider == "openai":
-        _provider = OpenAIProvider()
-    else:
-        _provider = OllamaProvider()
+    Checks the DI container first.  Falls back to a direct (uncached)
+    provider instance when no container is active (standalone scripts
+    and tests).
+    """
+    from app.core.di import get_di_container
 
-    return _provider
+    container = get_di_container()
+    if container is not None:
+        return container.get_or_create_llm()
+    return _build_llm_provider()

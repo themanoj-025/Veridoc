@@ -19,6 +19,7 @@ from app.core.logging_config import (
 )
 from sqlalchemy import text
 
+from app.core.di import init_container, set_di_container
 from app.services.job_queue import get_job_queue
 from app.api import auth, documents, chat
 
@@ -51,8 +52,12 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning("nltk.download_failed", error=str(e))
 
+    # Initialize DI container (stores all services in app.state + ContextVar)
+    container = init_container(app)
+    logger.info("di.container_initialized")
+
     # Initialize job queue (connects to Redis if available)
-    queue = get_job_queue()
+    queue = container.job_queue
     await queue.initialize()
     logger.info(
         "queue.initialized",
