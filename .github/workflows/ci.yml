@@ -172,6 +172,97 @@ jobs:
       - name: Build Docker images
         run: docker compose build
 
+  # E2E smoke test (B6) — requires full Docker Compose stack
+  e2e-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: veridoc
+          POSTGRES_PASSWORD: veridoc_local_dev
+          POSTGRES_DB: veridoc
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      chroma:
+        image: chromadb/chroma:0.5.5
+        ports:
+          - 8001:8000
+        options: >-
+          --health-cmd "curl -f http://localhost:8000/api/v1/heartbeat || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Start Ollama (CPU mode)
+        run: |
+          docker run -d --rm --name ollama -p 11434:11434 ollama/ollama:latest
+          # Wait for Ollama to start
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:11434/api/tags > /dev/null 2>&1; then
+              echo "Ollama ready"
+              break
+            fi
+            sleep 2
+          done
+          # Pull the small model
+          docker exec ollama ollama pull tinyllama || echo "Model pull skipped"
+      - name: Start backend
+        env:
+          DATABASE_URL: postgresql+asyncpg://veridoc:veridoc_local_dev@localhost:5432/veridoc
+          CHROMA_HOST: localhost
+          CHROMA_PORT: 8001
+          OLLAMA_BASE_URL: http://localhost:11434
+          APP_ENV: production
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+          # Wait for backend to be ready
+          for i in $(seq 1 15); do
+            if curl -sf http://localhost:8000/api/v1/health > /dev/null 2>&1; then
+              echo "Backend ready"
+              break
+            fi
+            echo "Waiting for backend... ($i/15)"
+            sleep 2
+          done
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+      - name: Start frontend
+        run: |
+          cd frontend
+          NEXT_PUBLIC_API_URL=http://localhost:8000 npx next start &
+          sleep 3
+      - name: Run E2E smoke tests
+        run: |
+          cd frontend
+          npx playwright install chromium
+          npx playwright test
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 14
+
   # SBOM + vulnerability scanning (D9)
   security-scan:
     runs-on: ubuntu-latest
