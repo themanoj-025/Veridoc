@@ -65,8 +65,8 @@ export function ThumbsUpDown({
           });
         }
       }
-    } catch {
-      // Silently fail - feedback is non-critical
+    } catch (err) {
+      console.error("Feedback submission failed:", err);
     } finally {
       setSubmitting(false);
     }
