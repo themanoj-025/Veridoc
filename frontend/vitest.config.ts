@@ -9,6 +9,13 @@ export default defineConfig({
     include: ["**/*.test.{ts,tsx}"],
     exclude: ["node_modules", ".next"],
     css: false,
+    deps: {
+      optimizer: {
+        ssr: {
+          enabled: false,
+        },
+      },
+    },
   },
   resolve: {
     alias: {
