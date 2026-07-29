@@ -133,10 +133,13 @@ async def get_analytics(
         .order_by(text("citation_count DESC"))
         .limit(10)
     )
-    top_documents = [
-        {"document_id": str(row.document_id) if row.document_id else "unknown", "citation_count": row.citation_count}
-        for row in top_docs_result.all()
-    ]
+    top_documents = []
+    for row in top_docs_result.all():
+        doc_id = str(row.document_id) if row.document_id else "unknown"
+        top_documents.append({
+            "document_id": doc_id,
+            "citation_count": row.citation_count,
+        })
 
     # Recent queries
     recent_result = await session.execute(

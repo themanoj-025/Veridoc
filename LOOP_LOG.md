@@ -6,60 +6,64 @@
 
 ---
 
-## Iteration 1 — 2026-07-29
+## Iteration 1 — 2026-07-29 (Final)
 
-### Attempted
-- **Phase 0:** Gathered comprehensive context (read all source files, configs, docs, tests)
-- Created `LOOP_LOG.md` to track iterations
-- Started Tier 1 (code-only) implementation
+### Summary
+Completed first major pass through Tier 1 items. Frontend TypeScript compiles cleanly (`npx tsc --noEmit` passes). Backend Python files are syntactically valid. Still several items PARTIAL or NOT STARTED — loop needs to continue.
 
-### Completed Items
-| Item | Status | Evidence |
-|------|--------|----------|
-| B1: Dark mode + Design system tokens | ✅ DONE | `frontend/tailwind.config.ts` updated with design tokens (spacing scale, 3 type sizes, accent color, neutral gray, border radius, animations), `ThemeToggle.tsx` created, `globals.css` updated with CSS variables for dark/light + FOUC prevention, `layout.tsx` updated with dark mode script and `ToastContainer` |
-| B3: Toast notification system | ✅ DONE | `Toast.tsx` + `toast-store.ts` created with success/error/info/warning variants, animated slide-in/slide-out, auto-dismiss (component-owned lifecycle), keyboard-dismissible |
-| B2: Loading skeletons | ✅ DONE | `Skeleton.tsx` created with `DocumentListSkeleton`, `ChatMessageSkeleton`, `ConversationListSkeleton`, `DocumentViewerSkeleton`, `UploadProgressSkeleton`, `IngestionSkeleton` — integrated into `dashboard/page.tsx` and `DocumentList.tsx` with `loading` prop |
-| B4 + D1: Thumbs-up/down feedback + continuous eval loop | ✅ DONE | `ThumbsUpDown.tsx` created with inline feedback buttons, `feedback.py` backend endpoint (`POST /api/v1/chat/feedback`) writes to `eval/continuous_feedback.json` on thumbs-down, `scripts/promote_feedback.py` for reviewing/promoting entries into `eval/gold_qa.json` (supports `--auto`, `--status`, interactive modes) |
-| D5: Command palette | ✅ DONE | `CommandPalette.tsx` created with Cmd/Ctrl+K trigger, keyboard navigation (↑↓↵), actions: New Chat, Toggle Dark Mode, Upload Document, Search Documents, Sign Out |
-| D6 + D7: Document/conversation search + full-text search | ✅ DONE | `SearchBar.tsx` for client-side filtering of documents and conversations, `search.py` backend endpoint (`GET /api/v1/search/fulltext`) using existing `chunks.content_tsv` GIN index with `ts_rank()` ordering and document-level ownership checks |
-| D10: GDPR data export/delete | ✅ DONE | `gdpr.py` backend: `GET /api/v1/user/export` returns full JSON export of user profile, documents, conversations, messages, usage logs. `DELETE /api/v1/user/delete-account` cascades deletion of all user data. Registered in `main.py`. |
-| D11: Semantic versioning + CHANGELOG.md | ✅ DONE | `CHANGELOG.md` created with Keep a Changelog format, v1.0.0 and v0.1.0 entries, version exposed via `/api/v1/health` |
-| D12: Admin analytics view | ✅ DONE | `admin.py` backend: `GET /api/v1/admin/analytics` surfaces total queries/users/documents, avg/p50/p95 latency, queries today/week, most-used model, estimated cost, top documents, recent queries, daily volume. Admin access gated to first registered user. |
-| D13: OCR confidence indicator | ✅ DONE | `DocumentResponse` schema already includes `ocr_used` field. Document viewer in `DocumentViewer.tsx` shows OCR indicator. Citation chips show source indicator when OCR was used (from `Chunk` metadata). |
-| D2: CI evaluation regression gate | ✅ DONE | `.github/workflows/ci.yml` updated with `eval-regression` job that validates `gold_qa.json` exists with ≥5 entries, checks `continuous_feedback.json` queue size, and fails build if thresholds not met. |
-| D3: Multi-model fallback routing | ✅ DONE | `llm_provider.py` updated with `_with_fallback_to_ollama()` wrapper that catches timeouts/errors on primary (Claude/OpenAI) and transparently falls back to local Ollama. Every fallback event is logged with provider name, error, and FALLBACK flag. |
-| C1: BM25 index persistence to disk | ✅ DONE | `bm25.py` updated: serializes BM25 index and chunk data to pickle on disk (`data/bm25_cache/<key>.pkl`) after building, loads from disk on cold start before rebuilding. `invalidate_bm25_index()` clears both memory and disk caches. |
-| B7: Mobile responsive layout | ✅ DONE | `dashboard/page.tsx` already had mobile tabs (`setMobileView`), enhanced with better dark mode styling, responsive breakpoints, skeleton loading on mobile views |
+### Completed Items (Verified DONE)
 
-### New Items Discovered
-None in this iteration.
+| Item | Evidence |
+|------|----------|
+| **B1: Dark mode + Design tokens** | `tailwind.config.ts` with full token set, `ThemeToggle.tsx`, CSS variables in `globals.css`, `layout.tsx` with FOUC prevention script |
+| **B2: Loading skeletons** | `Skeleton.tsx` with 6 composed variants, integrated into `dashboard/page.tsx` and `DocumentList.tsx` |
+| **B3: Toast notifications** | `Toast.tsx` + `toast-store.ts` with success/error/info/warning, animated slide-in, component-owned lifecycle |
+| **D5: Command palette** | `CommandPalette.tsx` with Cmd/Ctrl+K, keyboard navigation, 5 actions, FOUC-safe |
+| **D11: CHANGELOG.md** | `CHANGELOG.md` with Keep a Changelog format, v1.0.0 + v0.1.0 entries |
+| **C1: BM25 persistence** | `bm25.py` with pickle serialization to `data/bm25_cache/`, disk load on cold start, cache invalidation clears both memory + disk |
+| **D2: CI evaluation gate (basic)** | `.github/workflows/ci.yml` with `eval-regression` job validating gold_qa.json ≥5 entries |
 
-### Items Not Yet Started (Tier 1 - Deferred)
+### PARTIAL Items (Require More Work)
+
+| Item | What's Done | What's Missing |
+|------|------------|----------------|
+| **B4 + D1: Feedback + Eval loop** | `ThumbsUpDown.tsx`, `feedback.py` writes to `continuous_feedback.json`, `scripts/promote_feedback.py` | Eval regression gate needs actual evaluation run with baseline comparison |
+| **D3: Multi-model fallback** | `llm_provider.py` `FallbackWrapper` class catches errors and falls back to Ollama | `model_name` returns primary model name even when fallback active — no `fallback_used` flag on message for UI transparency |
+| **D6 + D7: Search + Full-text** | `SearchBar.tsx` wired into dashboard, `search.py` with tsvector GIN index query | Full-text search inside documents not integrated into SearchBar's "Search inside documents" action |
+| **D10: GDPR data controls** | `gdpr.py` endpoints, export button in dashboard header | No "Delete account" button/confirmation dialog in UI |
+| **D12: Admin analytics** | `admin.py` endpoint, `admin/page.tsx` created | No link/navigation from dashboard to admin page |
+| **D13: OCR indicator** | `DocumentResponse` has `ocr_used` field (pre-existing) | No OCR badge/confidence indicator in DocumentViewer or citation chips |
+
+### NOT STARTED Items
+
 | Item | Reason |
 |------|--------|
-| B5: Frontend component tests (Vitest) | Requires Vitest setup and configuration — deferred after build verification |
-| B6: E2E Playwright smoke test | Requires Playwright setup and a running stack — deferred to Tier 2 |
-| D8: Accessibility audit pass | Requires axe-core or Lighthouse — deferred after all UI changes are stable |
-| D9: SBOM + vulnerability scanning | CI job template added in `.github/workflows/ci.yml`, but Syft requires actual execution to verify |
-| D4: Chaos/resilience test suite | Tier 2 — requires Docker stack running |
-| A1-A5: Live validation | Tier 2/3 — requires Docker stack or cloud account |
+| **B5: Frontend component tests (Vitest)** | Deferred — requires Vitest setup |
+| **B6: E2E Playwright smoke test** | Deferred — requires running stack |
+| **D8: Accessibility audit** | Deferred — needs axe-core/Lighthouse |
+| **D9: SBOM + vulnerability scanning** | CI template added, not verified |
+| **C2: Redis query/response cache** | Enhancement #11 — requires Redis integration for cache with measured hit rate |
+| **C3: Hybrid retrieval weight tuning** | Enhancement #17 — needs empirical tuning against gold set |
+| **D4: Chaos/resilience tests** | Tier 2 — requires Docker stack |
+| **A1-A5: Live validation** | Tier 2/3 — requires Docker stack or cloud account |
+| **B7: Mobile responsive** | Already partially implemented pre-loop, minor enhancements added |
 
-### Overall Completion (Tier 1 only)
-- Tier 1 items completed: **15 DONE**
-- Tier 1 items not started: **5** (B5, B6, D8, D9 deferred; D4 Tier 2)
-- Tier 2/3 items not started: **5** (A1-A5)
-- Total items in checklist: **~30**
-- Verified DONE: **15** (50%)
-- BLOCKED-HUMAN: **0**
+### Loop Rule Compliance
 
-### Current Score Estimate
-Based on completed enhancements, estimated score improvement from **8.3/10 → ~9.2/10** (dark mode, loading skeletons, toast, feedback, command palette, search, GDPR, admin, BM25 persistence, multi-model fallback, CHANGELOG, CI gate all add verified points). Full re-audit required for exact score.
+| Rule | Status |
+|------|--------|
+| 1: Every item needs evidence | ✅ All DONE items have file-level evidence |
+| 2: Never stop to ask | ✅ No questions asked, BLOCKED-HUMAN items documented in NEXT_STEPS.md-style |
+| 3: Never silently drop scope | ⚠️ C2, C3 dropped — now tracked above |
+| 4: Re-audit after 3-5 items | ❌ NOT DONE — needs full re-audit |
+| 5: Log every iteration | ✅ LOOP_LOG.md updated |
+| 6: No "close enough" | ⚠️ D3, D7, D10, D12, D13 marked PARTIAL, not DONE |
 
----
+### Current Completion
+- **Verified DONE:** 7 items
+- **PARTIAL:** 6 items
+- **NOT STARTED:** ~17 items (including Tier 2/3)
+- **Estimated completion:** ~23%
+- **BLOCKED-HUMAN:** 0
 
-## Next Iteration
-- Run `npx tsc --noEmit` on frontend ✅ (passes)
-- Set up Vitest for component tests (B5)
-- Create Playwright smoke test (B6)
-- Run accessibility audit (D8)
-- Execute full re-audit and update `docs/audit-before-after.md`
+The loop must continue with the PARTIAL items before proceeding to new work. The DONE count is overstated unless PARTIAL items are finished.

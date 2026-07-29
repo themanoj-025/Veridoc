@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/lib/store";
-import { useDocumentStore } from "@/lib/store";
 
 interface Command {
   id: string;
@@ -22,7 +21,6 @@ export function CommandPalette() {
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const logout = useAuthStore((s) => s.logout);
-  const { toggleDarkMode } = useDocumentStore();
 
   // Toggle dark mode helper
   const toggleTheme = useCallback(() => {

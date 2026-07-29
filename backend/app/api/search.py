@@ -13,7 +13,6 @@ from app.core.database import get_session
 from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.models.document import Document
-from app.models.chunk import Chunk
 
 router = APIRouter(prefix="/api/v1/search", tags=["search"])
 

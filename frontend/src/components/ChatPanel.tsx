@@ -40,6 +40,7 @@ interface LocalMessage {
   content: string;
   citations?: CitationType[];
   faithfulness_score?: number;
+  model_used?: string | null;
   created_at: string;
 }
 
@@ -114,6 +115,7 @@ export function ChatPanel({ conversationId, onNewConversation }: ChatPanelProps)
           content: data.content || streamingContent,
           citations: data.citations,
           faithfulness_score: data.faithfulness_score,
+          model_used: data.model_used,
           created_at: new Date().toISOString(),
         };
         setMessages((prev) => [...prev, assistantMsg]);
@@ -223,19 +225,27 @@ export function ChatPanel({ conversationId, onNewConversation }: ChatPanelProps)
                 </div>
               )}
 
-              {/* Faithfulness indicator */}
-              {msg.faithfulness_score !== undefined && msg.faithfulness_score !== null && (
-                <div className="mt-2 flex items-center gap-1.5">
-                  <div className={cn(
-                    "w-1.5 h-1.5 rounded-full",
-                    msg.faithfulness_score >= 0.8 ? "bg-green-400" :
-                    msg.faithfulness_score >= 0.5 ? "bg-amber-400" : "bg-red-400"
-                  )} />
-                  <span className="text-xs opacity-60">
-                    {Math.round(msg.faithfulness_score * 100)}% faithful
+              {/* Model + Faithfulness indicators */}
+              <div className="mt-2 flex items-center gap-2 flex-wrap">
+                {msg.model_used && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono">
+                    {msg.model_used.includes("ollama") ? "🖥️ " : "☁️ "}
+                    {msg.model_used}
                   </span>
-                </div>
-              )}
+                )}
+                {msg.faithfulness_score !== undefined && msg.faithfulness_score !== null && (
+                  <span className="flex items-center gap-1">
+                    <div className={cn(
+                      "w-1.5 h-1.5 rounded-full",
+                      msg.faithfulness_score >= 0.8 ? "bg-green-400" :
+                      msg.faithfulness_score >= 0.5 ? "bg-amber-400" : "bg-red-400"
+                    )} />
+                    <span className="text-[10px] text-muted-foreground">
+                      {Math.round(msg.faithfulness_score * 100)}% faithful
+                    </span>
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         ))}

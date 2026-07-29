@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import json
-import uuid
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.responses import JSONResponse
