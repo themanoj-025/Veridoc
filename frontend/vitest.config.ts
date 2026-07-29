@@ -10,6 +10,10 @@ export default defineConfig({
     exclude: ["node_modules", ".next"],
     css: false,
   },
+  esbuild: {
+    jsx: "automatic",
+    jsxImportSource: "react",
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
