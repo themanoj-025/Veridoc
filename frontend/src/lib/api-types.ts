@@ -140,6 +140,8 @@ export interface StreamDoneEvent {
   latency_ms: number;
   tokens_used: number;
   faithfulness_score: number;
+  model_used?: string | null;
+  fallback_used?: boolean;
 }
 
 export interface StreamErrorEvent {

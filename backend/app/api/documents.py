@@ -19,7 +19,7 @@ from app.schemas.document import (
     DocumentResponse,
     DocumentUpdate,
     DocumentListResponse,
-    IngestionStatus    ,
+    IngestionStatus,
 )
 from app.services.job_queue import get_job_queue
 from app.services.ingestion import process_document
@@ -32,7 +32,12 @@ ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc", ".txt"}
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 
 
-@router.post("/upload", response_model=DocumentUploadResponse, status_code=status.HTTP_201_CREATED, operation_id="documents_upload")
+@router.post(
+    "/upload",
+    response_model=DocumentUploadResponse,
+    status_code=status.HTTP_201_CREATED,
+    operation_id="documents_upload",
+)
 async def upload_document(
     file: UploadFile = File(...),
     title: str | None = Form(None),

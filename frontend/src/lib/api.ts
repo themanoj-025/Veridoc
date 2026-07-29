@@ -167,4 +167,12 @@ export function streamChat(
   return controller;
 }
 
+// ── Search ──────────────────────────────────────────────
+export const searchApi = {
+  fulltext: (q: string, documentId?: string, limit: number = 20, offset: number = 0) =>
+    api.get("/api/v1/search/fulltext", {
+      params: { q, document_id: documentId, limit, offset },
+    }),
+};
+
 export default api;

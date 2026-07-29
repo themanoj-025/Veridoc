@@ -41,6 +41,7 @@ interface LocalMessage {
   citations?: CitationType[];
   faithfulness_score?: number;
   model_used?: string | null;
+  fallback_used?: boolean;
   created_at: string;
 }
 
@@ -116,6 +117,7 @@ export function ChatPanel({ conversationId, onNewConversation }: ChatPanelProps)
           citations: data.citations,
           faithfulness_score: data.faithfulness_score,
           model_used: data.model_used,
+          fallback_used: data.fallback_used,
           created_at: new Date().toISOString(),
         };
         setMessages((prev) => [...prev, assistantMsg]);
@@ -225,8 +227,13 @@ export function ChatPanel({ conversationId, onNewConversation }: ChatPanelProps)
                 </div>
               )}
 
-              {/* Model + Faithfulness indicators */}
+              {/* Model + Faithfulness + Fallback indicators */}
               <div className="mt-2 flex items-center gap-2 flex-wrap">
+                {msg.fallback_used && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 font-medium">
+                    ⚠️ Answered via fallback model
+                  </span>
+                )}
                 {msg.model_used && (
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono">
                     {msg.model_used.includes("ollama") ? "🖥️ " : "☁️ "}

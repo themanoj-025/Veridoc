@@ -6,7 +6,7 @@ import json
 import time
 import uuid
 import asyncio
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -15,7 +15,6 @@ from sse_starlette.sse import EventSourceResponse
 
 from app.core.config import settings
 from app.models.user import User
-from app.models.document import Document
 from app.models.conversation import Conversation
 from app.models.message import Message
 from app.models.usage_log import UsageLog
@@ -305,6 +304,10 @@ class ChatService:
                     faith_time=faith_time,
                 )
 
+                # Check if fallback was used
+                fallback_used = getattr(self.llm, "fallback_used", False)
+                actual_model = self.llm.model_name
+
                 # Send done event
                 yield {
                     "event": "done",
@@ -315,6 +318,8 @@ class ChatService:
                         "latency_ms": total_time,
                         "tokens_used": token_count,
                         "faithfulness_score": faith_score,
+                        "model_used": actual_model,
+                        "fallback_used": fallback_used,
                     }),
                 }
 

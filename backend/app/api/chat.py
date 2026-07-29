@@ -29,10 +29,11 @@ router = APIRouter(prefix="/api/v1/chat", tags=["chat"])
 
 # ── Helpers ──────────────────────────────────────────────
 
-async def _build_conversation_response(session: AsyncSession, conv: Conversation) -> ConversationResponse:
-    """Build a ConversationResponse from a Conversation ORM object,
-    loading document IDs and titles from the junction table."""
-    # Load linked documents via junction table
+
+async def _build_conversation_response(
+    session: AsyncSession, conv: Conversation
+) -> ConversationResponse:
+    """Build a ConversationResponse from a Conversation ORM object."""
     result = await session.execute(
         select(ConversationDocument).where(
             ConversationDocument.conversation_id == conv.id,
@@ -41,7 +42,6 @@ async def _build_conversation_response(session: AsyncSession, conv: Conversation
     links = result.scalars().all()
     doc_ids = [link.document_id for link in links]
 
-    # Fetch document titles for convenience
     doc_titles = []
     if doc_ids:
         doc_result = await session.execute(
@@ -61,11 +61,14 @@ async def _build_conversation_response(session: AsyncSession, conv: Conversation
     )
 
 
-
-
 # ── Conversations ────────────────────────────────────────
 
-@router.post("/conversations", response_model=ConversationResponse, status_code=status.HTTP_201_CREATED, operation_id="chat_create_conversation")
+@router.post(
+    "/conversations",
+    response_model=ConversationResponse,
+    status_code=status.HTTP_201_CREATED,
+    operation_id="chat_create_conversation",
+)
 async def create_conversation(
     body: ConversationCreate,
     user: User = Depends(get_current_user),
@@ -109,7 +112,11 @@ async def create_conversation(
     return result
 
 
-@router.get("/conversations", response_model=ConversationListResponse, operation_id="chat_list_conversations")
+@router.get(
+    "/conversations",
+    response_model=ConversationListResponse,
+    operation_id="chat_list_conversations",
+)
 async def list_conversations(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
@@ -126,19 +133,28 @@ async def list_conversations(
     # Get total count
     count_result = await session.execute(
         select(func.count(Conversation.id))
-        .where(Conversation.user_id == user.id, Conversation.is_active == True)
+        .where(Conversation.user_id == user.id, Conversation.is_active.is_(True))
     )
     total = count_result.scalar() or 0
 
     result = await session.execute(
         select(
             Conversation,
-            func.array_agg(ConversationDocument.document_id, order_by=ConversationDocument.document_id).label("doc_ids"),
-            func.array_agg(Document.title, order_by=ConversationDocument.document_id).label("doc_titles"),
+            func.array_agg(
+                ConversationDocument.document_id,
+                order_by=ConversationDocument.document_id,
+            ).label("doc_ids"),
+            func.array_agg(
+                Document.title,
+                order_by=ConversationDocument.document_id,
+            ).label("doc_titles"),
         )
-        .outerjoin(ConversationDocument, ConversationDocument.conversation_id == Conversation.id)
+        .outerjoin(
+            ConversationDocument,
+            ConversationDocument.conversation_id == Conversation.id,
+        )
         .outerjoin(Document, Document.id == ConversationDocument.document_id)
-        .where(Conversation.user_id == user.id, Conversation.is_active == True)
+        .where(Conversation.user_id == user.id, Conversation.is_active.is_(True))
         .group_by(Conversation.id)
         .order_by(desc(Conversation.updated_at))
         .limit(limit)
@@ -214,7 +230,10 @@ async def delete_conversation(
 
 # ── Messages ─────────────────────────────────────────────
 
-@router.get("/conversations/{conversation_id}/messages", operation_id="chat_get_messages")
+@router.get(
+    "/conversations/{conversation_id}/messages",
+    operation_id="chat_get_messages",
+)
 async def get_messages(
     conversation_id: uuid.UUID,
     user: User = Depends(get_current_user),

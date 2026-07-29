@@ -13,7 +13,6 @@ import asyncio
 
 import structlog
 
-from app.core.config import settings
 from app.services.llm_provider import get_llm
 
 logger = structlog.get_logger(__name__)

@@ -33,7 +33,12 @@ from app.schemas.auth import (
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 
-@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED, operation_id="auth_register")
+@router.post(
+    "/register",
+    response_model=TokenResponse,
+    status_code=status.HTTP_201_CREATED,
+    operation_id="auth_register",
+)
 @limiter.limit("5/minute")
 async def register(request: Request, body: UserCreate, session: AsyncSession = Depends(get_session)):
     """Register a new user with email and password."""
@@ -205,4 +210,3 @@ async def change_password(
     session.add(user)
     await session.close()
     return {"message": "Password changed successfully"}
-

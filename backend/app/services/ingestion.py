@@ -18,6 +18,7 @@ from app.services.vector_store import get_vector_store
 
 logger = structlog.get_logger(__name__)
 
+
 def get_embedding_model():
     """Get the sentence-transformers embedding model.
 

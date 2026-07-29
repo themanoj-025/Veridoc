@@ -19,9 +19,9 @@ from app.core.logging_config import (
 )
 from sqlalchemy import text
 
-from app.core.di import init_container, set_di_container
-from app.services.job_queue import get_job_queue
+from app.core.di import init_container
 from app.api import auth, documents, chat, feedback, search, gdpr, admin
+from app.core.rate_limit import limiter, _slowapi_available
 
 logger = structlog.get_logger(__name__)
 
@@ -88,8 +88,6 @@ app.add_middleware(
 )
 
 # ── Rate Limiting ────────────────────────────────────────
-from app.core.rate_limit import limiter, _slowapi_available
-
 if _slowapi_available:
     from slowapi import _rate_limit_exceeded_handler
     from slowapi.errors import RateLimitExceeded
@@ -226,8 +224,8 @@ async def health_check():
 
     async def _check_redis():
         try:
-            from app.services.job_queue import get_job_queue
-            q = get_job_queue()
+            from app.services.job_queue import JobQueue
+            q = JobQueue()
             status = await q.get_queue_status()
             deps["redis"] = {
                 "status": "ok" if status.get("connected", False) else "unavailable",
@@ -235,7 +233,6 @@ async def health_check():
             }
         except Exception as e:
             deps["redis"] = {"status": "error", "error": str(e)}
-
 
     await asyncio.gather(
         _check_postgres(),

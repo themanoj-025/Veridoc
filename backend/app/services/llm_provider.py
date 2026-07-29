@@ -167,10 +167,9 @@ class OpenAIProvider(LLMProvider):
                 yield chunk.choices[0].delta.content
 
 
-# ── Factory ──────────────────────────────────────────────
-
-
 import structlog
+
+# ── Factory ──────────────────────────────────────────────
 
 
 def _build_llm_provider() -> LLMProvider:
@@ -207,9 +206,31 @@ def _with_fallback_to_ollama(primary: LLMProvider, name: str, logger) -> LLMProv
     import asyncio
 
     class FallbackWrapper(LLMProvider):
+        def __init__(self):
+            self._fallback_activated = False
+            self._active_model_name = primary.model_name
+
         @property
         def model_name(self) -> str:
-            return primary.model_name
+            """Return the actual model name — primary unless fallback activated."""
+            return self._active_model_name
+
+        @property
+        def fallback_used(self) -> bool:
+            """Whether fallback to Ollama was activated on the last call."""
+            return self._fallback_activated
+
+        async def _fallback_to_ollama(self, system_prompt, history, message):
+            """Execute fallback to Ollama and update model tracking."""
+            self._fallback_activated = True
+            fallback = OllamaProvider()
+            self._active_model_name = fallback.model_name
+            logger.info(
+                "llm.fallback_activated",
+                primary=name,
+                fallback=fallback.model_name,
+            )
+            return fallback
 
         async def chat(self, system_prompt: str, history: list[dict], message: str) -> str:
             try:
@@ -224,10 +245,7 @@ def _with_fallback_to_ollama(primary: LLMProvider, name: str, logger) -> LLMProv
                     error=str(e)[:100],
                     timeout=isinstance(e, asyncio.TimeoutError),
                 )
-                # Fall back to Ollama
-                fallback = OllamaProvider()
-                import structlog
-                logger.info("llm.fallback_activated", fallback=fallback.model_name)
+                fallback = await self._fallback_to_ollama(system_prompt, history, message)
                 return await fallback.chat(system_prompt, history, message)
 
         async def stream_chat(
@@ -246,9 +264,7 @@ def _with_fallback_to_ollama(primary: LLMProvider, name: str, logger) -> LLMProv
                     error=str(e)[:100],
                     timeout=isinstance(e, asyncio.TimeoutError),
                 )
-                # Fall back to Ollama
-                fallback = OllamaProvider()
-                logger.info("llm.fallback_activated", fallback=fallback.model_name)
+                fallback = await self._fallback_to_ollama(system_prompt, history, message)
                 async for token in fallback.stream_chat(system_prompt, history, message):
                     yield token
 

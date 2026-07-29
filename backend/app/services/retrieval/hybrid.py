@@ -12,6 +12,7 @@ from app.services.retrieval.rrf import reciprocal_rank_fusion
 
 logger = structlog.get_logger(__name__)
 
+
 def get_reranker():
     """Get the cross-encoder re-ranker model.
 
