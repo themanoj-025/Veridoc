@@ -9,11 +9,16 @@ build/
 .venv/
 venv/
 env/
+.pytest_cache/
 
 # Node
 node_modules/
 .next/
 out/
+
+# TypeScript build artifacts
+*.tsbuildinfo
+next-env.d.ts
 
 # Environment
 .env
@@ -31,7 +36,7 @@ out/
 .DS_Store
 Thumbs.db
 
-# Docker
+# Docker volumes
 data/pgdata/
 data/chroma/
 data/minio/
@@ -42,6 +47,3 @@ eval/squad_dev_v2.0.json
 
 # Logs
 *.log
-
-# warning files
-=0.30.0
