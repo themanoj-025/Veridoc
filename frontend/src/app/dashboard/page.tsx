@@ -79,14 +79,15 @@ export default function Dashboard() {
   const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
-    const fileInput = form.elements.nativeElement?.querySelector('input[type="file"]') as HTMLInputElement;
-    const titleInput = form.elements.nativeElement?.querySelector('input[name="title"]') as HTMLInputElement;
+    const formData = new FormData(form);
+    const file = formData.get("file") as File | null;
+    const title = formData.get("title") as string | null;
 
-    if (!fileInput?.files?.length) return;
+    if (!file) return;
 
     setUploading(true);
     try {
-      await documents.upload(fileInput.files[0], titleInput.value || undefined);
+      await documents.upload(file, title || undefined);
       setShowUploadModal(false);
       loadDocuments();
     } catch (err) {
