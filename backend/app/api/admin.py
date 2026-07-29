@@ -211,19 +211,25 @@ class CacheStatsResponse(BaseModel):
 @router.get("/cache-stats", operation_id="admin_cache_stats")
 async def get_cache_stats(
     user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ):
     """Get response cache hit/miss statistics (C2).
 
     Returns hit rate, total requests, and Redis availability.
     Only accessible by the admin user (first registered user).
     """
-    # Simple admin check: only the first registered user can access
-    first_user_result = await __import__(
-        "app.core.database", fromlist=["get_session"]
+    # Admin check: only the first registered user can access
+    first_user_result = await session.execute(
+        select(User).order_by(User.created_at).limit(1)
     )
-    # Re-use the same admin check pattern
-    # Since we already have the user, we just need to verify
-    # For simplicity, the route-level check is in the dependency
+    first_user = first_user_result.scalar_one_or_none()
+
+    if not first_user or first_user.id != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+
     import structlog
     logger = structlog.get_logger(__name__)
 
@@ -236,6 +242,7 @@ async def get_cache_stats(
         hit_rate=stats["hit_rate"],
     )
 
+    await session.close()
     return CacheStatsResponse(
         hits=stats["hits"],
         misses=stats["misses"],
@@ -262,6 +269,7 @@ class FeedbackQueueResponse(BaseModel):
 @router.get("/feedback-queue", operation_id="admin_feedback_queue")
 async def get_feedback_queue(
     user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ):
     """Get continuous feedback queue stats and recent entries (D1).
 
@@ -269,6 +277,18 @@ async def get_feedback_queue(
     and the most recent entries for review.
     Only accessible by the admin user.
     """
+    # Admin check: only the first registered user can access
+    first_user_result = await session.execute(
+        select(User).order_by(User.created_at).limit(1)
+    )
+    first_user = first_user_result.scalar_one_or_none()
+
+    if not first_user or first_user.id != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+
     import structlog
     logger = structlog.get_logger(__name__)
 
@@ -313,6 +333,7 @@ async def get_feedback_queue(
         queue_size=total,
     )
 
+    await session.close()
     return FeedbackQueueResponse(
         total=total,
         thumbs_down=thumbs_down,

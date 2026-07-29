@@ -33,6 +33,55 @@ export default function Dashboard() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const [showMobileDrawer, setShowMobileDrawer] = useState(false);
+  const [showMobileDrawer, setShowMobileDrawer] = useState(false);
+  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
+  const [touchEnd, setTouchEnd] = useState<{ x: number; y: number } | null>(null);
+
+  // Minimum swipe distance required
+  const minSwipeDistance = 80;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart({
+      x: e.targetTouches[0].clientX,
+      y: e.targetTouches[0].clientY,
+    });
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd({
+      x: e.targetTouches[0].clientX,
+      y: e.targetTouches[0].clientY,
+    });
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const dx = touchStart.x - touchEnd.x;
+    const dy = touchStart.y - touchEnd.y;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+
+    // Only trigger if horizontal swipe is dominant over vertical scroll
+    if (absDy > absDx * 1.5) return;
+
+    const isLeftSwipe = dx > minSwipeDistance;
+    const isRightSwipe = dx < -minSwipeDistance;
+
+    const viewOrder = ["docs", "chat", "viewer"] as const;
+    const currentIndex = viewOrder.indexOf(mobileView);
+
+    if (isLeftSwipe && currentIndex < viewOrder.length - 1) {
+      // Swipe left → next panel
+      const nextView = viewOrder[currentIndex + 1];
+      if (nextView === "viewer" && !selectedDocId) return;
+      setMobileView(nextView);
+    } else if (isRightSwipe && currentIndex > 0) {
+      // Swipe right → previous panel
+      setMobileView(viewOrder[currentIndex - 1]);
+    }
+  };
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -220,6 +269,18 @@ export default function Dashboard() {
           </svg>
         </button>
 
+        {/* Admin link */}
+        <button
+          onClick={() => router.push("/admin")}
+          className="text-muted-foreground hover:text-foreground transition-colors p-2 rounded-lg hover:bg-surface-hover hidden sm:inline-flex"
+          title="Admin analytics"
+          aria-label="Admin analytics"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+        </button>
+
         <div className="flex items-center gap-1">
           {/* GDPR: Export data */}
           <button
@@ -278,14 +339,63 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* Main content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Document sidebar - hidden on mobile when not active */}
+      {/* Main content with swipe support */}
+      <div
+        className="flex-1 flex overflow-hidden"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        {/* Mobile drawer toggle */}
+        <button
+          onClick={() => setShowMobileDrawer(true)}
+          className="fixed bottom-20 left-4 z-40 md:hidden w-10 h-10 rounded-xl bg-card border border-border shadow-lg
+                     flex items-center justify-center text-muted-foreground hover:text-foreground transition-all"
+          aria-label="Open sidebar"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+
+        {/* Mobile drawer overlay */}
+        {showMobileDrawer && (
+          <>
+            <div
+              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden"
+              onClick={() => setShowMobileDrawer(false)}
+            />
+            <div className="fixed left-0 top-0 bottom-0 z-50 w-72 bg-card border-r border-border shadow-2xl animate-slide-in-right md:hidden">
+              <div className="flex items-center justify-between p-4 border-b">
+                <span className="font-semibold text-sm text-foreground">Navigation</span>
+                <button
+                  onClick={() => setShowMobileDrawer(false)}
+                  className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <DocumentList
+                documents={docList}
+                selectedId={selectedDocId}
+                onSelect={(id) => { setSelectedDocId(id); setMobileView("viewer"); setShowMobileDrawer(false); }}
+                onUpload={() => { setShowUploadModal(true); setShowMobileDrawer(false); }}
+                onNewChat={() => { handleNewConversation(); setShowMobileDrawer(false); }}
+                selectedConversationId={conversationId}
+                conversations={convList}
+                onSelectConversation={(id) => { setConversationId(id); setMobileView("chat"); setShowMobileDrawer(false); }}
+                loading={loadingDocs}
+              />
+            </div>
+          </>
+        )}
+
+        {/* Document sidebar - desktop always visible, mobile via drawer */}
         <div className={cn(
           "w-72 border-r bg-card flex flex-col shrink-0",
-          "md:flex",
-          mobileView !== "docs" && "hidden",
-          mobileView === "docs" && "animate-fade-in"
+          "hidden lg:flex",
         )}>
           <DocumentList
             documents={docList}
@@ -302,10 +412,10 @@ export default function Dashboard() {
 
         {/* Document viewer */}
         <div className={cn(
-          "flex-1 border-r bg-card/50 overflow-hidden",
-          mobileView === "viewer" ? "animate-fade-in" : "",
+          "flex-1 border-r bg-card/50 overflow-hidden transition-all duration-300",
           "md:block",
-          mobileView !== "viewer" && "hidden"
+          mobileView !== "viewer" && "hidden md:hidden",
+          mobileView === "viewer" && "animate-fade-in"
         )}>
           {loadingDocs && selectedDocId ? (
             <DocumentViewerSkeleton />
@@ -316,11 +426,11 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Chat panel */}
+        {/* Chat panel - full width on mobile, fixed width on desktop */}
         <div className={cn(
-          "w-[420px] border-l bg-card flex flex-col shrink-0",
+          "flex-1 md:w-[420px] md:flex-initial border-l bg-card flex flex-col shrink-0 transition-all duration-300",
           "md:flex",
-          mobileView !== "chat" && "hidden",
+          mobileView !== "chat" && "hidden md:hidden",
           mobileView === "chat" && "animate-fade-in"
         )}>
           {loadingConvs && conversationId ? (
@@ -337,6 +447,55 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* Mobile bottom navigation bar (B7) */}
+      <div className="fixed bottom-0 left-0 right-0 z-30 border-t bg-card/95 backdrop-blur-md md:hidden safe-area-bottom">
+        <div className="flex items-center justify-around h-14 px-2">
+          {[
+            { id: "docs" as const, label: "Docs", icon: (
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            ),},
+            { id: "chat" as const, label: "Chat", icon: (
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+              </svg>
+            ),},
+            { id: "viewer" as const, label: "View", icon: (
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+            ), disabled: !selectedDocId },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => {
+                if (tab.disabled) return;
+                setMobileView(tab.id);
+              }}
+              disabled={tab.disabled}
+              className={cn(
+                "relative flex flex-col items-center justify-center gap-0.5 px-4 py-1 rounded-xl transition-all duration-200",
+                mobileView === tab.id
+                  ? "text-veridoc-500"
+                  : "text-muted-foreground hover:text-foreground",
+                tab.disabled && "opacity-30 cursor-not-allowed"
+              )}
+            >
+              {mobileView === tab.id && (
+                <span className="absolute -top-0.5 w-8 h-0.5 rounded-full bg-veridoc-500" />
+              )}
+              {tab.icon}
+              <span className="text-[10px] font-medium">{tab.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Bottom spacer for mobile nav */}
+      <div className="h-14 md:hidden" />
 
       {/* Mobile search overlay */}
       {showMobileSearch && (
