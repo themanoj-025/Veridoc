@@ -17,7 +17,10 @@ interface DocumentListProps {
   selectedConversationId: string | null;
   conversations: Conversation[];
   onSelectConversation: (id: string) => void;
+  loading?: boolean;
 }
+
+import { DocumentListSkeleton, ConversationListSkeleton } from "@/components/Skeleton";
 
 export function DocumentList({
   documents,
@@ -28,6 +31,7 @@ export function DocumentList({
   selectedConversationId,
   conversations,
   onSelectConversation,
+  loading = false,
 }: DocumentListProps) {
   return (
     <div className="flex flex-col h-full">
@@ -48,7 +52,9 @@ export function DocumentList({
 
       {/* Document list */}
       <div className="flex-1 overflow-y-auto">
-        {documents.length === 0 ? (
+        {loading ? (
+          <DocumentListSkeleton />
+        ) : documents.length === 0 ? (
           <div className="p-6 text-center">
             <div className="w-12 h-12 rounded-full bg-veridoc-100 mx-auto mb-3 flex items-center justify-center">
               <svg className="w-6 h-6 text-veridoc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -113,7 +119,9 @@ export function DocumentList({
               + New
             </button>
           </div>
-          {conversations.length === 0 ? (
+          {loading ? (
+            <ConversationListSkeleton />
+          ) : conversations.length === 0 ? (
             <p className="text-xs text-muted-foreground text-center py-2">
               No conversations yet
             </p>

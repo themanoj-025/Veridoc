@@ -8,6 +8,8 @@ import { ChatPanel } from "@/components/ChatPanel";
 import { DocumentList } from "@/components/DocumentList";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { DocumentListSkeleton, DocumentViewerSkeleton, ChatMessageSkeleton } from "@/components/Skeleton";
 import { cn } from "@/lib/utils";
 
 export default function Dashboard() {
@@ -20,6 +22,8 @@ export default function Dashboard() {
   const [convList, setConvList] = useState<any[]>([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [loadingDocs, setLoadingDocs] = useState(true);
+  const [loadingConvs, setLoadingConvs] = useState(true);
   const [mobileView, setMobileView] = useState<"docs" | "chat" | "viewer">("docs");
 
   useEffect(() => {
@@ -36,20 +40,26 @@ export default function Dashboard() {
   }, [isAuthenticated]);
 
   const loadDocuments = async () => {
+    setLoadingDocs(true);
     try {
       const res = await documents.list();
       setDocList(res.data.items || []);
     } catch (err) {
       console.error("Failed to load documents:", err);
+    } finally {
+      setLoadingDocs(false);
     }
   };
 
   const loadConversations = async () => {
+    setLoadingConvs(true);
     try {
       const res = await conversations.list();
       setConvList(res.data.items || []);
     } catch (err) {
       console.error("Failed to load conversations:", err);
+    } finally {
+      setLoadingConvs(false);
     }
   };
 
@@ -93,7 +103,10 @@ export default function Dashboard() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full bg-veridoc-500 animate-pulse" />
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-veridoc-500 animate-pulse-slow" />
+          <p className="text-sm text-muted-foreground font-medium">Loading Veridoc...</p>
+        </div>
       </div>
     );
   }
@@ -101,9 +114,9 @@ export default function Dashboard() {
   if (!isAuthenticated) return null;
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-screen flex flex-col bg-background">
       {/* Header */}
-      <header className="h-14 border-b bg-white/80 backdrop-blur-sm flex items-center justify-between px-4 shrink-0 z-10">
+      <header className="h-14 border-b bg-card/80 backdrop-blur-sm flex items-center justify-between px-4 shrink-0 z-10">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-veridoc-500 flex items-center justify-center">
             <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -117,30 +130,31 @@ export default function Dashboard() {
         <div className="flex items-center gap-2 md:hidden">
           <button onClick={() => setMobileView("docs")}
             className={cn("px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-              mobileView === "docs" ? "bg-veridoc-100 text-veridoc-700" : "text-muted-foreground")}>
+              mobileView === "docs" ? "bg-veridoc-100 text-veridoc-700 dark:bg-veridoc-900/50 dark:text-veridoc-300" : "text-muted-foreground")}>
             Docs
           </button>
           <button onClick={() => setMobileView("chat")}
             className={cn("px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-              mobileView === "chat" ? "bg-veridoc-100 text-veridoc-700" : "text-muted-foreground")}>
+              mobileView === "chat" ? "bg-veridoc-100 text-veridoc-700 dark:bg-veridoc-900/50 dark:text-veridoc-300" : "text-muted-foreground")}>
             Chat
           </button>
           {selectedDocId && (
             <button onClick={() => setMobileView("viewer")}
               className={cn("px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-                mobileView === "viewer" ? "bg-veridoc-100 text-veridoc-700" : "text-muted-foreground")}>
+                mobileView === "viewer" ? "bg-veridoc-100 text-veridoc-700 dark:bg-veridoc-900/50 dark:text-veridoc-300" : "text-muted-foreground")}>
               View
             </button>
           )}
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground hidden sm:block">
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          <span className="text-sm text-muted-foreground hidden sm:block mx-2">
             {user?.email}
           </span>
           <button
             onClick={handleLogout}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors px-2 py-1"
           >
             Sign out
           </button>
@@ -151,7 +165,7 @@ export default function Dashboard() {
       <div className="flex-1 flex overflow-hidden">
         {/* Document sidebar - hidden on mobile when not active */}
         <div className={cn(
-          "w-72 border-r bg-white flex flex-col shrink-0",
+          "w-72 border-r bg-card flex flex-col shrink-0",
           "md:flex",
           mobileView !== "docs" && "hidden"
         )}>
@@ -164,32 +178,43 @@ export default function Dashboard() {
             selectedConversationId={conversationId}
             conversations={convList}
             onSelectConversation={(id) => { setConversationId(id); setMobileView("chat"); }}
+            loading={loadingDocs}
           />
         </div>
 
         {/* Document viewer */}
         <div className={cn(
-          "flex-1 border-r bg-white/50 overflow-hidden",
+          "flex-1 border-r bg-card/50 overflow-hidden",
           "md:block",
           mobileView !== "viewer" && "hidden md:hidden"
         )}>
-          <ErrorBoundary name="Document Viewer">
-            <DocumentViewer documentId={selectedDocId} />
-          </ErrorBoundary>
+          {loadingDocs && selectedDocId ? (
+            <DocumentViewerSkeleton />
+          ) : (
+            <ErrorBoundary name="Document Viewer">
+              <DocumentViewer documentId={selectedDocId} />
+            </ErrorBoundary>
+          )}
         </div>
 
         {/* Chat panel */}
         <div className={cn(
-          "w-[420px] border-l bg-white flex flex-col shrink-0",
+          "w-[420px] border-l bg-card flex flex-col shrink-0",
           "md:flex",
           mobileView !== "chat" && "hidden"
         )}>
-          <ErrorBoundary name="Chat Panel">
-            <ChatPanel
-              conversationId={conversationId}
-              onNewConversation={handleNewConversation}
-            />
-          </ErrorBoundary>
+          {loadingConvs && conversationId ? (
+            <div className="p-4">
+              <ChatMessageSkeleton />
+            </div>
+          ) : (
+            <ErrorBoundary name="Chat Panel">
+              <ChatPanel
+                conversationId={conversationId}
+                onNewConversation={handleNewConversation}
+              />
+            </ErrorBoundary>
+          )}
         </div>
       </div>
 
@@ -197,7 +222,7 @@ export default function Dashboard() {
       {showUploadModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
              onClick={() => setShowUploadModal(false)}>
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-card rounded-2xl shadow-xl border border-border p-6 w-full max-w-md animate-scale-in" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold mb-4">Upload Document</h3>
             <form onSubmit={handleUpload} className="space-y-4">
               <div>
@@ -207,7 +232,7 @@ export default function Dashboard() {
                 <input
                   name="title"
                   type="text"
-                  className="w-full px-4 py-2 rounded-lg border border-input bg-white focus:outline-none focus:ring-2 focus:ring-veridoc-500/20 focus:border-veridoc-500"
+                  className="w-full px-4 py-2 rounded-lg border border-input bg-background focus:outline-none focus:ring-2 focus:ring-veridoc-500/20 focus:border-veridoc-500 transition-all"
                   placeholder="My Document"
                 />
               </div>
@@ -219,9 +244,14 @@ export default function Dashboard() {
                   type="file"
                   accept=".pdf,.docx,.doc,.txt"
                   required
-                  className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-veridoc-50 file:text-veridoc-700 hover:file:bg-veridoc-100"
+                  className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-veridoc-50 file:text-veridoc-700 dark:file:bg-veridoc-900/50 dark:file:text-veridoc-300 hover:file:bg-veridoc-100 dark:hover:file:bg-veridoc-800/50"
                 />
               </div>
+              {uploading && (
+                <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full bg-veridoc-500 rounded-full animate-pulse" style={{ width: "60%" }} />
+                </div>
+              )}
               <div className="flex gap-3 justify-end">
                 <button
                   type="button"
