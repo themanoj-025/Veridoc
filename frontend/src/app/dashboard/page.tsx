@@ -32,6 +32,7 @@ export default function Dashboard() {
   const [fullTextResults, setFullTextResults] = useState<any[] | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -196,6 +197,7 @@ export default function Dashboard() {
           )}
         </div>
 
+        {/* Desktop search bar */}
         <div className="hidden sm:flex items-center flex-1 max-w-md mx-4">
           <SearchBar
             documents={docList}
@@ -205,6 +207,18 @@ export default function Dashboard() {
             onFullTextSearch={handleFullTextSearch}
           />
         </div>
+
+        {/* Mobile search trigger */}
+        <button
+          onClick={() => setShowMobileSearch(true)}
+          className="sm:hidden text-muted-foreground hover:text-foreground transition-colors p-2 rounded-lg hover:bg-surface-hover"
+          title="Search"
+          aria-label="Search documents and conversations"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </button>
 
         <div className="flex items-center gap-1">
           {/* GDPR: Export data */}
@@ -252,7 +266,7 @@ export default function Dashboard() {
           </button>
 
           <ThemeToggle />
-          <span className="text-sm text-muted-foreground hidden sm:block mx-2">
+          <span className="text-sm text-muted-foreground hidden md:block mx-2">
             {user?.email}
           </span>
           <button
@@ -270,7 +284,8 @@ export default function Dashboard() {
         <div className={cn(
           "w-72 border-r bg-card flex flex-col shrink-0",
           "md:flex",
-          mobileView !== "docs" && "hidden"
+          mobileView !== "docs" && "hidden",
+          mobileView === "docs" && "animate-fade-in"
         )}>
           <DocumentList
             documents={docList}
@@ -288,8 +303,9 @@ export default function Dashboard() {
         {/* Document viewer */}
         <div className={cn(
           "flex-1 border-r bg-card/50 overflow-hidden",
+          mobileView === "viewer" ? "animate-fade-in" : "",
           "md:block",
-          mobileView !== "viewer" && "hidden md:hidden"
+          mobileView !== "viewer" && "hidden"
         )}>
           {loadingDocs && selectedDocId ? (
             <DocumentViewerSkeleton />
@@ -304,7 +320,8 @@ export default function Dashboard() {
         <div className={cn(
           "w-[420px] border-l bg-card flex flex-col shrink-0",
           "md:flex",
-          mobileView !== "chat" && "hidden"
+          mobileView !== "chat" && "hidden",
+          mobileView === "chat" && "animate-fade-in"
         )}>
           {loadingConvs && conversationId ? (
             <div className="p-4">
@@ -320,6 +337,70 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* Mobile search overlay */}
+      {showMobileSearch && (
+        <div className="fixed inset-0 z-50 sm:hidden animate-fade-in">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowMobileSearch(false)} />
+          <div className="absolute top-0 left-0 right-0 bg-card border-b border-border rounded-b-2xl shadow-xl p-4 animate-slide-up">
+            <div className="flex items-center gap-3 mb-3">
+              <svg className="w-5 h-5 text-muted-foreground shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                id="mobile-search-input"
+                autoFocus
+                placeholder="Search documents, conversations..."
+                className="flex-1 bg-transparent text-foreground placeholder-muted-foreground outline-none text-sm"
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setShowMobileSearch(false);
+                }}
+              />
+              <button
+                onClick={() => setShowMobileSearch(false)}
+                className="text-sm text-veridoc-500 font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+            <div className="max-h-60 overflow-y-auto">
+              {docList.length === 0 && convList.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-6">
+                  No documents or conversations yet
+                </p>
+              ) : (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground font-medium px-2 py-1">Documents</p>
+                  {docList.slice(0, 5).map((doc) => (
+                    <button
+                      key={doc.id}
+                      onClick={() => { setSelectedDocId(doc.id); setMobileView("viewer"); setShowMobileSearch(false); }}
+                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-secondary transition-colors text-sm"
+                    >
+                      <span className="font-medium text-foreground">{doc.title}</span>
+                      <span className="text-xs text-muted-foreground ml-2">{doc.file_type.toUpperCase()}</span>
+                    </button>
+                  ))}
+                  {convList.length > 0 && (
+                    <>
+                      <p className="text-xs text-muted-foreground font-medium px-2 py-1 mt-2">Conversations</p>
+                      {convList.slice(0, 5).map((conv) => (
+                        <button
+                          key={conv.id}
+                          onClick={() => { setConversationId(conv.id); setMobileView("chat"); setShowMobileSearch(false); }}
+                          className="w-full text-left px-3 py-2 rounded-lg hover:bg-secondary transition-colors text-sm"
+                        >
+                          <span className="text-foreground">{conv.title || "Untitled"}</span>
+                        </button>
+                      ))}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Account Confirmation Dialog */}
       {showDeleteConfirm && (
