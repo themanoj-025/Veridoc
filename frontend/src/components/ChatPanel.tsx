@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { conversations, streamChat } from "@/lib/api";
 import { useChatStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { ThumbsUpDown } from "@/components/ThumbsUpDown";
 import type { Citation as CitationType } from "@/lib/api-types";
 import ReactMarkdown from "react-markdown";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
