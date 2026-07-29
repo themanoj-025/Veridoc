@@ -172,9 +172,11 @@ def invalidate_bm25_index() -> None:
     # Also clear disk cache
     try:
         cache_dir = _ensure_cache_dir()
-        for f in cache_dir.glob("*.pkl"):
+        pkl_files = list(cache_dir.glob("*.pkl"))
+        count = len(pkl_files)
+        for f in pkl_files:
             f.unlink()
-        logger.debug("BM25 disk cache cleared: %d files", len(list(cache_dir.glob("*.pkl"))))
+        logger.debug("BM25 disk cache cleared: %d files", count)
     except Exception as e:
         logger.warning("BM25 disk cache clear failed: %s", e)
     logger.debug("BM25 indexes invalidated (memory + disk)")
@@ -208,7 +210,6 @@ async def bm25_search(
     if not chunks:
         return []
 
-    _ensure_nltk_data()
     tokenized_query = nltk.word_tokenize(query.lower())
 
     # Get or build cached index (keyed by document set, disk-persisted)

@@ -341,6 +341,138 @@ async def test_session_no_auto_commit_on_yield():
         mock_session.close.assert_called_once()
 
 
+# ── BM25 Disk Persistence (C1) ───────────────────────────
+
+
+class TestBM25DiskPersistence:
+    """Tests for BM25 index persistence to disk (C1).
+
+    Verifies that indexes can be written to and loaded from disk,
+    and that corrupt/missing files are handled gracefully.
+    """
+
+    def test_bm25_save_and_load_from_disk(self, tmp_path, monkeypatch):
+        """Test BM25 index can be saved and reloaded from disk."""
+        from app.services.retrieval.bm25 import (
+            _ensure_cache_dir,
+            _build_cache_key,
+            get_bm25_index,
+            _bm25_indexes,
+        )
+
+        # Point cache dir to a temp directory
+        monkeypatch.setattr(
+            "app.services.retrieval.bm25._BM25_CACHE_DIR",
+            tmp_path / "bm25_cache",
+        )
+        _bm25_indexes.clear()
+
+        chunks = [
+            {"chunk_id": "c1", "content": "The quick brown fox.", "document_id": "d1"},
+            {"chunk_id": "c2", "content": "Jumps over the lazy dog.", "document_id": "d1"},
+        ]
+        _build_cache_key(["d1"])
+
+        # First call: builds index, caches in memory AND writes to disk
+        index1, chunks1 = get_bm25_index(chunks, document_ids=["d1"])
+        assert index1 is not None
+        assert len(chunks1) == 2
+
+        # Verify disk file exists
+        cache_dir = _ensure_cache_dir()
+        pkl_files = list(cache_dir.glob("*.pkl"))
+        assert len(pkl_files) == 1
+
+        # Clear memory cache to simulate cold start
+        _bm25_indexes.clear()
+
+        # Second call: should load from disk (not rebuild)
+        index2, chunks2 = get_bm25_index(chunks, document_ids=["d1"])
+        assert index2 is not None
+        assert len(chunks2) == 2
+
+        # Both indexes should produce the same scores
+        import nltk
+        tokenized_query = nltk.word_tokenize("fox")
+        scores1 = index1.get_scores(tokenized_query)
+        scores2 = index2.get_scores(tokenized_query)
+        assert scores1 == scores2
+
+    def test_bm25_disk_cache_missing_returns_none(self, tmp_path, monkeypatch):
+        """Test loading a nonexistent disk cache returns None."""
+        from app.services.retrieval.bm25 import _load_from_disk
+
+        monkeypatch.setattr(
+            "app.services.retrieval.bm25._BM25_CACHE_DIR",
+            tmp_path / "bm25_cache",
+        )
+
+        result = _load_from_disk("nonexistent-key")
+        assert result is None
+
+    def test_bm25_corrupt_cache_falls_back_to_rebuild(self, tmp_path, monkeypatch):
+        """Test that a corrupt pickle file triggers a rebuild instead of crashing."""
+        from app.services.retrieval.bm25 import (
+            _disk_cache_path,
+            _build_cache_key,
+            get_bm25_index,
+            _bm25_indexes,
+        )
+
+        monkeypatch.setattr(
+            "app.services.retrieval.bm25._BM25_CACHE_DIR",
+            tmp_path / "bm25_cache",
+        )
+        _bm25_indexes.clear()
+
+        chunks = [
+            {"chunk_id": "c1", "content": "Test content.", "document_id": "d1"},
+        ]
+        cache_key = _build_cache_key(["d1"])
+
+        # Write corrupt data to the cache file
+        cache_path = _disk_cache_path(cache_key)
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        cache_path.write_bytes(b"this is not valid pickle data")
+
+        # Clear memory cache
+        _bm25_indexes.clear()
+
+        # Should rebuild from scratch (not crash)
+        index, loaded_chunks = get_bm25_index(chunks, document_ids=["d1"])
+        assert index is not None
+        assert len(loaded_chunks) == 1
+
+    def test_bm25_invalidate_clears_disk(self, tmp_path, monkeypatch):
+        """Test that invalidate_bm25_index() clears all disk cache files."""
+        from app.services.retrieval.bm25 import (
+            _save_to_disk,
+            _build_cache_key,
+            invalidate_bm25_index,
+            _ensure_cache_dir,
+        )
+
+        monkeypatch.setattr(
+            "app.services.retrieval.bm25._BM25_CACHE_DIR",
+            tmp_path / "bm25_cache",
+        )
+
+        # Save two cache files
+        chunks = [{"chunk_id": "c1", "content": "Test.", "document_id": "d1"}]
+        index = MagicMock()
+        _save_to_disk(_build_cache_key(["d1"]), index, chunks)
+        _save_to_disk(_build_cache_key(["d2"]), index, chunks)
+
+        cache_dir = _ensure_cache_dir()
+        assert len(list(cache_dir.glob("*.pkl"))) == 2
+
+        # Invalidate
+        invalidate_bm25_index()
+
+        # Disk cache should be empty
+        assert len(list(cache_dir.glob("*.pkl"))) == 0
+
+
 # ── Edge Cases ───────────────────────────────────────────
 
 class TestRetrievalEdgeCases:
