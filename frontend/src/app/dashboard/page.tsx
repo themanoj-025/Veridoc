@@ -116,6 +116,7 @@ export default function Dashboard() {
 
   return (
     <div className="h-screen flex flex-col bg-background">
+      <CommandPalette />
       {/* Header */}
       <header className="h-14 border-b bg-card/80 backdrop-blur-sm flex items-center justify-between px-4 shrink-0 z-10">
         <div className="flex items-center gap-3">
