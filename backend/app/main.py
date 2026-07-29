@@ -21,7 +21,7 @@ from sqlalchemy import text
 
 from app.core.di import init_container, set_di_container
 from app.services.job_queue import get_job_queue
-from app.api import auth, documents, chat, feedback, search
+from app.api import auth, documents, chat, feedback, search, gdpr
 
 logger = structlog.get_logger(__name__)
 
