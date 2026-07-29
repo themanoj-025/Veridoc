@@ -124,6 +124,7 @@ app.include_router(chat.router)
 app.include_router(feedback.router)
 app.include_router(search.router)
 app.include_router(gdpr.router)
+app.include_router(admin.router)
 
 
 # ── Correlation ID Middleware ───────────────────────────
