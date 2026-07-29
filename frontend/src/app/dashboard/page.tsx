@@ -9,6 +9,7 @@ import { DocumentList } from "@/components/DocumentList";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { CommandPalette } from "@/components/CommandPalette";
 import { DocumentListSkeleton, DocumentViewerSkeleton, ChatMessageSkeleton } from "@/components/Skeleton";
 import { cn } from "@/lib/utils";
 
