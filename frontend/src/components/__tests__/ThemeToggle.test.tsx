@@ -26,11 +26,11 @@ describe("ThemeToggle", () => {
     expect(button).toHaveAttribute("aria-label");
   });
 
-  it("renders a toggle button with correct aria-label in light mode", () => {
-    // Default light mode - should show moon icon
+  it("renders with aria-label indicating click switches to dark mode", () => {
+    // Default light mode - button says "Switch to dark mode"
     render(<ThemeToggle />);
     const button = screen.getByRole("button");
-    expect(button).toHaveAttribute("aria-label", "Switch to light mode");
+    expect(button).toHaveAttribute("aria-label", "Switch to dark mode");
   });
 
   it("toggles theme on click", () => {
