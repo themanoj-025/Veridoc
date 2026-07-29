@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import time
 import uuid
 import asyncio
@@ -24,6 +25,9 @@ from app.schemas.chat import ChatRequest, Citation
 from app.services.retrieval import HybridRetriever, rewrite_query
 from app.services.llm_provider import get_llm
 from app.services.evaluation import faithfulness_check
+from app.services.response_cache import get_response_cache
+
+logger = logging.getLogger(__name__)
 
 LLM_TIMEOUT = 60  # seconds
 RETRIEVAL_TIMEOUT = 30  # seconds
@@ -241,6 +245,74 @@ class ChatService:
 
         # Rewrite query if needed
         search_query = await self.search_query(body.message, history)
+        conversation_id_str = str(conv.id)
+
+        # Check response cache first
+        cache = get_response_cache()
+        cached_response = await cache.get(conversation_id_str, body.message)
+
+        if cached_response:
+            logger.info(
+                "Cache HIT for conversation=%s query=%s",
+                conversation_id_str[:8], body.message[:50],
+            )
+
+            # Persist the cached response to DB so conversation history is complete
+            cached_content = cached_response.get("content", "")
+            cached_citations = [
+                Citation(**c) for c in cached_response.get("citations", [])
+            ]
+            cached_msg = await self.save_assistant_message(
+                conv=conv,
+                content=cached_content,
+                citations=cached_citations,
+                total_time=0.0,
+                token_count=len(cached_content.split()),
+                faith_score=cached_response.get("faithfulness_score", 1.0),
+                system_prompt="",
+                message=body.message,
+                retrieval_time=0.0,
+                rerank_time=0.0,
+                gen_time=0.0,
+                faith_time=0.0,
+            )
+
+            async def cached_generator() -> AsyncGenerator[dict, None]:
+                try:
+                    # Replay cached content as tokens for a smooth UX
+                    token_count = 0
+                    for word in cached_content.split():
+                        yield {
+                            "event": "token",
+                            "data": json.dumps({"token": word + " "}),
+                        }
+                        token_count += 1
+                        await asyncio.sleep(0.01)  # Small delay to simulate streaming
+
+                    yield {
+                        "event": "done",
+                        "data": json.dumps({
+                            "message_id": str(cached_msg.id),
+                            "content": cached_content,
+                            "citations": [c.model_dump() for c in cached_citations],
+                            "latency_ms": 0,
+                            "tokens_used": token_count,
+                            "faithfulness_score": cached_response.get("faithfulness_score", 1.0),
+                            "model_used": cached_response.get("model_used", "cache"),
+                            "fallback_used": False,
+                            "cache_hit": True,
+                        }),
+                    }
+                finally:
+                    if session is not None:
+                        try:
+                            await session.close()
+                        except Exception:
+                            pass
+
+            return EventSourceResponse(cached_generator())
+
+        # Cache miss — proceed with full pipeline
 
         # Retrieve context
         top_chunks, citations_data, context, retrieval_time, rerank_time = (
@@ -308,6 +380,15 @@ class ChatService:
                 fallback_used = getattr(self.llm, "fallback_used", False)
                 actual_model = self.llm.model_name
 
+                # Cache the response for future requests
+                await cache.set(conversation_id_str, body.message, {
+                    "message_id": str(msg.id),
+                    "content": full_content,
+                    "citations": [c.model_dump() for c in citations_data],
+                    "faithfulness_score": faith_score,
+                    "model_used": actual_model,
+                })
+
                 # Send done event
                 yield {
                     "event": "done",
@@ -320,6 +401,7 @@ class ChatService:
                         "faithfulness_score": faith_score,
                         "model_used": actual_model,
                         "fallback_used": fallback_used,
+                        "cache_hit": False,
                     }),
                 }
 

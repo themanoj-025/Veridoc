@@ -32,6 +32,8 @@ def patch_settings():
         mock_settings.log_level = "ERROR"
         mock_settings.cors_origins = "*"
         mock_settings.rate_limit_per_minute = 1000
+        mock_settings.redis_cache_enabled = True
+        mock_settings.redis_cache_ttl_seconds = 3600
         yield mock_settings
 
 

@@ -101,11 +101,9 @@ class Settings(BaseSettings):
     data_dir: Path = Path("/app/data")
     upload_dir: Path = Path("/app/data/uploads")
 
-    # ── Timeouts (seconds) ──
-    llm_timeout: int = 60
-    chroma_timeout: int = 30
-    minio_timeout: int = 15
-    retrieval_timeout: int = 30
+    # ── Response Cache (Redis) ──
+    redis_cache_enabled: bool = True
+    redis_cache_ttl_seconds: int = 3600  # 1 hour
 
     class Config:
         env_file = ".env"

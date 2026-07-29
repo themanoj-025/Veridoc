@@ -64,8 +64,14 @@ async def lifespan(app: FastAPI):
         mode="redis" if queue.is_redis_available else "sync_fallback",
     )
 
+    # Initialize response cache (Redis-backed query cache)
+    from app.services.response_cache import get_response_cache
+    cache = get_response_cache()
+    await cache.init_redis()
+
     yield
 
+    await cache.close()
     await queue.shutdown()
     await close_db()
     logger.info("db.connections_closed")
