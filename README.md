@@ -335,14 +335,14 @@ Both are single-command or single-account actions documented in `NEXT_STEPS.md`.
 
 | Document | Description |
 |----------|-------------|
-| [Architecture](docs/architecture.md) | System design, data flow, and tech-stack rationale |
-| [Case Study](docs/case-study.md) | Engineering narrative — 6 real bugs found and fixed |
-| [Evaluation Report](docs/evaluation-report.md) | Retrieval accuracy, latency, and cost metrics |
-| [Security Notes](docs/security-notes.md) | Red-team results, rate limiting, encryption details |
-| [Audit Report](docs/audit-before-after.md) | Full 28-point before/after production-readiness audit |
-| [Demo Script](docs/demo-script.md) | Step-by-step 90-second walkthrough for recording |
-| [Deployment Runbook](docs/deployment-runbook.md) | Deploy to Render, Fly.io, or Railway — one click |
-| [Next Steps](NEXT_STEPS.md) | What's left: live eval, load test, deployment |
+| [Architecture](docs/architecture.md) | System design, data flow, component diagrams, and tech-stack rationale |
+| [Case Study](docs/case-study.md) | Engineering narrative — 6 real bugs found and fixed with code references |
+| [Evaluation Report](docs/evaluation-report.md) | Pipeline logic tests, cross-encoder benchmark (2.1× speedup), retrieval accuracy estimates |
+| [Security Notes](docs/security-notes.md) | 8/8 red-team pass results, CSP/sanitization details, vulnerability disclosure policy |
+| [Audit Report](docs/audit-before-after.md) | Full 28-point before/after (4.6 → 7.9 avg) production-readiness audit |
+| [Demo Script](docs/demo-script.md) | Step-by-step 90-second walkthrough for screen recording |
+| [Deployment Runbook](docs/deployment-runbook.md) | Deploy to Render, Fly.io, or Railway — copy-paste commands |
+| [Next Steps](NEXT_STEPS.md) | Exact commands for live eval, load test, deployment, and demo video |
 
 ---
 
@@ -420,7 +420,13 @@ cat docs/evaluation-report.md
 
 ## 🤝 Contributing
 
-Found a bug? Have a feature request? See [NEXT_STEPS.md](NEXT_STEPS.md) for planned work, then open an issue or PR. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+## 🤝 Contributing
+
+Found a bug? Have a feature request? 
+- Check [NEXT_STEPS.md](NEXT_STEPS.md) for planned work and known issues
+- Review the [Security Policy](SECURITY.md) before reporting vulnerabilities
+- See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide: code style, testing, PR process
+- Open an issue or pull request on GitHub
 
 ---
 
@@ -433,5 +439,13 @@ Found a bug? Have a feature request? See [NEXT_STEPS.md](NEXT_STEPS.md) for plan
 <div align="center">
   <sub>Built with ❤️ using FastAPI, Next.js, ChromaDB, and Ollama.</sub>
   <br>
-  <sub><a href="docs/architecture.md">Architecture</a> · <a href="docs/case-study.md">Case Study</a> · <a href="docs/security-notes.md">Security</a> · <a href="NEXT_STEPS.md">Next Steps</a></sub>
+  <sub>
+    <a href="docs/architecture.md">Architecture</a> ·
+    <a href="docs/case-study.md">Case Study</a> ·
+    <a href="docs/security-notes.md">Security</a> ·
+    <a href="docs/evaluation-report.md">Evaluation</a> ·
+    <a href="docs/audit-before-after.md">Audit</a> ·
+    <a href="NEXT_STEPS.md">Next Steps</a> ·
+    <a href="CONTRIBUTING.md">Contributing</a>
+  </sub>
 </div>
