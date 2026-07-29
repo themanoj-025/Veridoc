@@ -21,7 +21,7 @@ from sqlalchemy import text
 
 from app.core.di import init_container, set_di_container
 from app.services.job_queue import get_job_queue
-from app.api import auth, documents, chat
+from app.api import auth, documents, chat, feedback
 
 logger = structlog.get_logger(__name__)
 
@@ -121,6 +121,7 @@ except ImportError:
 app.include_router(auth.router)
 app.include_router(documents.router)
 app.include_router(chat.router)
+app.include_router(feedback.router)
 
 
 # ── Correlation ID Middleware ───────────────────────────
