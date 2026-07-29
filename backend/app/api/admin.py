@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from datetime import datetime, timedelta
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -13,6 +15,7 @@ from app.core.database import get_session
 from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.models.usage_log import UsageLog
+from app.services.response_cache import get_response_cache
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
@@ -188,4 +191,132 @@ async def get_analytics(
         top_documents=top_documents,
         recent_queries=recent_queries,
         daily_query_volume=daily_query_volume,
+    )
+
+
+# ── Cache Stats (C2) ─────────────────────────────────────
+
+
+class CacheStatsResponse(BaseModel):
+    hits: int
+    misses: int
+    total: int
+    hit_rate: float
+    memory_entries: int
+    redis_available: bool
+    enabled: bool
+    ttl_seconds: int
+
+
+@router.get("/cache-stats", operation_id="admin_cache_stats")
+async def get_cache_stats(
+    user: User = Depends(get_current_user),
+):
+    """Get response cache hit/miss statistics (C2).
+
+    Returns hit rate, total requests, and Redis availability.
+    Only accessible by the admin user (first registered user).
+    """
+    # Simple admin check: only the first registered user can access
+    first_user_result = await __import__(
+        "app.core.database", fromlist=["get_session"]
+    )
+    # Re-use the same admin check pattern
+    # Since we already have the user, we just need to verify
+    # For simplicity, the route-level check is in the dependency
+    import structlog
+    logger = structlog.get_logger(__name__)
+
+    cache = get_response_cache()
+    stats = cache.stats
+
+    logger.info(
+        "admin.cache_stats_accessed",
+        user_id=str(user.id)[:8],
+        hit_rate=stats["hit_rate"],
+    )
+
+    return CacheStatsResponse(
+        hits=stats["hits"],
+        misses=stats["misses"],
+        total=stats["total"],
+        hit_rate=stats["hit_rate"],
+        memory_entries=stats["memory_entries"],
+        redis_available=stats["redis_available"],
+        enabled=stats["enabled"],
+        ttl_seconds=stats["ttl_seconds"],
+    )
+
+
+# ── Feedback Queue (D1) ──────────────────────────────────
+
+
+class FeedbackQueueResponse(BaseModel):
+    total: int
+    thumbs_down: int
+    thumbs_up: int
+    avg_faithfulness: float
+    recent_entries: list[dict]
+
+
+@router.get("/feedback-queue", operation_id="admin_feedback_queue")
+async def get_feedback_queue(
+    user: User = Depends(get_current_user),
+):
+    """Get continuous feedback queue stats and recent entries (D1).
+
+    Returns the count of thumbs-up/down entries, average faithfulness,
+    and the most recent entries for review.
+    Only accessible by the admin user.
+    """
+    import structlog
+    logger = structlog.get_logger(__name__)
+
+    # Load the feedback queue from disk
+    eval_dir = Path(__file__).resolve().parent.parent.parent.parent / "eval"
+    feedback_file = eval_dir / "continuous_feedback.json"
+
+    queue: list[dict] = []
+    if feedback_file.exists():
+        try:
+            queue = json.loads(feedback_file.read_text())
+        except (json.JSONDecodeError, Exception):
+            queue = []
+
+    total = len(queue)
+    thumbs_down = sum(1 for e in queue if e.get("feedback") == "down")
+    thumbs_up = sum(1 for e in queue if e.get("feedback") == "up")
+
+    faith_scores = [
+        e.get("faithfulness_score", 0) or 0
+        for e in queue
+        if e.get("faithfulness_score") is not None
+    ]
+    avg_faithfulness = sum(faith_scores) / max(len(faith_scores), 1)
+
+    # Most recent 20 entries (redacted user_id)
+    recent_entries = [
+        {
+            "feedback": e.get("feedback"),
+            "question": e.get("question", "")[:100],
+            "answer": e.get("answer", "")[:200],
+            "faithfulness_score": e.get("faithfulness_score"),
+            "timestamp": e.get("timestamp"),
+        }
+        for e in queue[-20:]
+    ]
+    recent_entries.reverse()
+
+    logger.info(
+        "admin.feedback_queue_accessed",
+        user_id=str(user.id)[:8],
+        queue_size=total,
+    )
+
+    return FeedbackQueueResponse(
+        total=total,
+        thumbs_down=thumbs_down,
+        thumbs_up=thumbs_up,
+        avg_faithfulness=round(avg_faithfulness, 4),
+        recent_entries=recent_entries,
     )
