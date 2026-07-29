@@ -100,9 +100,9 @@ test.describe("Veridoc E2E Smoke Test", () => {
     // Wait for the response to appear (may take a while with Ollama)
     await page.waitForTimeout(3000);
 
-    // Check that we have at least one assistant message or streaming content
-    // The response could take up to 30s with Ollama, so we wait for content
-    await page.waitForSelector("text=/.*/", { timeout: 60000 });
+    // Wait for assistant message to appear (may take up to 60s with Ollama)
+    // Look for streaming cursor or prose content (both appear in assistant messages)
+    await page.waitForSelector(".streaming-cursor, [class*='prose']", { timeout: 60000 });
   });
 
   // ── Citation click ──────────────────────────────────────────
@@ -114,15 +114,23 @@ test.describe("Veridoc E2E Smoke Test", () => {
     await page.click('button[type="submit"]');
     await page.waitForURL(/\/dashboard/, { timeout: 15000 });
 
-    // Look for citation chips (button with class "citation-chip")
-    const citationChips = page.locator("button.citation-chip");
-
-    // If citations exist, test clicking one
-    if ((await citationChips.count()) > 0) {
+    // Check for citation chips or Sources label
+    const hasCitations = await page.locator("text=Sources:").isVisible();
+    if (hasCitations) {
+      // Click the first citation chip
+      const citationChips = page.locator("button.citation-chip");
+      const count = await citationChips.count();
+      expect(count).toBeGreaterThan(0);
       await citationChips.first().click();
       // Citation click dispatches a custom event - no UI change expected
       // Just verify no crash
-      expect(true).toBeTruthy();
+    } else {
+      // No citations in current conversation - test is still valid if other
+      // tests cover citation scenarios. This is expected for simple responses.
+      test.info().annotations.push({
+        type: "info",
+        description: "No citations found in the current conversation. This is expected for simple QA responses.",
+      });
     }
   });
 
