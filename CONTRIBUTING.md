@@ -39,7 +39,9 @@ By participating in this project, you agree to maintain a respectful and inclusi
 
 ```bash
 cp .env.example .env
-# Edit .env — generate secrets as instructed in the file
+# Edit .env — generate secrets as instructed in the file:
+#   python -c "import secrets; print(secrets.token_hex(32))"              → for JWT_SECRET
+#   python -c "import base64, os; print(base64.urlsafe_b64encode(os.urandom(32)).decode())" → for FILE_ENCRYPTION_KEY
 docker compose up --build -d
 ```
 
