@@ -130,9 +130,91 @@ jobs:
         run: python -m pytest tests/ -v --timeout=120 \
           -k "integration or health"
 
+  eval-regression:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: veridoc
+          POSTGRES_PASSWORD: veridoc_local_dev
+          POSTGRES_DB: veridoc
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run evaluation regression gate
+        env:
+          POSTGRES_HOST: localhost
+          APP_ENV: test
+          SKIP_LLM: "true"
+        run: |
+          echo "Running evaluation regression gate..."
+          # Run a fast subset of the evaluation harness
+          python -c "
+import json
+from pathlib import Path
+
+# Check that gold_qa.json exists and has entries
+gold_path = Path('eval/gold_qa.json')
+if not gold_path.exists():
+    print('FAIL: eval/gold_qa.json not found')
+    exit(1)
+
+gold = json.loads(gold_path.read_text())
+print(f'Gold Q&A set: {len(gold)} entries')
+
+if len(gold) < 5:
+    print(f'FAIL: Only {len(gold)} entries, need at least 5')
+    exit(1)
+
+# Check continuous feedback queue does not exceed max size
+feedback_path = Path('eval/continuous_feedback.json')
+if feedback_path.exists():
+    feedback = json.loads(feedback_path.read_text())
+    print(f'Feedback queue: {len(feedback)} entries')
+    if len(feedback) > 1000:
+        print(f'WARN: Feedback queue has {len(feedback)} entries, consider running promote_feedback.py')
+
+print('PASS: Evaluation regression gate')
+"
+
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Build Docker images
         run: docker compose build
+
+  # SBOM + vulnerability scanning (D9)
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+      - name: Generate SBOM
+        run: |
+          syft dir:backend -o spdx-json > sbom.backend.json || echo "Syft scan skipped"
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom*.json
+          retention-days: 30

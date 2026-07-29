@@ -170,17 +170,89 @@ class OpenAIProvider(LLMProvider):
 # ── Factory ──────────────────────────────────────────────
 
 
+import structlog
+
+
 def _build_llm_provider() -> LLMProvider:
     """Build the appropriate LLM provider from settings (no caching).
 
     This function exists separately so it can be called from
     ``DIContainer.get_or_create_llm()`` without circular imports.
+
+    When the configured primary provider errors or times out, the
+    getter wraps the call in a try/except and falls back to the
+    local Ollama model (if not already primary).  Every fallback
+    event is logged with the provider name and error reason.
     """
+    logger = structlog.get_logger(__name__)
+
     if settings.anthropic_api_key and settings.llm_provider == "claude":
-        return ClaudeProvider()
+        logger.info("llm.provider_selected", provider="claude", model="claude-sonnet-4-20250514")
+        return _with_fallback_to_ollama(ClaudeProvider(), "claude", logger)
     elif settings.openai_api_key and settings.llm_provider == "openai":
-        return OpenAIProvider()
+        logger.info("llm.provider_selected", provider="openai", model="gpt-4o-mini")
+        return _with_fallback_to_ollama(OpenAIProvider(), "openai", logger)
+    logger.info("llm.provider_selected", provider="ollama", model=settings.ollama_model)
     return OllamaProvider()
+
+
+def _with_fallback_to_ollama(primary: LLMProvider, name: str, logger) -> LLMProvider:
+    """Wrap a primary LLM provider with automatic fallback to Ollama.
+
+    When a request to the primary provider errors or times out, the
+    fallback transparently redirects to the local Ollama model.
+    Every fallback event is logged with the provider name, error,
+    and a "FALLBACK" flag visible in structured logs.
+    """
+    import asyncio
+
+    class FallbackWrapper(LLMProvider):
+        @property
+        def model_name(self) -> str:
+            return primary.model_name
+
+        async def chat(self, system_prompt: str, history: list[dict], message: str) -> str:
+            try:
+                return await asyncio.wait_for(
+                    primary.chat(system_prompt, history, message),
+                    timeout=settings.llm_timeout,
+                )
+            except (asyncio.TimeoutError, Exception) as e:
+                logger.warning(
+                    "llm.fallback",
+                    primary=name,
+                    error=str(e)[:100],
+                    timeout=isinstance(e, asyncio.TimeoutError),
+                )
+                # Fall back to Ollama
+                fallback = OllamaProvider()
+                import structlog
+                logger.info("llm.fallback_activated", fallback=fallback.model_name)
+                return await fallback.chat(system_prompt, history, message)
+
+        async def stream_chat(
+            self, system_prompt: str, history: list[dict], message: str
+        ) -> AsyncGenerator[str, None]:
+            try:
+                async for token in asyncio.wait_for(
+                    primary.stream_chat(system_prompt, history, message),
+                    timeout=settings.llm_timeout,
+                ):
+                    yield token
+            except (asyncio.TimeoutError, Exception) as e:
+                logger.warning(
+                    "llm.fallback.stream",
+                    primary=name,
+                    error=str(e)[:100],
+                    timeout=isinstance(e, asyncio.TimeoutError),
+                )
+                # Fall back to Ollama
+                fallback = OllamaProvider()
+                logger.info("llm.fallback_activated", fallback=fallback.model_name)
+                async for token in fallback.stream_chat(system_prompt, history, message):
+                    yield token
+
+    return FallbackWrapper()
 
 
 def get_llm() -> LLMProvider:
