@@ -355,7 +355,6 @@ class TestBM25DiskPersistence:
         """Test BM25 index can be saved and reloaded from disk."""
         from app.services.retrieval.bm25 import (
             _ensure_cache_dir,
-            _build_cache_key,
             get_bm25_index,
             _bm25_indexes,
         )
@@ -371,8 +370,6 @@ class TestBM25DiskPersistence:
             {"chunk_id": "c1", "content": "The quick brown fox.", "document_id": "d1"},
             {"chunk_id": "c2", "content": "Jumps over the lazy dog.", "document_id": "d1"},
         ]
-        _build_cache_key(["d1"])
-
         # First call: builds index, caches in memory AND writes to disk
         index1, chunks1 = get_bm25_index(chunks, document_ids=["d1"])
         assert index1 is not None
@@ -394,9 +391,10 @@ class TestBM25DiskPersistence:
         # Both indexes should produce the same scores
         import nltk
         tokenized_query = nltk.word_tokenize("fox")
+        import numpy as np
         scores1 = index1.get_scores(tokenized_query)
         scores2 = index2.get_scores(tokenized_query)
-        assert scores1 == scores2
+        assert np.array_equal(scores1, scores2)
 
     def test_bm25_disk_cache_missing_returns_none(self, tmp_path, monkeypatch):
         """Test loading a nonexistent disk cache returns None."""
