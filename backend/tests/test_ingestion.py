@@ -140,8 +140,9 @@ class TestParseDocument:
         txt_file = tmp_path / "test.txt"
         txt_file.write_text("Test content")
 
-        text, pages = parse_document(str(txt_file), "txt")
+        text, pages, ocr_used = parse_document(str(txt_file), "txt")
         assert "Test content" in text
+        assert ocr_used is False  # TXT files never use OCR
 
 
 # ── Full Pipeline Mock Test ──────────────────────────────

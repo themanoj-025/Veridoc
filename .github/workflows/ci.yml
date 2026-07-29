@@ -292,53 +292,52 @@ jobs:
         run: |
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.55.2
 
-      - name: Trivy vulnerability scan — backend (filesystem scan)
-        continue-on-error: true
+      - name: Trivy vulnerability scan — backend
+        id: trivy-backend
+        continue-on-error: false
         run: |
-          trivy fs --scanners vuln --severity CRITICAL,HIGH \
-            --exit-code 0 \
-            --format sarif -o trivy-backend.sarif \
-            --ignorefile .trivyignore \
-            backend/
+          # Scan built Docker image first; fall back to filesystem scan if image not present
+          if docker images --format '{{.Repository}}:{{.Tag}}' 2>/dev/null | grep -q 'veridoc-backend'; then
+            echo "Scanning Docker image: veridoc-backend:latest"
+            trivy image --scanners vuln --severity CRITICAL \
+              --exit-code 1 --ignore-unfixed \
+              --format sarif -o trivy-backend.sarif \
+              --ignorefile .trivyignore \
+              veridoc-backend:latest
+          else
+            echo "No Docker image found — scanning filesystem: backend/"
+            trivy fs --scanners vuln --severity CRITICAL \
+              --exit-code 1 --ignore-unfixed \
+              --format sarif -o trivy-backend.sarif \
+              --ignorefile .trivyignore \
+              backend/
+          fi
 
-      - name: Trivy vulnerability scan — frontend (filesystem scan)
-        continue-on-error: true
+      - name: Trivy vulnerability scan — frontend
+        id: trivy-frontend
+        continue-on-error: false
         run: |
-          trivy fs --scanners vuln --severity CRITICAL,HIGH \
-            --exit-code 0 \
-            --format sarif -o trivy-frontend.sarif \
-            frontend/
+          if docker images --format '{{.Repository}}:{{.Tag}}' 2>/dev/null | grep -q 'veridoc-frontend'; then
+            echo "Scanning Docker image: veridoc-frontend:latest"
+            trivy image --scanners vuln --severity CRITICAL \
+              --exit-code 1 --ignore-unfixed \
+              --format sarif -o trivy-frontend.sarif \
+              veridoc-frontend:latest
+          else
+            echo "No Docker image found — scanning filesystem: frontend/"
+            trivy fs --scanners vuln --severity CRITICAL \
+              --exit-code 1 --ignore-unfixed \
+              --format sarif -o trivy-frontend.sarif \
+              frontend/
+          fi
 
-      - name: Trivy summary report (non-blocking table)
+      - name: Trivy summary report (all severities, non-blocking table)
         continue-on-error: true
         run: |
           trivy fs --scanners vuln --severity CRITICAL,HIGH,MEDIUM,LOW \
             --exit-code 0 \
             --format table \
-            backend/requirements.txt
-
-      - name: Check Trivy SARIF for CRITICAL unfixed vulnerabilities
-        id: trivy-check
-        shell: bash
-        run: |
-          if [ -f trivy-backend.sarif ]; then
-            CRIT_COUNT=$(python -c "import json; data=json.load(open('trivy-backend.sarif')); runs=data.get('runs',[]); print(sum(1 for r in runs for result in r.get('results',[]) if result.get('level','')=='error'))" 2>/dev/null || echo "0")
-            echo "CRITICAL/HIGH backend vulns: $CRIT_COUNT"
-            if [ "$CRIT_COUNT" -gt 0 ]; then
-              echo "::warning::Trivy found $CRIT_COUNT CRITICAL/HIGH vulnerabilities in backend dependencies."
-              echo "::warning::See uploaded trivy-reports artifact for details."
-              echo "::warning::Accepted risks are documented in docs/security-notes.md"
-            fi
-          fi
-          if [ -f trivy-frontend.sarif ]; then
-            CRIT_COUNT=$(python -c "import json; data=json.load(open('trivy-frontend.sarif')); runs=data.get('runs',[]); print(sum(1 for r in runs for result in r.get('results',[]) if result.get('level','')=='error'))" 2>/dev/null || echo "0")
-            echo "CRITICAL/HIGH frontend vulns: $CRIT_COUNT"
-            if [ "$CRIT_COUNT" -gt 0 ]; then
-              echo "::warning::Trivy found $CRIT_COUNT CRITICAL/HIGH vulnerabilities in frontend dependencies."
-              echo "::warning::See uploaded trivy-reports artifact for details."
-              echo "::warning::Accepted risks are documented in docs/security-notes.md"
-            fi
-          fi
+            backend/requirements.txt || echo "Trivy summary generated with findings"
 
       - name: Upload Trivy SARIF reports
         if: always()
@@ -348,9 +347,10 @@ jobs:
           path: trivy-*.sarif
           retention-days: 30
 
-      - name: Fail CI on CRITICAL unfixed vulnerabilities
-        if: steps.trivy-check.outcome != 'success' && steps.trivy-check.outcome != 'skipped'
+      - name: Notify on CRITICAL vulnerabilities found
+        if: steps.trivy-backend.outcome == 'failure' || steps.trivy-frontend.outcome == 'failure'
         run: |
-          echo "CRITICAL or HIGH vulnerabilities found. Review the trivy-reports artifact."
-          echo "If these are accepted risks, document them in docs/security-notes.md"
-          exit 1
+          echo "::error::CRITICAL severity vulnerabilities found — the CI job has failed."
+          echo "::error::Review the trivy-reports artifact for details."
+          echo "::error::If these are accepted risks, document them in docs/security-notes.md"
+          echo "::error::and add the CVE IDs to .trivyignore with rationale."
