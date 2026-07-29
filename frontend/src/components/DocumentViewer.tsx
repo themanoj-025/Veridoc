@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { documents } from "@/lib/api";
 import type { DocumentResponse } from "@/lib/api-types";
+import { OCRBadge } from "@/components/OCRBadge";
 
 interface DocumentViewerProps {
   documentId: string | null;
@@ -76,12 +77,12 @@ export function DocumentViewer({ documentId }: DocumentViewerProps) {
     <div className="h-full flex flex-col">
       {/* Document header */}
       <div className="p-4 border-b bg-white">
-        <h2 className="font-semibold text-foreground">{doc.title}</h2>
-        <p className="text-xs text-muted-foreground mt-1">
-          {doc.filename} · {doc.status}
-          {doc.page_count && ` · ${doc.page_count} pages`}
-          {doc.chunk_count && ` · ${doc.chunk_count} chunks`}
-        </p>
+        <h2 className="font-semibold text-foreground">{doc.title}</h2>          <p className="text-xs text-muted-foreground mt-1">
+            {doc.filename} · {doc.status}
+            {doc.page_count && ` · ${doc.page_count} pages`}
+            {doc.chunk_count && ` · ${doc.chunk_count} chunks`}
+            <OCRBadge ocrUsed={doc.ocr_used} size="xs" className="ml-1.5" />
+          </p>
       </div>
 
       {/* Document content */}

@@ -5,6 +5,7 @@ import { conversations, streamChat } from "@/lib/api";
 import { useChatStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { ThumbsUpDown } from "@/components/ThumbsUpDown";
+import { OCRBadge } from "@/components/OCRBadge";
 import type { Citation as CitationType } from "@/lib/api-types";
 import ReactMarkdown from "react-markdown";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
@@ -222,6 +223,7 @@ export function ChatPanel({ conversationId, onNewConversation }: ChatPanelProps)
                             d="M4 6h16M4 12h16m-7 6h7" />
                         </svg>
                         {cit.page_number ? `p.${cit.page_number}` : `src ${i + 1}`}
+                        <OCRBadge ocrUsed={cit.ocr_used ?? false} size="xs" />
                       </button>
                     ))}
                   </div>

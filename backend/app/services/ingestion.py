@@ -56,7 +56,8 @@ async def process_document(
             doc.status = "parsing"
             await session.flush()
 
-            text, pages = parse_document(doc.file_path, doc.file_type)
+            text, pages, ocr_used = parse_document(doc.file_path, doc.file_type)
+            doc.ocr_used = ocr_used
 
             # 2. Chunk
             doc.status = "chunking"
@@ -73,6 +74,7 @@ async def process_document(
                     chunk_index=c["chunk_index"],
                     content=c["content"],
                     page_number=c.get("page_number"),
+                    ocr_used=ocr_used,
                 )
                 session.add(chunk)
                 db_chunks.append(chunk)
@@ -115,23 +117,35 @@ async def process_document(
             logger.error(f"Failed to process document {doc.id}: {e}", exc_info=True)
 
 
-def parse_document(file_path: str, file_type: str) -> tuple[str, dict[int, int]]:
-    """Parse a document file into plain text."""
+def parse_document(file_path: str, file_type: str) -> tuple[str, dict[int, int], bool]:
+    """Parse a document file into plain text.
+
+    Returns
+    -------
+    tuple[str, dict[int, int], bool]
+        (full_text, page_map, ocr_used) where ocr_used indicates whether
+        OCR was required to extract text from this document.
+    """
     path = Path(file_path)
     ext = file_type.lower()
 
     if ext == "pdf":
         return _parse_pdf(path)
     elif ext == "docx":
-        return _parse_docx(path)
+        text, pages = _parse_docx(path)
+        return text, pages, False
     elif ext == "txt":
-        return _parse_txt(path)
+        text, pages = _parse_txt(path)
+        return text, pages, False
     else:
         raise ValueError(f"Unsupported file type: {ext}")
 
 
-def _parse_pdf(path: Path) -> tuple[str, dict[int, int]]:
-    """Parse a PDF file. Falls back to OCR if needed."""
+def _parse_pdf(path: Path) -> tuple[str, dict[int, int], bool]:
+    """Parse a PDF file. Falls back to OCR if needed.
+
+    Returns (text, page_map, ocr_used).
+    """
     try:
         from pypdf import PdfReader
 
@@ -151,12 +165,14 @@ def _parse_pdf(path: Path) -> tuple[str, dict[int, int]]:
         # If extracted text is too sparse, try OCR
         if len(full_text.strip()) < 50:
             logger.info("PDF text extraction yielded little text, attempting OCR...")
-            return _parse_pdf_ocr(path)
+            text, pages = _parse_pdf_ocr(path)
+            return text, pages, True
 
-        return full_text, page_map
+        return full_text, page_map, False
     except Exception as e:
         logger.warning(f"PDF parsing failed, falling back to OCR: {e}")
-        return _parse_pdf_ocr(path)
+        text, pages = _parse_pdf_ocr(path)
+        return text, pages, True
 
 
 def _parse_pdf_ocr(path: Path) -> tuple[str, dict[int, int]]:

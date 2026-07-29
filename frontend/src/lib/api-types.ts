@@ -108,6 +108,7 @@ export interface Citation {
   text: string;
   page_number?: number | null;
   score: number;
+  ocr_used?: boolean;
 }
 
 export interface MessageResponse {

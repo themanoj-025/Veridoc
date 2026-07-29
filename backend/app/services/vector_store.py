@@ -61,6 +61,7 @@ class VectorStore:
                 "chunk_index": c.get("chunk_index", 0),
                 "page_number": c.get("page_number"),
                 "document_title": c.get("document_title", ""),
+                "ocr_used": c.get("ocr_used", False),
             }
             for c in chunks
         ]
@@ -100,6 +101,7 @@ class VectorStore:
                     "document_id": results["metadatas"][0][i].get("document_id", ""),
                     "document_title": results["metadatas"][0][i].get("document_title", ""),
                     "page_number": results["metadatas"][0][i].get("page_number"),
+                    "ocr_used": results["metadatas"][0][i].get("ocr_used", False),
                     "score": 1.0 - results["distances"][0][i] if results["distances"] else 0.0,
                     "source": "vector",
                 })
@@ -129,6 +131,7 @@ class VectorStore:
                     "content": results["documents"][i] if results["documents"] else "",
                     "document_id": meta.get("document_id", ""),
                     "document_title": meta.get("document_title", ""),
+                    "ocr_used": meta.get("ocr_used", False),
                     "page_number": meta.get("page_number"),
                 })
         return chunks

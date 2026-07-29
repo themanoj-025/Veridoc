@@ -16,6 +16,7 @@ class Citation(BaseModel):
     text: str
     page_number: int | None = None
     score: float = 0.0
+    ocr_used: bool = False
 
 
 class ConversationCreate(BaseModel):

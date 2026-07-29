@@ -212,6 +212,7 @@ async def get_document_content(
                 "index": c.chunk_index,
                 "content": c.content,
                 "page_number": c.page_number,
+                "ocr_used": c.ocr_used,
             }
             for c in chunks
         ],

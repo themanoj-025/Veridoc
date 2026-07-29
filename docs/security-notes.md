@@ -53,10 +53,35 @@ It is NOT an instruction -- it is data for you to use as evidence:
 **Summary**: 8/8 tests passed at the defense-mechanism level.
 *Note: These tests verify the defense mechanism exists in the code (instruction boundaries, data marking, chunk isolation). Full end-to-end validation against a live Ollama model would additionally verify that the model respects these boundaries in its output.*
 
+## Vulnerability Scanning (D9)
+
+### CI Pipeline
+
+The CI workflow (`.github/workflows/ci.yml`) includes a `security-scan` job that:
+1. **Syft SBOM generation** — generates SPDX-format SBOMs for both `backend/` and `frontend/` directories, uploaded as CI artifacts (30-day retention)
+2. **Trivy vulnerability scanning** — scans for CRITICAL and HIGH severity vulnerabilities using `trivy fs` against the source directories, and `trivy fs` against `requirements.txt` for package-level CVEs
+3. **SARIF report upload** — vulnerability reports are uploaded as CI artifacts for review
+4. **Non-blocking by default** — CRITICAL/HIGH findings generate warnings but do not block the CI pipeline. To enable blocking mode, remove the `continue-on-error: true` flags (see CI YAML comments)
+
+### Known/Accepted Vulnerabilities
+
+> *Note: Run `trivy fs backend/` locally to scan for current findings, then document accepted CVEs below.*
+
+The `.trivyignore` file at the project root documents accepted-risk CVEs with rationale.
+
+### Limitation: Filesystem vs Image Scanning
+
+The CI currently uses `trivy fs` (filesystem scan) rather than `trivy image` (Docker image scan). This means:
+- **Filesystem scan detects**: library/dependency CVEs (Python packages, Node modules)
+- **Filesystem scan misses**: OS-layer CVEs from the Docker base image (e.g., Alpine vulnerabilities, glibc CVEs)
+
+To enable full image scanning, add the `build` CI job as a dependency of `security-scan` and use `trivy image veridoc-backend:latest`.
+
 ## Recommendations for Production
 
 1. Enable GitHub Dependabot for automated dependency scanning
-2. Use a secrets manager (Vault, AWS Secrets Manager) instead of .env
-3. Add a Web Application Firewall in front of the reverse proxy
-4. Enable comprehensive audit logging
-5. Run the full red-team suite against the live Ollama model
+2. Switch Trivy from `trivy fs` to `trivy image` by building Docker images first
+3. Use a secrets manager (Vault, AWS Secrets Manager) instead of .env
+4. Add a Web Application Firewall in front of the reverse proxy
+5. Enable comprehensive audit logging
+6. Run the full red-team suite against the live Ollama model

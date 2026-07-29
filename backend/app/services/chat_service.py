@@ -146,6 +146,7 @@ class ChatService:
                 text=c["content"][:200],
                 page_number=c.get("page_number"),
                 score=c.get("score", 0.0),
+                ocr_used=c.get("ocr_used", False),
             )
             for c in top_chunks
         ]
