@@ -44,6 +44,17 @@ const config: Config = {
           DEFAULT: "var(--color-border)",
           subtle: "var(--color-border-subtle)",
         },
+        // Semantic colors via CSS variables for @apply directives
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
       },
       fontFamily: {
         display: ["Inter", "system-ui", "sans-serif"],
