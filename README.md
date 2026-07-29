@@ -19,7 +19,7 @@
     <img src="https://img.shields.io/badge/Next.js-14-black.svg" alt="Next.js 14" />
     <img src="https://img.shields.io/badge/PostgreSQL-16-blue.svg" alt="PostgreSQL 16" />
     <img src="https://img.shields.io/badge/RAG-Hybrid%20Search-brightgreen.svg" alt="Hybrid RAG" />
-    <img src="https://img.shields.io/badge/tests-77%20passing-green.svg" alt="Tests: 77 passing" />
+    <img src="https://img.shields.io/badge/tests-77%20collected-blue.svg" alt="Tests: 77 collected" />
     <img src="https://img.shields.io/badge/demo-pending-ff69b4" alt="Demo Pending" />
   </p>
 
@@ -202,7 +202,7 @@ graph TD
 
 ## 📊 Evaluation Results
 
-> **⏳ Live-stack numbers pending:** The head-to-head benchmark (naive dense vs hybrid+rerank against the full 23-question gold set on live Ollama) requires the Docker stack to be running. See [NEXT_STEPS.md](NEXT_STEPS.md) for the one-liner to run it. Below are the numbers we have from standalone pipeline testing and benchmarks.
+> **⏳ Live-stack numbers pending — last updated: July 2026.** The head-to-head benchmark (naive dense vs hybrid+rerank against the full 23-question gold set on live Ollama) requires the Docker stack to be running. These numbers will be replaced with live-stack results once `docker compose up -d && python scripts/run_eval.py --compare` completes. See [NEXT_STEPS.md](NEXT_STEPS.md) for the exact command. Below are the numbers we have from standalone pipeline testing and benchmarks.
 
 ### Cross-Encoder Batching Benchmark ✅ *(measured)*
 
