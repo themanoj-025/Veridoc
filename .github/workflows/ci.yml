@@ -163,36 +163,7 @@ jobs:
           POSTGRES_HOST: localhost
           APP_ENV: test
           SKIP_LLM: "true"
-        run: |
-          echo "Running evaluation regression gate..."
-          # Run a fast subset of the evaluation harness
-          python -c "
-import json
-from pathlib import Path
-
-# Check that gold_qa.json exists and has entries
-gold_path = Path('eval/gold_qa.json')
-if not gold_path.exists():
-    print('FAIL: eval/gold_qa.json not found')
-    exit(1)
-
-gold = json.loads(gold_path.read_text())
-print(f'Gold Q&A set: {len(gold)} entries')
-
-if len(gold) < 5:
-    print(f'FAIL: Only {len(gold)} entries, need at least 5')
-    exit(1)
-
-# Check continuous feedback queue does not exceed max size
-feedback_path = Path('eval/continuous_feedback.json')
-if feedback_path.exists():
-    feedback = json.loads(feedback_path.read_text())
-    print(f'Feedback queue: {len(feedback)} entries')
-    if len(feedback) > 1000:
-        print(f'WARN: Feedback queue has {len(feedback)} entries, consider running promote_feedback.py')
-
-print('PASS: Evaluation regression gate')
-"
+        run: python scripts/ci_eval_gate.py
 
   build:
     runs-on: ubuntu-latest
