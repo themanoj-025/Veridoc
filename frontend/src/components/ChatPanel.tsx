@@ -180,7 +180,7 @@ export function ChatPanel({ conversationId, onNewConversation }: ChatPanelProps)
           </div>
         )}
 
-        {messages.map((msg) => (
+        {messages.map((msg, idx) => (
           <div
             key={msg.id}
             className={cn(
@@ -254,6 +254,18 @@ export function ChatPanel({ conversationId, onNewConversation }: ChatPanelProps)
                   </span>
                 )}
               </div>
+
+              {/* Thumbs-up/down feedback */}
+              {msg.role === "assistant" && conversationId && (
+                <ThumbsUpDown
+                  messageId={msg.id}
+                  conversationId={conversationId}
+                  question={messages[idx - 1]?.content || ""}
+                  answer={msg.content}
+                  citations={msg.citations}
+                  faithfulnessScore={msg.faithfulness_score}
+                />
+              )}
             </div>
           </div>
         ))}
