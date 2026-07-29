@@ -90,7 +90,6 @@ async def run_single_eval(
 
     # Generate answer
     llm = get_llm()
-    gen_start = time.time()
 
     system_prompt = (
         "You are Veridoc, a precise document Q&A assistant. "
@@ -100,7 +99,6 @@ async def run_single_eval(
     )
 
     answer = await llm.chat(system_prompt, [], question)
-    gen_time = (time.time() - gen_start) * 1000
 
     # Faithfulness
     faith_score = await faithfulness_check(question, answer, context)

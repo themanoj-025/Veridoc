@@ -184,7 +184,11 @@ async def list_conversations(
     )
 
 
-@router.get("/conversations/{conversation_id}", response_model=ConversationResponse, operation_id="chat_get_conversation")
+@router.get(
+    "/conversations/{conversation_id}",
+    response_model=ConversationResponse,
+    operation_id="chat_get_conversation",
+)
 async def get_conversation(
     conversation_id: uuid.UUID,
     user: User = Depends(get_current_user),
@@ -207,7 +211,11 @@ async def get_conversation(
     return result
 
 
-@router.delete("/conversations/{conversation_id}", status_code=status.HTTP_204_NO_CONTENT, operation_id="chat_delete_conversation")
+@router.delete(
+    "/conversations/{conversation_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    operation_id="chat_delete_conversation",
+)
 async def delete_conversation(
     conversation_id: uuid.UUID,
     user: User = Depends(get_current_user),

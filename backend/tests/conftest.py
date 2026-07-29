@@ -14,6 +14,7 @@ from httpx import AsyncClient, ASGITransport
 from app.core.config import settings
 from app.core.security import hash_password, create_access_token, create_refresh_token
 from app.models.user import User
+from app.core.database import get_session as db_get_session
 
 
 # ── Test Settings ────────────────────────────────────────
@@ -179,7 +180,6 @@ def temp_upload_dir(tmp_path):
 
 # ── FastAPI Test Client ─────────────────────────────────
 
-from app.core.database import get_session as db_get_session
 
 @pytest_asyncio.fixture
 async def test_client(mock_db_session) -> AsyncGenerator[AsyncClient, None]:

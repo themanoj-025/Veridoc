@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from sqlalchemy import String, Text, Integer, DateTime, Float, ForeignKey, func
 from sqlalchemy.dialects.postgresql import UUID
@@ -13,7 +13,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
 if TYPE_CHECKING:
-    from app.models.citation_record import CitationRecord
+    from app.models.citation_record import CitationRecord  # noqa: F401
 
 
 class Message(Base):
@@ -42,5 +42,7 @@ class Message(Base):
 
     # Relationships
     conversation = relationship("Conversation", back_populates="messages")
-    citation_records = relationship("CitationRecord", back_populates="message",
-                                      lazy="selectin", cascade="all, delete-orphan")
+    citation_records = relationship(
+        "CitationRecord", back_populates="message",
+        lazy="selectin", cascade="all, delete-orphan",
+    )

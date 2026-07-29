@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from typing import AsyncGenerator
 
 import httpx
+import structlog
 
 from app.core.config import settings
 
@@ -166,8 +167,6 @@ class OpenAIProvider(LLMProvider):
             if chunk.choices[0].delta.content:
                 yield chunk.choices[0].delta.content
 
-
-import structlog
 
 # ── Factory ──────────────────────────────────────────────
 

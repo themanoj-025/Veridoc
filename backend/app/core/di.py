@@ -64,6 +64,8 @@ _container_var: ContextVar["DIContainer | None"] = ContextVar(
     "di_container",
     default=None,
 )
+
+
 class DIContainer:
     """Holds initialized service instances.
 
@@ -126,7 +128,10 @@ class DIContainer:
         if self.job_queue is None:
             from app.services.job_queue import JobQueue as _jq
             self.job_queue = _jq()
-        return self.job_queue    # ── ContextVar helpers ────────────────────────────────────────────
+        return self.job_queue
+
+
+# ── ContextVar helpers ────────────────────────────────────────────
 
 
 def set_di_container(container: DIContainer | None) -> None:
@@ -171,5 +176,3 @@ def init_container(app: FastAPI) -> DIContainer:
     app.state.container = container
     set_di_container(container)
     return container
-
-

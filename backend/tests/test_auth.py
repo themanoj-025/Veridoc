@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from httpx import AsyncClient
@@ -219,7 +219,9 @@ async def test_refresh_expired_token(test_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_refresh_token_reuse_rejected(test_client: AsyncClient, mock_db_session, sample_user):
     """Test that reusing a consumed refresh token is rejected (rotation)."""
-    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=sample_user)
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
+        return_value=sample_user,
+    )
 
     # Generate a refresh token
     from app.core.security import create_refresh_token
@@ -244,7 +246,10 @@ async def test_refresh_token_reuse_rejected(test_client: AsyncClient, mock_db_se
 # ── Logout ───────────────────────────────────────────────
 
 @pytest.mark.asyncio
-async def test_logout_revokes_refresh_token(test_client: AsyncClient, mock_db_session, sample_user, sample_refresh_token, app):
+async def test_logout_revokes_refresh_token(
+    test_client: AsyncClient, mock_db_session, sample_user,
+    sample_refresh_token, app,
+):
     """Test that logout revokes the refresh token so it can't be reused."""
     _override_get_user(app, sample_user)
 
@@ -472,7 +477,9 @@ class TestNegativeSecurity:
         assert response.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_cross_user_document_access_rejected(self, test_client: AsyncClient, mock_db_session, app, sample_user):
+    async def test_cross_user_document_access_rejected(
+        self, test_client: AsyncClient, mock_db_session, app, sample_user,
+    ):
         """A user accessing another user's document by ID must be rejected with 404."""
         from app.core.dependencies import get_current_user
 
@@ -487,8 +494,9 @@ class TestNegativeSecurity:
         mock_db_session.execute = AsyncMock(return_value=mock_result)
 
         # Attempt to access a document that doesn't belong to sample_user
+        doc_id = uuid.uuid4()
         response = await test_client.get(
-            f"/api/v1/documents/{uuid.uuid4()}",
+            f"/api/v1/documents/{doc_id}",
             headers={"Authorization": "Bearer fake-token"},
         )
         # Should return 404 (not found) because the doc doesn't exist for this user
@@ -497,7 +505,9 @@ class TestNegativeSecurity:
         app.dependency_overrides.pop(get_current_user, None)
 
     @pytest.mark.asyncio
-    async def test_cross_user_conversation_access_rejected(self, test_client: AsyncClient, mock_db_session, app, sample_user):
+    async def test_cross_user_conversation_access_rejected(
+        self, test_client: AsyncClient, mock_db_session, app, sample_user,
+    ):
         """A user accessing another user's conversation by ID must be rejected with 404."""
         from app.core.dependencies import get_current_user
 
@@ -512,8 +522,9 @@ class TestNegativeSecurity:
         mock_db_session.execute = AsyncMock(return_value=mock_result)
 
         # Attempt to access a conversation that doesn't belong to sample_user
+        conv_id = uuid.uuid4()
         response = await test_client.get(
-            f"/api/v1/chat/conversations/{uuid.uuid4()}",
+            f"/api/v1/chat/conversations/{conv_id}",
             headers={"Authorization": "Bearer fake-token"},
         )
         assert response.status_code == 404
@@ -539,9 +550,6 @@ class TestNegativeSecurity:
         assert conv_create.title == malicious_title
 
         # Level 2-3: Actual DB save/load with real in-memory SQLite
-        from tests.test_schema import real_db_session
-        import pytest_asyncio
-
         # We reuse the real_db_session pattern from test_schema.py
         from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
         from app.core.database import Base
