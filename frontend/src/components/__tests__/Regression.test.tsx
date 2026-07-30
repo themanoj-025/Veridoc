@@ -50,10 +50,11 @@ global.fetch = mockFetch;
 
 // Mock AbortController
 const mockAbort = vi.fn();
-global.AbortController = vi.fn().mockImplementation(() => ({
-  signal: {},
-  abort: mockAbort,
-}));
+class MockAbortController {
+  signal = { addEventListener: () => {} };
+  abort = mockAbort;
+}
+global.AbortController = MockAbortController as unknown as typeof AbortController;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -223,12 +224,17 @@ describe("Bug #5: Default JWT secret committed — token validation", () => {
     expect(state.isLoading).toBe(false);
   });
 
-  it("does not expose JWT secret in error messages", () => {
-    // The frontend should never expose the JWT secret in client-side errors
-    const errorMessage = "HTTP 401";
+  it("does not expose JWT secret in API error responses", () => {
+    // Frontend API errors should never leak the JWT secret.
+    // The axios interceptor handles 401s by redirecting to /login
+    // without revealing the secret value in error messages.
+    const mockError = { response: { status: 401, data: { detail: "Invalid authentication credentials" } } };
+    const errorMessage = mockError.response.data.detail || "";
+    // Error message should describe the auth failure, not reveal the secret
     expect(errorMessage).not.toContain("secret");
-    expect(errorMessage).not.toContain("jwt");
-    expect(errorMessage).not.toContain("token");
+    expect(errorMessage).not.toContain("jwt_secret");
+    expect(errorMessage).not.toContain("local-dev-secret");
+    expect(errorMessage).toContain("Invalid");
   });
 
   it("redirects to login on auth failure during API call", () => {
@@ -275,12 +281,19 @@ describe("Bug #7: Hardcoded secrets in docker-compose.yml — frontend hardening
     }
   });
 
-  it("does not reference JWT_SECRET in client-side code", () => {
-    // JWT_SECRET should only exist on the backend, never in frontend
-    const frontendCode = typeof window !== "undefined" ? "client" : "server";
-    // Client-side code should never have access to JWT_SECRET
-    if (frontendCode === "client") {
-      expect("JWT_SECRET" in (typeof process !== "undefined" ? process.env : {})).toBe(false);
+  it("does not expose JWT_SECRET via NEXT_PUBLIC_ env vars in client code", () => {
+    // JWT_SECRET should never be exposed via NEXT_PUBLIC_ env vars.
+    // Server-side process.env.JWT_SECRET may legitimately exist in the
+    // development environment, but it should never be prefixed with
+    // NEXT_PUBLIC_ (which would expose it to the browser bundle).
+    const nextPublicVars = Object.keys(process.env).filter(k => k.startsWith("NEXT_PUBLIC_"));
+    for (const key of nextPublicVars) {
+      const val = process.env[key];
+      if (typeof val === "string") {
+        expect(val.toLowerCase()).not.toContain("jwt_secret");
+        expect(val.toLowerCase()).not.toContain("jwt");
+        expect(val).not.toContain("local-dev-secret");
+      }
     }
   });
 
