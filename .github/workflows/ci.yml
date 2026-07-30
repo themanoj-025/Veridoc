@@ -7,6 +7,36 @@ on:
     branches: [main]
 
 jobs:
+  # ── Check that no secret-like keys have non-empty literal defaults in Docker Compose files ──
+  lint-compose-secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check docker-compose for hardcoded secrets
+        run: |
+          echo "Checking docker-compose.yml for hardcoded secrets..."
+          # Fail if JWT_SECRET or FILE_ENCRYPTION_KEY have a non-env-var literal value
+          # (i.e., not starting with ${...})
+          secrets_found=0
+          for file in docker-compose.yml docker-compose.prod.yml; do
+            if [ ! -f "$file" ]; then continue; fi
+            for key in JWT_SECRET FILE_ENCRYPTION_KEY; do
+              # Look for lines like "  JWT_SECRET: some-literal-value" that don't start with $
+              while IFS= read -r line; do
+                echo "ERROR: $file contains a hardcoded $key literal value"
+                echo "       $line"
+                secrets_found=1
+              done < <(grep -E "^\\s+${key}:\\s+[^$]" "$file" 2>/dev/null || true)
+            done
+          done
+          if [ "$secrets_found" -ne 0 ]; then
+            echo ""
+            echo "FAILURE: Hardcoded secrets found in Docker Compose files."
+            echo "These must use \${VAR:?error} syntax so values come only from .env"
+            exit 1
+          fi
+          echo "✅ All compose files use env-var references for secrets"
+
   lint-backend:
     runs-on: ubuntu-latest
     defaults:
@@ -38,6 +68,23 @@ jobs:
         run: npm ci
       - name: Lint
         run: npm run lint
+
+  # Build-frontend — catches TypeScript compilation errors like the duplicate
+  # setShowMobileDrawer bug that ESLint alone would not catch
+  build-frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install dependencies
+        run: npm ci
+      - name: TypeScript build check
+        run: npm run build
 
   test-backend:
     runs-on: ubuntu-latest
