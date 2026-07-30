@@ -1,21 +1,20 @@
-"""GDPR-style data export and deletion endpoints (D10)."""
+"""GDPR-style data export and deletion endpoints (D10) — uses repositories."""
 
 from __future__ import annotations
 
 from datetime import datetime
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import select, delete
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.responses import JSONResponse
 
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
 from app.models.user import User
-from app.models.document import Document
-from app.models.conversation import Conversation
 from app.models.message import Message
 from app.models.usage_log import UsageLog
+from app.repositories import DocumentRepository, ConversationRepository, UsageLogRepository
 
 router = APIRouter(prefix="/api/v1/user", tags=["user"])
 
@@ -25,14 +24,10 @@ async def export_user_data(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    """Export all user data in JSON format (GDPR Article 20).
+    """Export all user data in JSON format (GDPR Article 20)."""
+    doc_repo = DocumentRepository(session)
+    conv_repo = ConversationRepository(session)
 
-    Returns a downloadable JSON object containing:
-    - User profile
-    - Documents metadata (not the files themselves)
-    - Conversations with messages
-    - Usage logs
-    """
     # User profile
     user_data = {
         "id": str(user.id),
@@ -45,10 +40,7 @@ async def export_user_data(
     }
 
     # Documents
-    doc_result = await session.execute(
-        select(Document).where(Document.user_id == user.id)
-    )
-    documents = doc_result.scalars().all()
+    documents = await doc_repo.list_all_by_user(user.id)
     documents_data = [
         {
             "id": str(d.id),
@@ -65,10 +57,7 @@ async def export_user_data(
     ]
 
     # Conversations with messages
-    conv_result = await session.execute(
-        select(Conversation).where(Conversation.user_id == user.id)
-    )
-    conversations = conv_result.scalars().all()
+    conversations = await conv_repo.list_all_by_user(user.id)
     conversations_data = []
     for conv in conversations:
         msg_result = await session.execute(
@@ -137,33 +126,21 @@ async def delete_account(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    """Delete the user account and all associated data (GDPR Article 17).
-
-    This permanently removes:
-    - All documents and their chunks
-    - All conversations and messages
-    - All usage logs
-    - The user account itself
-
-    This action cannot be undone.
-    """
+    """Delete the user account and all associated data (GDPR Article 17)."""
     import structlog
     logger = structlog.get_logger(__name__)
 
-    # Delete all documents (chunks cascade)
-    await session.execute(
-        delete(Document).where(Document.user_id == user.id)
-    )
+    # Delete all documents (chunks cascade) via repository
+    doc_repo = DocumentRepository(session)
+    await doc_repo.delete_all_by_user(user.id)
 
-    # Delete all conversations (messages cascade)
-    await session.execute(
-        delete(Conversation).where(Conversation.user_id == user.id)
-    )
+    # Delete all conversations (messages cascade) via repository
+    conv_repo = ConversationRepository(session)
+    await conv_repo.delete_all_by_user(user.id)
 
-    # Delete usage logs
-    await session.execute(
-        delete(UsageLog).where(UsageLog.user_id == user.id)
-    )
+    # Delete usage logs via repository
+    log_repo = UsageLogRepository(session)
+    await log_repo.delete_all_by_user(user.id)
 
     # Delete the user
     await session.delete(user)

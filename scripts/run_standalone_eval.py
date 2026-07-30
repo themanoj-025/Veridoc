@@ -239,7 +239,7 @@ def test_retrieval_integrity():
 async def write_reports(eval_results, metrics, rewrite_results, defense_ok):
     """Write evaluation report and security notes."""
     now = time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
-    docs_dir = Path(__file__).resolve().parent.parent / "docs"
+    eval_dir = Path(__file__).resolve().parent.parent / "eval"
 
     # ── Evaluation Report ──
     report = [
@@ -313,8 +313,8 @@ async def write_reports(eval_results, metrics, rewrite_results, defense_ok):
         "*Veridoc standalone evaluation harness report. Full head-to-head comparison (naive dense vs. hybrid+rerank) requires the live stack.*",
     ])
 
-    (docs_dir / "evaluation-report.md").write_text("\n".join(report) + "\n")
-    print(f"\n[OK] Evaluation report: {docs_dir / 'evaluation-report.md'}")
+    (eval_dir / "evaluation-report.md").write_text("\n".join(report) + "\n")
+    print(f"\n[OK] Evaluation report: {eval_dir / 'evaluation-report.md'}")
 
     # ── Security Notes ──
     red_team_path = Path(__file__).resolve().parent.parent / "eval" / "red_team" / "prompt_injection.json"
@@ -406,8 +406,8 @@ async def write_reports(eval_results, metrics, rewrite_results, defense_ok):
         "5. Run the full red-team suite against the live Ollama model",
     ])
 
-    (docs_dir / "security-notes.md").write_text("\n".join(security) + "\n")
-    print(f"[OK] Security notes: {docs_dir / 'security-notes.md'}")
+    (eval_dir / "security-notes.md").write_text("\n".join(security) + "\n")
+    print(f"[OK] Security notes: {eval_dir / 'security-notes.md'}")
 
 
 async def main():

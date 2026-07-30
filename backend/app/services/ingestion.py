@@ -7,12 +7,12 @@ from pathlib import Path
 from typing import Any
 
 import structlog
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.database import async_session_factory
 from app.models.document import Document
 from app.models.chunk import Chunk
+from app.repositories import DocumentRepository, ChunkRepository
 from app.services.chunking import recursive_chunk_text
 from app.services.vector_store import get_vector_store
 
@@ -43,10 +43,10 @@ async def process_document(
     session_maker = session_factory or async_session_factory
 
     async with session_maker() as session:
-        result = await session.execute(
-            select(Document).where(Document.id == document_id)
-        )
-        doc = result.scalar_one_or_none()
+        doc_repo = DocumentRepository(session)
+        chunk_repo = ChunkRepository(session)
+
+        doc = await doc_repo.find_by_id(document_id)
         if not doc:
             logger.error(f"Document {document_id} not found")
             return
@@ -66,19 +66,18 @@ async def process_document(
             chunks = chunk_text(text, doc_id=str(doc.id), doc_title=doc.title, pages=pages)
             doc.chunk_count = len(chunks)
 
-            # Save chunks to DB
-            db_chunks = []
-            for c in chunks:
-                chunk = Chunk(
+            # Save chunks to DB via repository
+            chunk_models = [
+                Chunk(
                     document_id=doc.id,
                     chunk_index=c["chunk_index"],
                     content=c["content"],
                     page_number=c.get("page_number"),
                     ocr_used=ocr_used,
                 )
-                session.add(chunk)
-                db_chunks.append(chunk)
-            await session.flush()
+                for c in chunks
+            ]
+            db_chunks = await chunk_repo.create_batch(chunk_models)
 
             # 3. Embed
             doc.status = "embedding"

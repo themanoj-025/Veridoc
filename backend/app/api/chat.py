@@ -1,19 +1,16 @@
-"""Chat API routes — conversations, messages, SSE streaming."""
+"""Chat API routes — conversations, messages, SSE streaming — uses repositories."""
 
 from __future__ import annotations
 
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
 from app.models.user import User
-from app.models.document import Document
-from app.models.conversation import Conversation
-from app.models.conversation_document import ConversationDocument
+from app.repositories import ConversationRepository, DocumentRepository
 from app.schemas.chat import (
     ConversationCreate,
     ConversationResponse,
@@ -31,24 +28,13 @@ router = APIRouter(prefix="/api/v1/chat", tags=["chat"])
 
 
 async def _build_conversation_response(
-    session: AsyncSession, conv: Conversation
+    conv_repo: ConversationRepository, conv_id: uuid.UUID
 ) -> ConversationResponse:
-    """Build a ConversationResponse from a Conversation ORM object."""
-    result = await session.execute(
-        select(ConversationDocument).where(
-            ConversationDocument.conversation_id == conv.id,
-        )
-    )
-    links = result.scalars().all()
-    doc_ids = [link.document_id for link in links]
-
-    doc_titles = []
-    if doc_ids:
-        doc_result = await session.execute(
-            select(Document.title).where(Document.id.in_(doc_ids))
-        )
-        doc_titles = [row[0] for row in doc_result.all()]
-
+    """Build a ConversationResponse using the repository."""
+    conv = await conv_repo.find_by_id(conv_id)
+    if not conv:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+    doc_ids, doc_titles = await conv_repo.get_document_ids_and_titles(conv_id)
     return ConversationResponse(
         id=conv.id,
         user_id=conv.user_id,
@@ -75,39 +61,29 @@ async def create_conversation(
     session: AsyncSession = Depends(get_session),
 ):
     """Create a new conversation."""
+    doc_repo = DocumentRepository(session)
+    conv_repo = ConversationRepository(session)
+
     # Validate document IDs belong to user
     if body.document_ids:
-        result = await session.execute(
-            select(Document).where(
-                Document.id.in_(body.document_ids),
-                Document.user_id == user.id,
-            )
-        )
-        valid_docs = result.scalars().all()
+        valid_docs = await doc_repo.validate_ownership(body.document_ids, user.id)
         if len(valid_docs) != len(body.document_ids):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="One or more document IDs are invalid",
             )
 
-    conv = Conversation(
-        user_id=user.id,
-        title=body.title,
-    )
-    session.add(conv)
-    await session.flush()
+    from app.models.conversation import Conversation
+    conv = Conversation(user_id=user.id, title=body.title)
+    await conv_repo.create(conv)
 
     # Create junction records for each document
     for doc_id in body.document_ids:
-        link = ConversationDocument(
-            conversation_id=conv.id,
-            document_id=doc_id,
-        )
-        session.add(link)
-
+        await conv_repo.add_document_link(conv.id, doc_id)
     await session.flush()
     await session.refresh(conv)
-    result = await _build_conversation_response(session, conv)
+
+    result = await _build_conversation_response(conv_repo, conv.id)
     await session.close()
     return result
 
@@ -123,44 +99,10 @@ async def list_conversations(
     limit: int = 50,
     offset: int = 0,
 ):
-    """List conversations for the current user with pagination.
+    """List conversations for the current user with pagination."""
+    conv_repo = ConversationRepository(session)
+    rows, total = await conv_repo.list_by_user(user.id, limit=limit, offset=offset)
 
-    Uses a single JOIN + array_agg query (not N+1) to load conversations
-    with their linked document IDs and titles in one round trip.
-    """
-    from sqlalchemy import func
-
-    # Get total count
-    count_result = await session.execute(
-        select(func.count(Conversation.id))
-        .where(Conversation.user_id == user.id, Conversation.is_active.is_(True))
-    )
-    total = count_result.scalar() or 0
-
-    result = await session.execute(
-        select(
-            Conversation,
-            func.array_agg(
-                ConversationDocument.document_id,
-                order_by=ConversationDocument.document_id,
-            ).label("doc_ids"),
-            func.array_agg(
-                Document.title,
-                order_by=ConversationDocument.document_id,
-            ).label("doc_titles"),
-        )
-        .outerjoin(
-            ConversationDocument,
-            ConversationDocument.conversation_id == Conversation.id,
-        )
-        .outerjoin(Document, Document.id == ConversationDocument.document_id)
-        .where(Conversation.user_id == user.id, Conversation.is_active.is_(True))
-        .group_by(Conversation.id)
-        .order_by(desc(Conversation.updated_at))
-        .limit(limit)
-        .offset(offset)
-    )
-    rows = result.all()
     responses = []
     for conv_raw, doc_ids_raw, doc_titles_raw in rows:
         doc_ids = [d for d in (doc_ids_raw or []) if d is not None]
@@ -196,17 +138,12 @@ async def get_conversation(
 ):
     """Get a specific conversation."""
     bind_log_context(conversation_id=str(conversation_id))
-    result = await session.execute(
-        select(Conversation).where(
-            Conversation.id == conversation_id,
-            Conversation.user_id == user.id,
-        )
-    )
-    conv = result.scalar_one_or_none()
+    conv_repo = ConversationRepository(session)
+    conv = await conv_repo.find_by_id_and_user(conversation_id, user.id)
     if not conv:
         await session.close()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
-    result = await _build_conversation_response(session, conv)
+    result = await _build_conversation_response(conv_repo, conversation_id)
     await session.close()
     return result
 
@@ -223,16 +160,11 @@ async def delete_conversation(
 ):
     """Delete a conversation."""
     bind_log_context(conversation_id=str(conversation_id))
-    result = await session.execute(
-        select(Conversation).where(
-            Conversation.id == conversation_id,
-            Conversation.user_id == user.id,
-        )
-    )
-    conv = result.scalar_one_or_none()
+    conv_repo = ConversationRepository(session)
+    conv = await conv_repo.find_by_id_and_user(conversation_id, user.id)
     if not conv:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
-    await session.delete(conv)
+    await conv_repo.delete(conv)
     await session.close()
 
 
@@ -249,13 +181,8 @@ async def get_messages(
 ):
     """Get all messages in a conversation."""
     bind_log_context(conversation_id=str(conversation_id))
-    result = await session.execute(
-        select(Conversation).where(
-            Conversation.id == conversation_id,
-            Conversation.user_id == user.id,
-        )
-    )
-    conv = result.scalar_one_or_none()
+    conv_repo = ConversationRepository(session)
+    conv = await conv_repo.find_by_id_and_user(conversation_id, user.id)
     if not conv:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
 

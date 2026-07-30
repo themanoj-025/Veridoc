@@ -12,7 +12,8 @@ import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 
 // Allowlist for citation chips rendered as inline HTML inside markdown.
 // All other tags/attributes from LLM output are stripped.
-const sanitizeSchema = {
+// Export for reuse in sanitization tests — keep in sync!
+export const sanitizeSchema = {
   ...defaultSchema,
   tagNames: [...(defaultSchema.tagNames || []), "button", "sup"],
   attributes: {

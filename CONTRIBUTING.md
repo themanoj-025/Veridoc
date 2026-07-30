@@ -136,7 +136,7 @@ python scripts/run_eval.py --compare
    - New features → add to `README.md` Features table
 3. **Add evaluation data** if modifying the retrieval pipeline
    - Add questions to `eval/gold_qa.json`
-   - Run evaluation and update `docs/evaluation-report.md`
+   - Run `python scripts/run_eval.py --compare` to check retrieval accuracy
 4. **Write a clear PR description** explaining:
    - What the change does
    - Why it's needed

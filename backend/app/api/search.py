@@ -6,13 +6,13 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy import select, text
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
 from app.models.user import User
-from app.models.document import Document
+from app.repositories import DocumentRepository
 
 router = APIRouter(prefix="/api/v1/search", tags=["search"])
 
@@ -65,11 +65,10 @@ async def fulltext_search(
     # Convert to tsquery format: "word1 word2" → "word1 & word2"
     tsquery = " & ".join(safe_query.split())
 
-    # Get user's document IDs for ownership check
-    doc_result = await session.execute(
-        select(Document.id).where(Document.user_id == user.id)
-    )
-    user_doc_ids = [str(row[0]) for row in doc_result.all()]
+    # Get user's document IDs for ownership check via repository
+    doc_repo = DocumentRepository(session)
+    doc_ids_raw = await doc_repo.list_ids_by_user(user.id)
+    user_doc_ids = [str(did) for did in doc_ids_raw]
 
     if not user_doc_ids:
         await session.close()

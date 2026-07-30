@@ -8,8 +8,7 @@ Usage:
 
 The script loads the gold Q&A set, runs hybrid retrieval for each
 candidate configuration, and reports precision@k / recall@k / MRR
-for each setting.  It saves the best config to DECISIONS.md and
-prints a comparison table showing the old default vs. tuned value.
+for each setting.  Results are printed to stdout.
 
 Requirements (same as backend):
     pip install -r backend/requirements.txt
@@ -42,7 +41,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 EVAL_DIR = PROJECT_ROOT / "eval"
 DOCS_DIR = PROJECT_ROOT / "docs"
 GOLD_QA_PATH = EVAL_DIR / "gold_qa.json"
-DECISIONS_PATH = PROJECT_ROOT / "DECISIONS.md"
+TUNING_RESULTS_PATH = EVAL_DIR / "tuning_results.json"
 
 # ── Defaults (the configs currently in use) ───────────────────────────
 DEFAULT_RRF_K = 60           # rrf.py line: k: int = 60
@@ -316,40 +315,21 @@ def print_metrics_table(
               f"{metrics['recall@5']:>7.2%} {metrics['recall@10']:>7.2%} {metrics['MRR']:>7.3f}")
 
 
-def update_decisions(best_config: dict) -> None:
-    """Append tuning results to DECISIONS.md."""
-    entry = (
-        f"\n### C3 — Hybrid retrieval weight tuning ({time.strftime('%Y-%m-%d')})\n\n"
-        f"**Method:** Grid search over RRF `k` ∈ {{30, 60, 100}} and BM25 weight ∈ {{0.3, 0.5, 0.7, 1.0, 1.5, 2.0}}\n"
-        f"evaluated against the gold Q&A set ({GOLD_QA_PATH.name}) using pseudo-embeddings "
-        f"(hash-based cosine similarity) and BM25Okapi.\n\n"
-        f"**Best configuration found:**\n"
-        f"- RRF `k` = **{best_config['rrf_k']}**\n"
-        f"- BM25 weight = **{best_config['bm25_weight']}**\n\n"
-        f"**Performance (best vs. default):**\n\n"
-        f"| Metric | Default (k=60, w=1.0) | Tuned (k={best_config['rrf_k']}, w={best_config['bm25_weight']}) | Δ |\n"
-        f"|--------|----------------------|----------------------|---|\n"
-        f"| Precision@5 | {best_config['default_metrics']['precision@5']:.2%} | {best_config['tuned_metrics']['precision@5']:.2%} | "
-        f"{best_config['tuned_metrics']['precision@5'] - best_config['default_metrics']['precision@5']:+.2%} |\n"
-        f"| Precision@10 | {best_config['default_metrics']['precision@10']:.2%} | {best_config['tuned_metrics']['precision@10']:.2%} | "
-        f"{best_config['tuned_metrics']['precision@10'] - best_config['default_metrics']['precision@10']:+.2%} |\n"
-        f"| Recall@5 | {best_config['default_metrics']['recall@5']:.2%} | {best_config['tuned_metrics']['recall@5']:.2%} | "
-        f"{best_config['tuned_metrics']['recall@5'] - best_config['default_metrics']['recall@5']:+.2%} |\n"
-        f"| Recall@10 | {best_config['default_metrics']['recall@10']:.2%} | {best_config['tuned_metrics']['recall@10']:.2%} | "
-        f"{best_config['tuned_metrics']['recall@10'] - best_config['default_metrics']['recall@10']:+.2%} |\n"
-        f"| MRR | {best_config['default_metrics']['MRR']:.3f} | {best_config['tuned_metrics']['MRR']:.3f} | "
-        f"{best_config['tuned_metrics']['MRR'] - best_config['default_metrics']['MRR']:+.3f} |\n\n"
-        f"**Runtime note:** This tuning run uses hash-based pseudo-embeddings (not the actual "
-        f"sentence-transformer model) to avoid the ~80MB model download and to run entirely "
-        f"standalone without any external service. The absolute metric values serve as relative "
-        f"indicators; the optimal configuration should be validated end-to-end on a live Docker "
-        f"stack (Tier 2, item A1).\n\n"
-        f"**Recommendation:** Keep default RRF k=60 but adjust BM25 weight to "
-        f"{best_config['bm25_weight']} — this provides the best balance of precision and recall "
-        f"for the current gold set.\n"
-    )
-    DECISIONS_PATH.write_text(DECISIONS_PATH.read_text() + entry)
-    print(f"\n→ Updated {DECISIONS_PATH}")
+def save_tuning_results(best_config: dict) -> None:
+    """Save tuning results as JSON for reference."""
+    import json as _json
+    data = {
+        "updated": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
+        "method": "Grid search over RRF k and BM25 weight against gold Q&A set",
+        "default": {"rrf_k": 60, "bm25_weight": 1.0, "metrics": best_config["default_metrics"]},
+        "tuned": {
+            "rrf_k": best_config["rrf_k"],
+            "bm25_weight": best_config["bm25_weight"],
+            "metrics": best_config["tuned_metrics"],
+        },
+    }
+    TUNING_RESULTS_PATH.write_text(_json.dumps(data, indent=2))
+    print(f"\n→ Saved tuning results to {TUNING_RESULTS_PATH}")
 
 
 
@@ -431,14 +411,14 @@ def main():
         label = f"k={rrf_k}, w={bm25_w}  [score={score:.4f}]"
         print_metrics_table(label, metrics)
 
-    # 7. Update DECISIONS.md
+    # 7. Save tuning results
     best_entry = {
         "rrf_k": best_config[0],
         "bm25_weight": best_config[1],
         "default_metrics": default_metrics,
         "tuned_metrics": best_config[2],
     }
-    update_decisions(best_entry)
+    save_tuning_results(best_entry)
 
     # 8. Print recommendations
     print("\n" + "=" * 60)
@@ -458,7 +438,7 @@ Note: These values were tuned using lightweight pseudo-embeddings
 external services.  The relative ranking of configurations is
 informative, but absolute metric values should be validated
 end-to-end on a live Docker stack with real sentence-transformer
-embeddings and cross-encoder reranking (see NEXT_STEPS.md).
+embeddings and cross-encoder reranking.
 """)
 
     # Print final short table

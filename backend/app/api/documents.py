@@ -1,4 +1,4 @@
-"""Document management API routes."""
+"""Document management API routes — uses DocumentRepository for data access."""
 
 from __future__ import annotations
 
@@ -6,7 +6,6 @@ import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
-from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
@@ -14,6 +13,7 @@ from app.core.dependencies import get_current_user
 from app.core.config import settings
 from app.models.user import User
 from app.models.document import Document
+from app.repositories import DocumentRepository, ChunkRepository
 from app.schemas.document import (
     DocumentUploadResponse,
     DocumentResponse,
@@ -23,7 +23,6 @@ from app.schemas.document import (
 )
 from app.services.job_queue import get_job_queue
 from app.services.ingestion import process_document
-from app.models.chunk import Chunk
 from app.core.logging_config import bind_log_context
 
 router = APIRouter(prefix="/api/v1/documents", tags=["documents"])
@@ -73,7 +72,8 @@ async def upload_document(
     with open(file_path, "wb") as f:
         f.write(content)
 
-    # Create document record
+    # Create document record via repository
+    doc_repo = DocumentRepository(session)
     doc = Document(
         id=file_id,
         user_id=user.id,
@@ -84,9 +84,7 @@ async def upload_document(
         file_path=str(file_path),
         status="pending",
     )
-    session.add(doc)
-    await session.flush()
-    await session.refresh(doc)
+    await doc_repo.create(doc)
 
     # Enqueue background ingestion via job queue
     await get_job_queue().enqueue_job(
@@ -109,20 +107,8 @@ async def list_documents(
     offset: int = 0,
 ):
     """List documents for the current user with pagination."""
-    # Get total count
-    count_result = await session.execute(
-        select(func.count(Document.id)).where(Document.user_id == user.id)
-    )
-    total = count_result.scalar() or 0
-
-    result = await session.execute(
-        select(Document)
-        .where(Document.user_id == user.id)
-        .order_by(Document.created_at.desc())
-        .limit(limit)
-        .offset(offset)
-    )
-    docs = result.scalars().all()
+    doc_repo = DocumentRepository(session)
+    docs, total = await doc_repo.list_by_user(user.id, limit=limit, offset=offset)
     await session.close()
     return DocumentListResponse(
         items=[DocumentResponse.model_validate(d) for d in docs],
@@ -140,10 +126,8 @@ async def get_document(
 ):
     """Get a specific document's details."""
     bind_log_context(document_id=str(document_id))
-    result = await session.execute(
-        select(Document).where(Document.id == document_id, Document.user_id == user.id)
-    )
-    doc = result.scalar_one_or_none()
+    doc_repo = DocumentRepository(session)
+    doc = await doc_repo.find_by_id_and_user(document_id, user.id)
     if not doc:
         await session.close()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
@@ -160,18 +144,14 @@ async def update_document(
 ):
     """Update document metadata (e.g., title)."""
     bind_log_context(document_id=str(document_id))
-    result = await session.execute(
-        select(Document).where(Document.id == document_id, Document.user_id == user.id)
-    )
-    doc = result.scalar_one_or_none()
+    doc_repo = DocumentRepository(session)
+    doc = await doc_repo.find_by_id_and_user(document_id, user.id)
     if not doc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
     if body.title is not None:
         doc.title = body.title
-    session.add(doc)
-    await session.flush()
-    await session.refresh(doc)
+    await doc_repo.update(doc)
     await session.close()
     return DocumentResponse.model_validate(doc)
 
@@ -184,21 +164,15 @@ async def get_document_content(
 ):
     """Get a document's text content and chunks for the frontend viewer."""
     bind_log_context(document_id=str(document_id))
-    result = await session.execute(
-        select(Document).where(Document.id == document_id, Document.user_id == user.id)
-    )
-    doc = result.scalar_one_or_none()
+    doc_repo = DocumentRepository(session)
+    doc = await doc_repo.find_by_id_and_user(document_id, user.id)
     if not doc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
-    # Get chunks
-    chunks_result = await session.execute(
-        select(Chunk)
-        .where(Chunk.document_id == doc.id)
-        .order_by(Chunk.chunk_index)
-    )
-    chunks = chunks_result.scalars().all()
-
+    # Get chunks via repository
+    chunk_repo = ChunkRepository(session)
+    chunks = await chunk_repo.find_by_document(doc.id)
+    await session.close()
     return {
         "id": str(doc.id),
         "title": doc.title,
@@ -217,7 +191,6 @@ async def get_document_content(
             for c in chunks
         ],
     }
-    await session.close()
 
 
 @router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT, operation_id="documents_delete")
@@ -228,26 +201,16 @@ async def delete_document(
 ):
     """Delete a document and its chunks."""
     bind_log_context(document_id=str(document_id))
-    result = await session.execute(
-        select(Document).where(Document.id == document_id, Document.user_id == user.id)
-    )
-    doc = result.scalar_one_or_none()
+    doc_repo = DocumentRepository(session)
+    doc = await doc_repo.find_by_id_and_user(document_id, user.id)
     if not doc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
-    # Delete file from disk
-    Path(doc.file_path).unlink(missing_ok=True)
-
-    # Remove from Chroma
-    try:
-        from app.services.vector_store import get_vector_store
-        vs = get_vector_store()
-        await vs.delete_document(str(doc.id))
-    except Exception:
-        pass  # Non-critical
+    # Delete file from disk + Chroma
+    await doc_repo.delete_chroma_and_file(doc)
 
     # Delete from database
-    await session.delete(doc)
+    await doc_repo.delete(doc)
     await session.close()
 
 
@@ -259,17 +222,14 @@ async def reindex_document(
 ):
     """Re-index a document (re-chunk and re-embed)."""
     bind_log_context(document_id=str(document_id))
-    result = await session.execute(
-        select(Document).where(Document.id == document_id, Document.user_id == user.id)
-    )
-    doc = result.scalar_one_or_none()
+    doc_repo = DocumentRepository(session)
+    doc = await doc_repo.find_by_id_and_user(document_id, user.id)
     if not doc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
     # Reset status
     doc.status = "pending"
-    session.add(doc)
-    await session.flush()
+    await doc_repo.update(doc)
 
     # Enqueue reindex job
     await get_job_queue().enqueue_job(

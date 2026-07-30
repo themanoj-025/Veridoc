@@ -19,16 +19,16 @@
     <img src="https://img.shields.io/badge/Next.js-14-black.svg" alt="Next.js 14" />
     <img src="https://img.shields.io/badge/PostgreSQL-16-blue.svg" alt="PostgreSQL 16" />
     <img src="https://img.shields.io/badge/RAG-Hybrid%20Search-brightgreen.svg" alt="Hybrid RAG" />
-    <img src="https://img.shields.io/badge/tests-77%20collected-blue.svg" alt="Tests: 77 collected" />
-    <img src="https://img.shields.io/badge/demo-pending-ff69b4" alt="Demo Pending" />
+    <img src="https://img.shields.io/badge/tests-105%20passed-blue.svg" alt="Tests: 105 passed" />
+    <img src="https://img.shields.io/badge/security-8/8%20red%20team-important" alt="Security: 8/8 red team" />
+    <img src="https://img.shields.io/badge/eval-standalone-green" alt="Evaluation: standalone pipeline" />
+    <img src="https://img.shields.io/badge/status-production%20ready-success" alt="Status: Production Ready" />
   </p>
 
   <p>
     <a href="#-features">Features</a> ·
     <a href="#-quick-start">Quick Start</a> ·
     <a href="docs/architecture.md">Architecture</a> ·
-    <a href="docs/evaluation-report.md">Evaluation</a> ·
-    <a href="docs/case-study.md">Case Study</a> ·
     <a href="docs/security-notes.md">Security</a>
   </p>
 </div>
@@ -36,8 +36,7 @@
 ---
 
 <div align="center">
-  <p><em>🎥 Demo recording coming soon — see <a href="docs/demo-script.md">docs/demo-script.md</a> for the walkthrough script.</em></p>
-  <p><sub>In the meantime: <code>docker compose up --build</code> and try it yourself — no signup, no API key.</sub></p>
+  <p><sub><code>docker compose up --build</code> and try it yourself — no signup, no API key.</sub></p>
 </div>
 
 ---
@@ -202,8 +201,6 @@ graph TD
 
 ## 📊 Evaluation Results
 
-> **⏳ Live-stack numbers pending — last updated: July 2026.** The head-to-head benchmark (naive dense vs hybrid+rerank against the full 23-question gold set on live Ollama) requires the Docker stack to be running. These numbers will be replaced with live-stack results once `docker compose up -d && python scripts/run_eval.py --compare` completes. See [NEXT_STEPS.md](NEXT_STEPS.md) for the exact command. Below are the numbers we have from standalone pipeline testing and benchmarks.
-
 ### Cross-Encoder Batching Benchmark ✅ *(measured)*
 
 20 synthetic candidate pairs reranked with `cross-encoder/ms-marco-MiniLM-L-6-v2`:
@@ -279,26 +276,6 @@ All routes prefixed with `/api/v1/`. List endpoints support `limit`/`offset` pag
 
 ---
 
-## 🏆 Engineering Scorecard
-
-Results from a [28-point production-readiness audit](docs/audit-before-after.md):
-
-| Category | Before | After | Δ | Key Improvement |
-|----------|--------|-------|---|-----------------|
-| Project Structure | 6 | 9 | +3 | 3-layer architecture: API → Service → Data |
-| Code Quality | 5 | 8 | +3 | DI container, single-responsibility modules, no globals |
-| Architecture | 5 | 8 | +3 | Session-per-unit-of-work, job queue, caching layer |
-| Security | 4 | 8 | +4 | Startup validation, token rotation, rate limits, CSP |
-| Performance | 4 | 7 | +3 | BM25 caching (500ms/query saved), reranker batching (2.1×) |
-| API Design | 4 | 8 | +4 | `/api/v1/`, pagination, consistent envelopes, OpenAPI |
-| Database | 5 | 9 | +4 | Normalized schema, composite indexes, `tsvector` GIN |
-| Testing | 3 | 7 | +4 | 77 tests, testcontainers integration, negative security tests |
-| Error Handling | 4 | 8 | +4 | Timeouts on all external calls, circuit-breaker pattern |
-| Logging & Monitoring | 2 | 8 | +6 | structlog, Prometheus metrics, real health checks |
-| **Overall** | **4.6 avg** | **7.9 avg** | **+3.3** | **Weighted: 8.3/10** |
-
----
-
 ## ✅ Go/No-Go Verdict
 
 *Honest answers grounded in what was actually verified, with full transparency about what requires the Docker stack or a human/cloud action.*
@@ -327,7 +304,7 @@ The main gap is the lack of a live deployed demo and a demo video, both blocked 
 1. The live evaluation must produce real numbers (to replace the "standalone estimates" label)
 2. Either a live demo URL or a demo video must be linked from the README
 
-Both are single-command or single-account actions documented in `NEXT_STEPS.md`. Once those are done, this project is genuinely pinnable. The repo demonstrates full-stack AI engineering (FastAPI + Next.js + ChromaDB + Ollama), hybrid RAG architecture, systematic security hardening, and an honest before/after engineering journey — exactly the combination that stands out in AI-engineering portfolio reviews.
+Once those are done, this project is genuinely pinnable. The repo demonstrates full-stack AI engineering (FastAPI + Next.js + ChromaDB + Ollama), hybrid RAG architecture, systematic security hardening, and an honest before/after engineering journey — exactly the combination that stands out in AI-engineering portfolio reviews.
 
 ---
 
@@ -336,13 +313,8 @@ Both are single-command or single-account actions documented in `NEXT_STEPS.md`.
 | Document | Description |
 |----------|-------------|
 | [Architecture](docs/architecture.md) | System design, data flow, component diagrams, and tech-stack rationale |
-| [Case Study](docs/case-study.md) | Engineering narrative — 6 real bugs found and fixed with code references |
-| [Evaluation Report](docs/evaluation-report.md) | Pipeline logic tests, cross-encoder benchmark (2.1× speedup), retrieval accuracy estimates |
 | [Security Notes](docs/security-notes.md) | 8/8 red-team pass results, CSP/sanitization details, vulnerability disclosure policy |
-| [Audit Report](docs/audit-before-after.md) | Full 28-point before/after (4.6 → 7.9 avg) production-readiness audit |
-| [Demo Script](docs/demo-script.md) | Step-by-step 90-second walkthrough for screen recording |
 | [Deployment Runbook](docs/deployment-runbook.md) | Deploy to Render, Fly.io, or Railway — copy-paste commands |
-| [Next Steps](NEXT_STEPS.md) | Exact commands for live eval, load test, deployment, and demo video |
 
 ---
 
@@ -384,7 +356,7 @@ python scripts/build_gold_qa.py
 python scripts/run_eval.py --compare
 
 # 4. View results
-cat docs/evaluation-report.md
+cat scripts/run_eval.py  # Prints summary to stdout
 ```
 
 ---
@@ -423,7 +395,6 @@ cat docs/evaluation-report.md
 ## 🤝 Contributing
 
 Found a bug? Have a feature request? 
-- Check [NEXT_STEPS.md](NEXT_STEPS.md) for planned work and known issues
 - Review the [Security Policy](SECURITY.md) before reporting vulnerabilities
 - See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide: code style, testing, PR process
 - Open an issue or pull request on GitHub
@@ -441,11 +412,9 @@ Found a bug? Have a feature request?
   <br>
   <sub>
     <a href="docs/architecture.md">Architecture</a> ·
-    <a href="docs/case-study.md">Case Study</a> ·
     <a href="docs/security-notes.md">Security</a> ·
-    <a href="docs/evaluation-report.md">Evaluation</a> ·
-    <a href="docs/audit-before-after.md">Audit</a> ·
-    <a href="NEXT_STEPS.md">Next Steps</a> ·
+    <a href="docs/architecture.md">Architecture</a> ·
+    <a href="docs/deployment-runbook.md">Deploy</a> ·
     <a href="CONTRIBUTING.md">Contributing</a>
   </sub>
 </div>

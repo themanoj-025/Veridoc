@@ -18,9 +18,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
 from app.services.evaluation import run_single_eval, compute_metrics
 
 EVAL_DIR = Path(__file__).resolve().parent.parent / "eval"
-DOCS_DIR = Path(__file__).resolve().parent.parent / "docs"
 GOLD_QA_PATH = EVAL_DIR / "gold_qa.json"
-REPORT_PATH = DOCS_DIR / "evaluation-report.md"
+REPORT_PATH = EVAL_DIR / "evaluation-report.md"
 
 
 def load_gold_qa() -> list[dict]:
@@ -94,8 +93,8 @@ def write_report(
     naive_results: list[dict] | None = None,
     naive_metrics: dict | None = None,
 ):
-    """Write evaluation report to docs/evaluation-report.md."""
-    DOCS_DIR.mkdir(parents=True, exist_ok=True)
+    """Write evaluation report to eval/evaluation-report.md."""
+    EVAL_DIR.mkdir(parents=True, exist_ok=True)
 
     lines = [
         "# Veridoc — Evaluation Report",

@@ -1,4 +1,4 @@
-"""Admin analytics API routes — surfaces usage_logs data (D12)."""
+"""Admin analytics API routes — uses repositories for data access."""
 
 from __future__ import annotations
 
@@ -8,14 +8,15 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy import select, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
 from app.models.user import User
-from app.models.usage_log import UsageLog
+from app.repositories import UserRepository, DocumentRepository, UsageLogRepository
+from app.models.citation_record import CitationRecord
 from app.services.response_cache import get_response_cache
+from sqlalchemy import select, func, text
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
@@ -41,18 +42,13 @@ async def get_analytics(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    """Get admin analytics from the usage_logs table.
+    """Get admin analytics from the usage_logs table."""
+    user_repo = UserRepository(session)
+    doc_repo = DocumentRepository(session)
+    log_repo = UsageLogRepository(session)
 
-    Returns query volume, latency, popular documents, and cost estimates.
-    Only accessible by the admin user (first registered user or user with
-    specific email). For a full multi-admin system, add a proper admin role.
-    """
     # Simple admin check: only the first registered user can access
-    first_user_result = await session.execute(
-        select(User).order_by(User.created_at).limit(1)
-    )
-    first_user = first_user_result.scalar_one_or_none()
-
+    first_user = await user_repo.find_first_registered()
     if not first_user or first_user.id != user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -67,66 +63,19 @@ async def get_analytics(
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     week_start = today_start - timedelta(days=7)
 
-    # Total query count
-    total_result = await session.execute(select(func.count(UsageLog.id)))
-    total_queries = total_result.scalar() or 0
-
-    # Total users
-    user_result = await session.execute(select(func.count(User.id)))
-    total_users = user_result.scalar() or 0
-
-    # Total documents (across all users)
-    from app.models.document import Document
-    doc_result = await session.execute(select(func.count(Document.id)))
-    total_documents = doc_result.scalar() or 0
-
-    # Average latency
-    latency_result = await session.execute(
-        select(func.avg(UsageLog.response_time_ms))
-    )
-    avg_latency_ms = float(latency_result.scalar() or 0)
-
-    # Percentile latencies (using Postgres percentile functions)
-    p50_result = await session.execute(
-        select(func.percentile_cont(0.5).within_group(UsageLog.response_time_ms))
-    )
-    p50_latency_ms = float(p50_result.scalar() or 0)
-
-    p95_result = await session.execute(
-        select(func.percentile_cont(0.95).within_group(UsageLog.response_time_ms))
-    )
-    p95_latency_ms = float(p95_result.scalar() or 0)
-
-    # Queries today
-    today_result = await session.execute(
-        select(func.count(UsageLog.id)).where(UsageLog.created_at >= today_start)
-    )
-    queries_today = today_result.scalar() or 0
-
-    # Queries this week
-    week_result = await session.execute(
-        select(func.count(UsageLog.id)).where(UsageLog.created_at >= week_start)
-    )
-    queries_this_week = week_result.scalar() or 0
-
-    # Most used model
-    model_result = await session.execute(
-        select(UsageLog.model_used, func.count(UsageLog.model_used).label("cnt"))
-        .group_by(UsageLog.model_used)
-        .order_by(text("cnt DESC"))
-        .limit(1)
-    )
-    most_used_row = model_result.first()
-    most_used_model = str(most_used_row[0]) if most_used_row else None
-
-    # Average estimated cost
-    cost_result = await session.execute(
-        select(func.avg(UsageLog.estimated_cost)).where(UsageLog.estimated_cost.isnot(None))
-    )
-    avg_estimated_cost = float(cost_result.scalar() or 0)
+    # Gather analytics via repositories
+    total_queries = await log_repo.get_total_queries()
+    total_users = await user_repo.count_all()
+    total_documents = await doc_repo.count_all()
+    avg_latency_ms = await log_repo.get_avg_latency()
+    p50_latency_ms = await log_repo.get_percentile_latency(0.5)
+    p95_latency_ms = await log_repo.get_percentile_latency(0.95)
+    queries_today = await log_repo.get_queries_since(today_start)
+    queries_this_week = await log_repo.get_queries_since(week_start)
+    most_used_model = await log_repo.get_most_used_model()
+    avg_estimated_cost = await log_repo.get_avg_cost()
 
     # Top documents (most cited)
-    from app.models.citation_record import CitationRecord
     top_docs_result = await session.execute(
         select(
             CitationRecord.document_id,
@@ -145,12 +94,7 @@ async def get_analytics(
         })
 
     # Recent queries
-    recent_result = await session.execute(
-        select(UsageLog)
-        .order_by(UsageLog.created_at.desc())
-        .limit(20)
-    )
-    recent_logs = recent_result.scalars().all()
+    recent_logs = await log_repo.get_recent_queries(limit=20)
     recent_queries = [
         {
             "query": log.query[:100],
@@ -162,18 +106,10 @@ async def get_analytics(
     ]
 
     # Daily query volume (last 7 days)
-    daily_result = await session.execute(
-        select(
-            func.date_trunc("day", UsageLog.created_at).label("day"),
-            func.count(UsageLog.id).label("count"),
-        )
-        .where(UsageLog.created_at >= week_start)
-        .group_by(text("day"))
-        .order_by(text("day"))
-    )
+    daily_rows = await log_repo.get_daily_volume(since=week_start)
     daily_query_volume = [
         {"date": str(row[0]), "count": row[1]}
-        for row in daily_result.all()
+        for row in daily_rows
     ]
 
     await session.close()
@@ -194,9 +130,6 @@ async def get_analytics(
     )
 
 
-# ── Cache Stats (C2) ─────────────────────────────────────
-
-
 class CacheStatsResponse(BaseModel):
     hits: int
     misses: int
@@ -213,17 +146,9 @@ async def get_cache_stats(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    """Get response cache hit/miss statistics (C2).
-
-    Returns hit rate, total requests, and Redis availability.
-    Only accessible by the admin user (first registered user).
-    """
-    # Admin check: only the first registered user can access
-    first_user_result = await session.execute(
-        select(User).order_by(User.created_at).limit(1)
-    )
-    first_user = first_user_result.scalar_one_or_none()
-
+    """Get response cache hit/miss statistics (C2)."""
+    user_repo = UserRepository(session)
+    first_user = await user_repo.find_first_registered()
     if not first_user or first_user.id != user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -255,9 +180,6 @@ async def get_cache_stats(
     )
 
 
-# ── Feedback Queue (D1) ──────────────────────────────────
-
-
 class FeedbackQueueResponse(BaseModel):
     total: int
     thumbs_down: int
@@ -271,18 +193,9 @@ async def get_feedback_queue(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    """Get continuous feedback queue stats and recent entries (D1).
-
-    Returns the count of thumbs-up/down entries, average faithfulness,
-    and the most recent entries for review.
-    Only accessible by the admin user.
-    """
-    # Admin check: only the first registered user can access
-    first_user_result = await session.execute(
-        select(User).order_by(User.created_at).limit(1)
-    )
-    first_user = first_user_result.scalar_one_or_none()
-
+    """Get continuous feedback queue stats and recent entries (D1)."""
+    user_repo = UserRepository(session)
+    first_user = await user_repo.find_first_registered()
     if not first_user or first_user.id != user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -314,7 +227,6 @@ async def get_feedback_queue(
     ]
     avg_faithfulness = sum(faith_scores) / max(len(faith_scores), 1)
 
-    # Most recent 20 entries (redacted user_id)
     recent_entries = [
         {
             "feedback": e.get("feedback"),

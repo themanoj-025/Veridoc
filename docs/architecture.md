@@ -273,4 +273,4 @@ users (id, email, hashed_password, full_name, is_active, created_at)
 
 ---
 
-*For deployment instructions, see [deployment-runbook.md](deployment-runbook.md). For the current state of each component, see [28-point-audit.md](28-point-audit.md).*
+*For deployment instructions, see [deployment-runbook.md](deployment-runbook.md).*

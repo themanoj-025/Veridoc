@@ -12,3 +12,21 @@ const localStorageMock: Storage = {
 };
 
 Object.defineProperty(window, "localStorage", { value: localStorageMock });
+
+// Mock scrollIntoView (not implemented in jsdom — used by ChatPanel for auto-scroll)
+Element.prototype.scrollIntoView = () => {};
+
+// Mock window.matchMedia (used by ThemeToggle)
+Object.defineProperty(window, "matchMedia", {
+  writable: true,
+  value: (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  }),
+});

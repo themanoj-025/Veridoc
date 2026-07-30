@@ -10,7 +10,6 @@ import asyncio
 from typing import Any, AsyncGenerator
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette.sse import EventSourceResponse
 
@@ -19,8 +18,8 @@ from app.models.user import User
 from app.models.conversation import Conversation
 from app.models.message import Message
 from app.models.usage_log import UsageLog
-from app.models.conversation_document import ConversationDocument
 from app.models.citation_record import CitationRecord
+from app.repositories import ConversationRepository
 from app.schemas.chat import ChatRequest, Citation
 from app.services.retrieval import HybridRetriever, rewrite_query
 from app.services.llm_provider import get_llm
@@ -52,16 +51,11 @@ class ChatService:
         self.user = user
         self.llm = llm or get_llm()
         self.retriever = retriever or HybridRetriever()
+        self.conv_repo = ConversationRepository(session)
 
     async def validate_conversation(self, conversation_id: uuid.UUID) -> Conversation:
         """Validate the conversation exists and belongs to the current user."""
-        result = await self.session.execute(
-            select(Conversation).where(
-                Conversation.id == conversation_id,
-                Conversation.user_id == self.user.id,
-            )
-        )
-        conv = result.scalar_one_or_none()
+        conv = await self.conv_repo.find_by_id_and_user(conversation_id, self.user.id)
         if not conv:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
         return conv
@@ -94,12 +88,7 @@ class ChatService:
 
     async def _get_document_ids(self, conv: Conversation) -> list[str]:
         """Get document IDs for a conversation from the junction table."""
-        result = await self.session.execute(
-            select(ConversationDocument.document_id).where(
-                ConversationDocument.conversation_id == conv.id,
-            )
-        )
-        return [str(row[0]) for row in result.all()]
+        return await self.conv_repo.get_document_ids_for_conv(conv.id)
 
     async def retrieve_context(
         self, search_query: str, conv: Conversation
@@ -229,13 +218,7 @@ class ChatService:
         conv: Conversation,
         session: AsyncSession | None = None,
     ) -> EventSourceResponse:
-        """Generate an SSE streaming response for a chat request.
-
-        When ``session`` is provided (from the route handler's dependency),
-        it is closed in the ``event_generator``'s ``finally`` block after
-        the stream completes.  This is necessary because the SSE stream
-        outlives FastAPI's dependency-teardown phase.
-        """
+        """Generate an SSE streaming response for a chat request."""
         start_time = time.time()
 
         # Save user message
@@ -258,7 +241,6 @@ class ChatService:
                 conversation_id_str[:8], body.message[:50],
             )
 
-            # Persist the cached response to DB so conversation history is complete
             cached_content = cached_response.get("content", "")
             cached_citations = [
                 Citation(**c) for c in cached_response.get("citations", [])
@@ -280,7 +262,6 @@ class ChatService:
 
             async def cached_generator() -> AsyncGenerator[dict, None]:
                 try:
-                    # Replay cached content as tokens for a smooth UX
                     token_count = 0
                     for word in cached_content.split():
                         yield {
@@ -288,7 +269,7 @@ class ChatService:
                             "data": json.dumps({"token": word + " "}),
                         }
                         token_count += 1
-                        await asyncio.sleep(0.01)  # Small delay to simulate streaming
+                        await asyncio.sleep(0.01)
 
                     yield {
                         "event": "done",
@@ -314,15 +295,11 @@ class ChatService:
             return EventSourceResponse(cached_generator())
 
         # Cache miss — proceed with full pipeline
-
-        # Retrieve context
         top_chunks, citations_data, context, retrieval_time, rerank_time = (
             await self.retrieve_context(search_query, conv)
         )
 
-        # Build system prompt
         system_prompt = self.build_system_prompt(context)
-
         gen_start = time.time()
 
         async def event_generator() -> AsyncGenerator[dict, None]:
@@ -330,7 +307,6 @@ class ChatService:
             token_count = 0
 
             try:
-                # Stream tokens from LLM
                 async for chunk in asyncio.wait_for(
                     self.llm.stream_chat(
                         system_prompt=system_prompt,
@@ -349,7 +325,6 @@ class ChatService:
                 gen_time = (time.time() - gen_start) * 1000
                 total_time = (time.time() - start_time) * 1000
 
-                # Faithfulness check
                 faith_start = time.time()
                 faith_score = await asyncio.wait_for(
                     faithfulness_check(
@@ -361,7 +336,6 @@ class ChatService:
                 )
                 faith_time = (time.time() - faith_start) * 1000
 
-                # Save assistant message
                 msg = await self.save_assistant_message(
                     conv=conv,
                     content=full_content,
@@ -377,11 +351,9 @@ class ChatService:
                     faith_time=faith_time,
                 )
 
-                # Check if fallback was used
                 fallback_used = getattr(self.llm, "fallback_used", False)
                 actual_model = self.llm.model_name
 
-                # Cache the response for future requests
                 await cache.set(conversation_id_str, body.message, {
                     "message_id": str(msg.id),
                     "content": full_content,
@@ -390,7 +362,6 @@ class ChatService:
                     "model_used": actual_model,
                 })
 
-                # Send done event
                 yield {
                     "event": "done",
                     "data": json.dumps({
@@ -417,10 +388,6 @@ class ChatService:
                     "data": json.dumps({"error": str(e)}),
                 }
             finally:
-                # Close the session after the SSE stream finishes.
-                # This is deliberate: ``get_session()`` no longer closes
-                # the session automatically (item A1), so the SSE stream
-                # owner is responsible for the final ``close()`` call.
                 if session is not None:
                     try:
                         await session.close()
