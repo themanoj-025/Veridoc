@@ -36,6 +36,9 @@ class Message(Base):
     # Faithfulness score
     faithfulness_score: Mapped[float | None] = mapped_column(Float, nullable=True)
 
+    # G2: Prompt version tracking — which system prompt version was used
+    prompt_version: Mapped[str | None] = mapped_column(String(20), nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

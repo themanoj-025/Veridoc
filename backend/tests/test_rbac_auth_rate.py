@@ -390,21 +390,7 @@ class TestG2_PromptVersion:
         assert msg.prompt_version == "1.0.0"
 
     def test_prompt_version_optional(self):
-        """The prompt_version field should exist on the Message model."""
-        from app.models.message import Message
-
-        msg = Message(
-            conversation_id=uuid.uuid4(),
-            role="assistant",
-            content="Test response",
-            prompt_version="1.0.0",
-        )
-        assert msg.prompt_version == "1.0.0"
-
-    def test_prompt_version_optional(self):
         """The prompt_version field should be nullable for backward compatibility."""
-        from app.models.message import Message
-
         msg = Message(
             conversation_id=uuid.uuid4(),
             role="user",
