@@ -1,6 +1,25 @@
 # Veridoc -- Security Notes
 
-*Updated: 2026-07-28 17:11:10 UTC*
+*Updated: 2026-07-30 14:00:00 UTC*
+
+## Audit History
+
+### P0-1 (2026-07-30): Hardcoded secrets in docker-compose.yml bypassed startup validator
+
+**Finding:** During the 2026-07-30 deep audit, `docker-compose.yml` was found to contain
+hardcoded, valid-looking non-empty values for `JWT_SECRET` and `FILE_ENCRYPTION_KEY`
+(e.g., `local-dev-secret-key-not-for-production-abcdef123456`). Because these values were
+non-empty strings that did NOT match the `_PLACEHOLDER_PATTERNS` list (which checks for
+patterns like "change-me-", "placeholder", "your-"), the `validate_config()` startup
+validator **did not catch them** — the app would boot with publicly-known secrets
+anyone who cloned the repo could read.
+
+**Fix:** Replaced both values with `${JWT_SECRET:?error}` / `${FILE_ENCRYPTION_KEY:?error}`
+Docker Compose variable syntax. The stack now refuses to start without these variables
+being set in the `.env` file. Added a CI lint step (`lint-compose-secrets`) that scans
+all docker-compose files for hardcoded secret literals and fails the build if found.
+
+**Files changed:** `docker-compose.yml`, `.github/workflows/ci.yml`
 
 ## Implemented Protections
 

@@ -19,8 +19,7 @@ jobs:
           # (i.e., not starting with ${...})
           secrets_found=0
           for file in docker-compose.yml docker-compose.prod.yml; do
-            if [ ! -f "$file" ]; then continue; fi
-            for key in JWT_SECRET FILE_ENCRYPTION_KEY; do
+            if [ ! -f "$file" ]; then continue; fi              for key in JWT_SECRET FILE_ENCRYPTION_KEY POSTGRES_PASSWORD MINIO_SECRET_KEY; do
               # Look for lines like "  JWT_SECRET: some-literal-value" that don't start with $
               while IFS= read -r line; do
                 echo "ERROR: $file contains a hardcoded $key literal value"
