@@ -145,6 +145,24 @@ Veridoc is a "chat with your documents" RAG application that:
 
 ---
 
+### 7. Hardcoded Secrets in docker-compose.yml Bypassed Startup Validation
+
+**Bug:** A post-1.0 deep audit (July 2026) found that `docker-compose.yml` contained hardcoded, valid-looking non-empty strings for `JWT_SECRET` and `FILE_ENCRYPTION_KEY` (e.g., `local-dev-secret-key-not-for-production-abcdef123456`). These strings were non-empty and did **not** match any of the `_PLACEHOLDER_PATTERNS` in `validate_config()` (which checked for "change-me-", "placeholder", etc.) — so the startup validator silently passed them. Anyone running `docker compose up` without creating a `.env` file first was running with publicly-known, guessable secrets.
+
+**Impact:** A critical regression of the earlier Bug #5 fix. The `validate_config()` function had been added correctly, but `docker-compose.yml` — which had its own independent defaults — was never audited for inline secret values. An attacker who knew the repo could forge JWTs and decrypt stored files on any deployment that hadn't explicitly set `.env` values.
+
+**Root cause:** Two-layer validation gap. The backend's `validate_config()` was correct, but Docker Compose had its own environment defaults that bypassed the application-level check entirely. The validator's `_PLACEHOLDER_PATTERNS` list also had a semantic gap — it checked for strings like "change-me-" but not for the actual pattern used in `docker-compose.yml` ("local-dev-").
+
+**Fix:** `docker-compose.yml` — replaced both values with Docker Compose's `${VAR:?error}` required-variable syntax. The stack now refuses to start at the Docker Compose level (before the backend even boots) if these vars are not set in `.env`. Added a CI lint job (`lint-compose-secrets`) that scans all `docker-compose*.yml` files for any hardcoded literal values of `JWT_SECRET`, `FILE_ENCRYPTION_KEY`, `POSTGRES_PASSWORD`, or `MINIO_SECRET_KEY` and fails the build if found.
+
+**Files:** `docker-compose.yml`, `.github/workflows/ci.yml`, `docs/security-notes.md`, `docs/deployment-runbook.md`, `.env.example`
+
+**Verification:** `docker compose config` now fails with a clear error when the vars are unset. The CI lint job was tested against a deliberate regression and correctly rejects hardcoded secret literals.
+
+**Lesson:** A security fix at one layer (application code) is not sufficient when the same config surface exists at another layer (orchestration defaults). Every layer that can inject environment variable defaults must be independently hardened and audited. A CI lint that checks across layers prevents future re-introductions.
+
+---
+
 ## Evaluation Results
 
 ### Cross-Encoder Benchmark ✅ *(measured)*
