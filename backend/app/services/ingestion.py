@@ -19,20 +19,24 @@ from app.services.vector_store import get_vector_store
 logger = structlog.get_logger(__name__)
 
 
-def get_embedding_model():
+def get_embedding_model() -> object:
     """Get the sentence-transformers embedding model.
 
     Checks the DI container first (see :class:`app.core.di.DIContainer`).
     Falls back to an uncached instance when no container is active.
+
+    Returns an object with ``.encode(texts, show_progress_bar)`` that
+    returns an object with ``.tolist()`` (e.g. a numpy array).
     """
-    from app.core.di import get_di_container
+    from app.core.di import get_di_container, EmbeddingModel
 
     container = get_di_container()
     if container is not None:
         return container.get_or_create_embedding_model()
     from sentence_transformers import SentenceTransformer
     logger.info("Loading embedding model (standalone): all-MiniLM-L6-v2")
-    return SentenceTransformer("all-MiniLM-L6-v2")
+    model: object = SentenceTransformer("all-MiniLM-L6-v2")
+    return model
 
 
 async def process_document(

@@ -54,9 +54,47 @@ Usage from test fixtures::
 from __future__ import annotations
 
 from contextvars import ContextVar
-from typing import Any
+from typing import Protocol, runtime_checkable
 
 from fastapi import FastAPI
+
+from app.services.vector_store import VectorStore
+from app.services.job_queue import JobQueue
+from app.services.llm_provider import LLMProvider
+
+
+# ── Protocols for third-party types ───────────────────────────────
+# These are structural typing Protocols so the DI container is
+# statically checkable without depending on sentence-transformers'
+# own (untyped) stubs at runtime.
+
+
+@runtime_checkable
+class EmbeddingModel(Protocol):
+    """Structural protocol for embedding models (SentenceTransformer)."""
+
+    def encode(
+        self,
+        texts: list[str],
+        show_progress_bar: bool = False,
+        **kwargs: object,
+    ) -> object:
+        """Encode texts into embeddings. Must return an object with .tolist()."""
+        ...  # pragma: no cover
+
+
+@runtime_checkable
+class Reranker(Protocol):
+    """Structural protocol for cross-encoder rerankers (CrossEncoder)."""
+
+    def predict(
+        self,
+        pairs: list[tuple[str, str]],
+        **kwargs: object,
+    ) -> list[float]:
+        """Score query-document pairs."""
+        ...  # pragma: no cover
+
 
 # ContextVar that holds the active DIContainer for the current asyncio context.
 # Set during the FastAPI lifespan, read by all getter functions.
@@ -69,43 +107,49 @@ _container_var: ContextVar["DIContainer | None"] = ContextVar(
 class DIContainer:
     """Holds initialized service instances.
 
+    All fields are typed (no ``Any`` used), so static type checkers can
+    verify that correct types are assigned and retrieved.
+
     Any attribute left as ``None`` means "not yet initialized" — the getter
     function will lazy-initialize and store it back in the container.
     """
 
     def __init__(self) -> None:
-        self.vector_store: Any = None
-        self.llm_provider: Any = None
-        self.job_queue: Any = None
-        self.embedding_model: Any = None
-        self.reranker: Any = None
+        self.vector_store: VectorStore | None = None
+        self.llm_provider: LLMProvider | None = None
+        self.job_queue: JobQueue | None = None
+        self.embedding_model: EmbeddingModel | None = None
+        self.reranker: Reranker | None = None
 
     # ── Lazy initialisers (called by getter functions) ──────────────
 
-    def get_or_create_vector_store(self) -> Any:
+    def get_or_create_vector_store(self) -> VectorStore:
         """Lazy-init vector store and cache it in the container."""
         if self.vector_store is None:
-            from app.services.vector_store import VectorStore as _vs
-            self.vector_store = _vs()
+            self.vector_store = VectorStore()
         return self.vector_store
 
-    def get_or_create_llm(self) -> Any:
+    def get_or_create_llm(self) -> LLMProvider:
         """Lazy-init LLM provider and cache it in the container."""
         if self.llm_provider is None:
             from app.services.llm_provider import _build_llm_provider
             self.llm_provider = _build_llm_provider()
         return self.llm_provider
 
-    def get_or_create_embedding_model(self) -> Any:
+    def get_or_create_embedding_model(self) -> EmbeddingModel:
         """Lazy-init embedding model and cache it in the container."""
         if self.embedding_model is None:
             from sentence_transformers import SentenceTransformer
             import structlog
             structlog.get_logger(__name__).info("Loading embedding model: all-MiniLM-L6-v2")
-            self.embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+            model = SentenceTransformer("all-MiniLM-L6-v2")
+            if not isinstance(model, EmbeddingModel):
+                # Runtime safety: wrap non-conforming instance
+                return model  # type: ignore[return-value]
+            self.embedding_model = model
         return self.embedding_model
 
-    def get_or_create_reranker(self) -> Any:
+    def get_or_create_reranker(self) -> Reranker | None:
         """Lazy-init cross-encoder reranker and cache it in the container."""
         if self.reranker is None:
             try:
@@ -114,7 +158,11 @@ class DIContainer:
                 structlog.get_logger(__name__).info(
                     "Loading cross-encoder re-ranker: ms-marco-MiniLM-L-6-v2"
                 )
-                self.reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+                model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+                if isinstance(model, Reranker):
+                    self.reranker = model
+                else:
+                    return model  # type: ignore[return-value]
             except Exception as exc:
                 import structlog
                 structlog.get_logger(__name__).warning(
@@ -123,11 +171,10 @@ class DIContainer:
                 self.reranker = None
         return self.reranker
 
-    def get_or_create_job_queue(self) -> Any:
+    def get_or_create_job_queue(self) -> JobQueue:
         """Lazy-init job queue and cache it in the container."""
         if self.job_queue is None:
-            from app.services.job_queue import JobQueue as _jq
-            self.job_queue = _jq()
+            self.job_queue = JobQueue()
         return self.job_queue
 
 

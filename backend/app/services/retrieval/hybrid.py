@@ -13,11 +13,14 @@ from app.services.retrieval.rrf import reciprocal_rank_fusion
 logger = structlog.get_logger(__name__)
 
 
-def get_reranker():
+def get_reranker() -> object | None:
     """Get the cross-encoder re-ranker model.
 
     Checks the DI container first (see :class:`app.core.di.DIContainer`).
     Falls back to an uncached instance when no container is active.
+
+    Returns an object with ``.predict(pairs, **kwargs)`` that returns
+    ``list[float]``, or ``None`` if the model could not be loaded.
     """
     from app.core.di import get_di_container
 
@@ -28,7 +31,8 @@ def get_reranker():
     try:
         from sentence_transformers import CrossEncoder
         logger.info("Loading cross-encoder (standalone): ms-marco-MiniLM-L-6-v2")
-        return CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+        model: object = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+        return model
     except Exception as e:
         logger.warning(f"Failed to load cross-encoder: {e}")
         return None
