@@ -14,7 +14,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Install email-validator separately to avoid cache invalidation on requirements.txt changes
+RUN pip install --no-cache-dir email-validator==2.2.0
+
 # Copy application code
+# NOTE: Increment BUILD_NUMBER below to force Docker cache invalidation for the COPY layer.
+# Docker Desktop on Windows sometimes fails to detect file changes in the build context.
+ARG BUILD_NUMBER=0
+RUN test "$BUILD_NUMBER" -ge 0 && echo "Build $BUILD_NUMBER"
 COPY . .
 
 # Ensure alembic can find migrations
