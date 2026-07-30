@@ -43,29 +43,38 @@
 | **A4: Deploy demo** | Follow `docs/deployment-runbook.md` (Render.com / Fly.io) |
 | **A5: Demo video** | Screen record following `docs/demo-script.md` (90-120 seconds) |
 
-### Bug Fixes Applied This Session
+## Iteration 3 — 2026-07-30 (D4 Tier 2 — Live Chaos Tests)
 
-| Bug | File | Fix |
-|-----|------|-----|
-| Missing `Boolean` import | `app/models/chunk.py` | Added `Boolean` to sqlalchemy imports |
-| Test expects 2 values from 3-returning function | `tests/test_ingestion.py` | Changed `text, pages = parse_document(...)` to `text, pages, ocr_used = ...` |
-| CI Trivy used `trivy fs` for Docker images | `.github/workflows/ci.yml` | Added `trivy image` path when Docker images exist |
-| CI Trivy missing `--ignore-unfixed` | `.github/workflows/ci.yml` | Added `--ignore-unfixed` to only fail on fixable CVEs |
-| Duplicate `rrf_merge` functions | `scripts/tune_hybrid_weights.py` | Removed duplicate, renamed `rrf_merge_simple` → `rrf_merge` |
-| Header-only `print_metrics_table` crash | `scripts/tune_hybrid_weights.py` | Added `elif metrics:` guard to prevent KeyError |
+### Fixes Applied Before Chaos Tests
 
-### Test Results (Verified)
+| Problem | File | Fix |
+|---------|------|-----|
+| `email-validator` not installed in Docker image | `backend/Dockerfile` | Added `RUN pip install email-validator==2.2.0` as separate layer |
+| Pydantic ForwardRef crash (`UserCreate` not defined) | `backend/app/schemas/auth.py` | Removed `from __future__ import annotations`; changed `-> "UserCreate"` to `-> Self` |
+| FastAPI ForwardRef crash (route param) | `backend/app/api/auth.py` | Removed `from __future__ import annotations` |
+| structlog v24.4 `get_merged_contextvars()` API change | `backend/app/core/logging_config.py` | Replaced broken call with simple `setdefault` on event_dict |
+| Docker build cache not detecting file changes (Windows) | `backend/Dockerfile` | Added `ARG BUILD_NUMBER` cache-busting step |
+| Out-of-memory with all containers (Chroma + Ollama) | Environment | Stack consumes too much RAM for this dev machine |
 
-| Test Suite | Result |
-|-----------|--------|
-| Frontend (Vitest, 8 files) | **70/70 PASS** |
-| Backend auth | **30/30 PASS** |
-| Backend schema | **3/3 PASS** |
-| Backend response cache | **18/18 PASS** |
-| Backend resilience | **9 PASS, 5 SKIP** (skipped = Tier 2 Docker tests) |
-| Backend ingestion | **16/16 PASS** (1 fixed) |
-| Backend retrieval | ⏳ Import timeout (`accelerate` + Python 3.14 env issue — not code) |
-| **Total runnable** | **146/146 PASS** |
+### Chaos Test Script Status
+
+`scripts/chaos_test_live.py` — written, code-reviewed, committed (`63c447c`). Tests 5 dependencies (postgres, chroma, redis, minio, ollama) by:
+1. Stopping container via `docker compose stop <service>`
+2. Verifying health endpoint returns 503 with per-dependency error
+3. Checking `docker logs` for structured error logging
+4. Restarting container
+5. Verifying recovery (health → 200)
+
+**Issue:** Docker Desktop crashed during live testing (OOM on this dev machine with 7 containers). Fixes applied but full live run blocked until Docker restarts with sufficient memory.
+
+### Side Quests Completed
+
+| Item | Evidence |
+|------|----------|
+| **A2: Live red-team test script** | `scripts/run_redteam_live.py` — sends 8 prompt injection cases to live Ollama, classifies PASS/FAIL, updates `docs/security-notes.md` non-destructively |
+| Commit `63c447c` | `feat: add live chaos test script for D4 Tier 2 container resilience` |
+| Commit `995c0cf` | `feat: add live red-team test script for Ollama (A2)` |
+| Commit `c78ba15` | `fix: resolve backend Docker startup crashes` |
 
 ### Termination Condition
 
@@ -74,3 +83,14 @@
 - **BLOCKED-HUMAN with exact remaining manual steps** (5 items: A1, A2, A4, A5, D4 Tier 2)
 
 No category in the audit is below 7/10 without a documented Docker-dependent reason. See `docs/audit-before-after.md` for the full scorecard.
+
+### Remaining Manual Steps (for human)
+
+| Step | Command | What to Verify |
+|------|---------|---------------|
+| 1. Start Docker Desktop | Open Docker Desktop, wait for engine ready | `docker ps` shows daemon running |
+| 2. Build backend | `cd F:\GITHUB\Veridoc && docker compose build --build-arg BUILD_NUMBER=$(date +%s) backend` | Build succeeds (0.5s cached) |
+| 3. Start minimal stack | `docker compose up -d postgres backend` | Health responds: `curl http://localhost:8000/api/v1/health` |
+| 4. Run chaos tests | `python scripts/chaos_test_live.py --quick` | Each service PASS/FAIL listed in summary |
+| 5. Run red-team tests | `python scripts/run_redteam_live.py` | All 8 injection cases PASS |
+| 6. Commit results | `git add LOOP_LOG.md && git commit -m "chaos: live verification" && git push` |
