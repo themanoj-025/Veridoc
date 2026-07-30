@@ -37,10 +37,24 @@ class UserRepository(BaseRepository[User]):
         )
         return result.scalar_one_or_none()
 
-    async def find_first_registered(self) -> User | None:
-        """Find the first registered user (admin heuristic)."""
+    async def find_by_role(self, role: str) -> list[User]:
+        """Find all users with a specific role."""
         result = await self.session.execute(
-            select(User).order_by(User.created_at).limit(1)
+            select(User).where(User.role == role)
+        )
+        return list(result.scalars().all())
+
+    async def find_by_verification_token(self, token: str) -> User | None:
+        """Find a user by email verification token."""
+        result = await self.session.execute(
+            select(User).where(User.verification_token == token)
+        )
+        return result.scalar_one_or_none()
+
+    async def find_by_reset_token(self, token: str) -> User | None:
+        """Find a user by password reset token."""
+        result = await self.session.execute(
+            select(User).where(User.reset_token == token)
         )
         return result.scalar_one_or_none()
 

@@ -102,15 +102,13 @@ export function ChatPanel({ conversationId, onNewConversation }: ChatPanelProps)
     setStreaming(true);
     resetStreaming();
 
-    streamChat(
+    const chatCtrl = streamChat({
       conversationId,
-      userMessage,
-      // onToken
-      (token) => {
+      message: userMessage,
+      onToken: (token) => {
         appendToken(token);
       },
-      // onDone
-      (data) => {
+      onDone: (data) => {
         setStreaming(false);
         // Add assistant message
         const assistantMsg: Message = {
@@ -126,13 +124,12 @@ export function ChatPanel({ conversationId, onNewConversation }: ChatPanelProps)
         setMessages((prev) => [...prev, assistantMsg]);
         resetStreaming();
       },
-      // onError
-      (err) => {
+      onError: (err) => {
         setStreaming(false);
         setError(err);
         resetStreaming();
-      }
-    );
+      },
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

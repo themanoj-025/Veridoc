@@ -5,12 +5,13 @@ from __future__ import annotations
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Form, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
 from app.core.config import settings
+from app.core.rate_limit import limiter
 from app.models.user import User
 from app.models.document import Document
 from app.repositories import DocumentRepository, ChunkRepository
@@ -37,13 +38,18 @@ MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
     status_code=status.HTTP_201_CREATED,
     operation_id="documents_upload",
 )
+@limiter.limit("10/minute")
 async def upload_document(
+    request: Request,
     file: UploadFile = File(...),
     title: str | None = Form(None),
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    """Upload a document for processing."""
+    """Upload a document for processing.
+
+    Rate-limited: 10 uploads per minute per user (F6).
+    """
     # Validate file extension
     ext = Path(file.filename or "").suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:

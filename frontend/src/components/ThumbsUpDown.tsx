@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useToastStore } from "@/lib/toast-store";
+import { getApiBase, getAuthHeaders } from "@/lib/api";
 
 interface ThumbsUpDownProps {
   messageId: string;
@@ -29,14 +30,13 @@ export function ThumbsUpDown({
     setSubmitting(true);
 
     try {
-      // Send feedback to API
+      // F13: Send feedback via shared api.ts client
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/chat/feedback`,
+        `${getApiBase()}/api/v1/chat/feedback`,
         {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+            ...getAuthHeaders(),
           },
           body: JSON.stringify({
             message_id: messageId,

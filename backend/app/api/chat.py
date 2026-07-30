@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
+from app.core.rate_limit import limiter
 from app.models.user import User
 from app.repositories import ConversationRepository, DocumentRepository
 from app.schemas.chat import (
@@ -55,12 +56,14 @@ async def _build_conversation_response(
     status_code=status.HTTP_201_CREATED,
     operation_id="chat_create_conversation",
 )
+@limiter.limit("30/minute")
 async def create_conversation(
+    request: Request,
     body: ConversationCreate,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    """Create a new conversation."""
+    """Create a new conversation. Rate-limited: 30 per minute (F6)."""
     doc_repo = DocumentRepository(session)
     conv_repo = ConversationRepository(session)
 
@@ -193,7 +196,9 @@ async def get_messages(
 
 
 @router.post("/stream", operation_id="chat_stream")
+@limiter.limit("20/minute")
 async def stream_chat(
+    request: Request,
     body: ChatRequest,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
@@ -201,6 +206,7 @@ async def stream_chat(
     """Stream a chat response via SSE with citations.
 
     Delegates to ChatService for the full pipeline.
+    Rate-limited: 20 chat requests per minute (F6).
     """
     bind_log_context(conversation_id=str(body.conversation_id))
     service = ChatService(session, user)

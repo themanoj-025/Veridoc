@@ -194,21 +194,36 @@ class ChatService:
             )
             self.session.add(record)
 
-        # Log usage
-        log = UsageLog(
-            user_id=self.user.id,
-            conversation_id=conv.id,
-            query=message,
-            response_time_ms=total_time,
-            tokens_input=len(system_prompt.split()) + len(message.split()),
-            tokens_output=token_count,
-            model_used=self.llm.model_name,
-            retrieval_time_ms=retrieval_time,
-            rerank_time_ms=rerank_time,
-            generation_time_ms=gen_time,
-            faithfulness_check_ms=faith_time,
-        )
-        self.session.add(log)
+        # F10: Async usage log write — fire-and-forget to remove latency from critical path
+        import asyncio
+
+        async def _log_usage():
+            """Write usage log asynchronously without blocking the response."""
+            try:
+                from app.core.database import async_session_factory
+                from app.models.usage_log import UsageLog
+                async with async_session_factory() as log_session:
+                    log = UsageLog(
+                        user_id=self.user.id,
+                        conversation_id=conv.id,
+                        query=message,
+                        response_time_ms=total_time,
+                        tokens_input=len(system_prompt.split()) + len(message.split()),
+                        tokens_output=token_count,
+                        model_used=self.llm.model_name,
+                        retrieval_time_ms=retrieval_time,
+                        rerank_time_ms=rerank_time,
+                        generation_time_ms=gen_time,
+                        faithfulness_check_ms=faith_time,
+                    )
+                    log_session.add(log)
+                    await log_session.commit()
+            except Exception as e:
+                logger.warning("Async usage log write failed", error=str(e))
+
+        asyncio.ensure_future(_log_usage())
+
+        # Still commit the message + citations synchronously
         await self.session.commit()
         return msg
 

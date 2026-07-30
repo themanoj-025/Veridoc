@@ -5,6 +5,11 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import secrets
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
 from app.core.rate_limit import limiter
@@ -27,6 +32,7 @@ from app.schemas.auth import (
     TokenRefresh,
     PasswordChange,
 )
+from app.services.email_sender import send_verification_email, send_password_reset_email, get_dev_email_sender
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
@@ -195,3 +201,106 @@ async def change_password(
     await user_repo.update(user)
     await session.close()
     return {"message": "Password changed successfully"}
+
+
+# ── F4: Email Verification ──────────────────────────────
+
+
+@router.post("/request-verification-email", operation_id="auth_request_verification_email")
+async def request_verification_email(
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    """Send a verification email to the current user."""
+    if user.is_verified:
+        return {"message": "Email is already verified"}
+
+    token = secrets.token_urlsafe(32)
+    user.verification_token = token
+    user_repo = UserRepository(session)
+    await user_repo.update(user)
+    await session.close()
+
+    await send_verification_email(user.email, token)
+    return {"message": "Verification email sent"}
+
+
+@router.post("/verify-email", operation_id="auth_verify_email")
+async def verify_email(
+    token: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Verify a user's email address using a verification token."""
+    user_repo = UserRepository(session)
+    user = await user_repo.find_by_verification_token(token)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired verification token",
+        )
+
+    user.is_verified = True
+    user.verification_token = None
+    await user_repo.update(user)
+    await session.close()
+    return {"message": "Email verified successfully"}
+
+
+# ── F4: Password Reset ──────────────────────────────────
+
+
+@router.post("/request-password-reset", operation_id="auth_request_password_reset")
+async def request_password_reset(
+    email: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Request a password reset email. Always returns success to avoid email enumeration."""
+    user_repo = UserRepository(session)
+    user = await user_repo.find_by_email(email)
+
+    if user:
+        token = secrets.token_urlsafe(32)
+        user.reset_token = token
+        from datetime import timedelta, timezone
+        user.reset_token_expiry = datetime.now(timezone.utc) + timedelta(hours=1)
+        await user_repo.update(user)
+        await send_password_reset_email(email, token)
+
+    await session.close()
+    return {"message": "If the email exists, a reset link has been sent"}
+
+
+@router.post("/reset-password", operation_id="auth_reset_password")
+async def reset_password(
+    token: str,
+    new_password: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Reset a user's password using a reset token."""
+    from datetime import datetime, timezone
+
+    from app.core.security import validate_password_complexity
+    err = validate_password_complexity(new_password)
+    if err:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=err)
+
+    user_repo = UserRepository(session)
+    user = await user_repo.find_by_reset_token(token)
+    if not user or not user.reset_token_expiry:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token",
+        )
+
+    if user.reset_token_expiry < datetime.now(timezone.utc):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Reset token has expired",
+        )
+
+    user.hashed_password = hash_password(new_password)
+    user.reset_token = None
+    user.reset_token_expiry = None
+    await user_repo.update(user)
+    await session.close()
+    return {"message": "Password reset successfully"}

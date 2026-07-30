@@ -3,22 +3,46 @@
 from __future__ import annotations
 
 import json
+import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
+from sqlalchemy import select, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
 from app.models.user import User
-from app.repositories import UserRepository, DocumentRepository, UsageLogRepository
 from app.models.citation_record import CitationRecord
+from app.models.admin_audit_log import AdminAuditLog
+from app.repositories import UserRepository, DocumentRepository, UsageLogRepository
 from app.services.response_cache import get_response_cache
-from sqlalchemy import select, func, text
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
+
+
+# ── F8: Admin audit log helper ─────────────────────────
+
+async def _log_admin_action(
+    session,
+    actor_id: uuid.UUID | None,
+    action: str,
+    target_type: str | None = None,
+    target_id: str | None = None,
+    metadata: dict | None = None,
+) -> None:
+    """Record an admin action to the append-only audit log."""
+    log = AdminAuditLog(
+        actor_id=actor_id,
+        action=action,
+        target_type=target_type,
+        target_id=target_id,
+        metadata_json=json.dumps(metadata) if metadata else None,
+    )
+    session.add(log)
+    await session.flush()
 
 
 class AdminAnalyticsResponse(BaseModel):
@@ -42,14 +66,8 @@ async def get_analytics(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    """Get admin analytics from the usage_logs table."""
-    user_repo = UserRepository(session)
-    doc_repo = DocumentRepository(session)
-    log_repo = UsageLogRepository(session)
-
-    # Simple admin check: only the first registered user can access
-    first_user = await user_repo.find_first_registered()
-    if not first_user or first_user.id != user.id:
+    """Get admin analytics from the usage_logs table."""    # F3: RBAC admin check — explicit role column
+    if user.role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required",
@@ -57,6 +75,14 @@ async def get_analytics(
 
     import structlog
     logger = structlog.get_logger(__name__)
+
+    # F8: Log admin action to audit log
+    await _log_admin_action(session, user.id, "analytics_accessed", "admin", None, {"method": "GET"})
+
+    user_repo = UserRepository(session)
+    doc_repo = DocumentRepository(session)
+    log_repo = UsageLogRepository(session)
+
     logger.info("admin.analytics_accessed", user_id=str(user.id)[:8])
 
     now = datetime.utcnow()
@@ -147,9 +173,8 @@ async def get_cache_stats(
     session: AsyncSession = Depends(get_session),
 ):
     """Get response cache hit/miss statistics (C2)."""
-    user_repo = UserRepository(session)
-    first_user = await user_repo.find_first_registered()
-    if not first_user or first_user.id != user.id:
+    # F3: RBAC admin check
+    if user.role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required",
@@ -157,6 +182,9 @@ async def get_cache_stats(
 
     import structlog
     logger = structlog.get_logger(__name__)
+
+    # F8: Log admin action
+    await _log_admin_action(session, user.id, "cache_stats_accessed", "admin", None, None)
 
     cache = get_response_cache()
     stats = cache.stats
@@ -194,9 +222,8 @@ async def get_feedback_queue(
     session: AsyncSession = Depends(get_session),
 ):
     """Get continuous feedback queue stats and recent entries (D1)."""
-    user_repo = UserRepository(session)
-    first_user = await user_repo.find_first_registered()
-    if not first_user or first_user.id != user.id:
+    # F3: RBAC admin check
+    if user.role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required",
@@ -204,6 +231,9 @@ async def get_feedback_queue(
 
     import structlog
     logger = structlog.get_logger(__name__)
+
+    # F8: Log admin action
+    await _log_admin_action(session, user.id, "feedback_queue_accessed", "admin", None, None)
 
     # Load the feedback queue from disk
     eval_dir = Path(__file__).resolve().parent.parent.parent.parent / "eval"

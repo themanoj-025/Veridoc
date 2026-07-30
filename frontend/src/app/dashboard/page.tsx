@@ -12,7 +12,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { CommandPalette } from "@/components/CommandPalette";
 import { SearchBar } from "@/components/SearchBar";
 import { DocumentListSkeleton, DocumentViewerSkeleton, ChatMessageSkeleton } from "@/components/Skeleton";
-import { searchApi } from "@/lib/api";
+import { searchApi, getApiBase, getAuthHeaders } from "@/lib/api";
 import { toast } from "@/lib/toast-store";
 import { cn } from "@/lib/utils";
 
@@ -170,11 +170,10 @@ export default function Dashboard() {
   const handleDeleteAccount = async () => {
     setDeletingAccount(true);
     try {
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const token = localStorage.getItem("access_token");
-      const res = await fetch(`${API_BASE}/api/v1/user/delete-account`, {
+      // F13: Use shared api.ts client
+      const res = await fetch(`${getApiBase()}/api/v1/user/delete-account`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: getAuthHeaders(),
       });
       if (res.ok) {
         toast.success("Account deleted", "All your data has been permanently removed");
@@ -285,10 +284,9 @@ export default function Dashboard() {
           <button
             onClick={async () => {
               try {
-                const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-                const token = localStorage.getItem("access_token");
-                const res = await fetch(`${API_BASE}/api/v1/user/export`, {
-                  headers: { Authorization: `Bearer ${token}` },
+                // F13: Use shared api.ts client
+                const res = await fetch(`${getApiBase()}/api/v1/user/export`, {
+                  headers: getAuthHeaders(),
                 });
                 if (res.ok) {
                   const blob = await res.blob();

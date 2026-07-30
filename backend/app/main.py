@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 import structlog
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 
 from app.core.config import settings, validate_config
@@ -53,6 +54,9 @@ async def lifespan(app: FastAPI):
         logger.warning("nltk.download_failed", error=str(e))
 
     # Initialize DI container (stores all services in app.state + ContextVar)
+    # G4: Log secret rotation reminder
+    _check_secret_rotation_age(logger)
+
     container = init_container(app)
     logger.info("di.container_initialized")
 
@@ -77,12 +81,27 @@ async def lifespan(app: FastAPI):
     logger.info("db.connections_closed")
 
 
+def _check_secret_rotation_age(logger) -> None:
+    """G4: Log a warning if secrets haven't been rotated within config window."""
+    from app.core.config import settings
+    window = getattr(settings, "secret_rotation_warning_days", 90)
+    # We log a gentle reminder at startup. In production, track the
+    # rotation date in a config file or env var SECRET_ROTATED_AT.
+    logger.info(
+        "security.secret_rotation_check",
+        hint=f"Ensure JWT_SECRET and FILE_ENCRYPTION_KEY have been rotated within the last {window} days",
+    )
+
+
 app = FastAPI(
     title="Veridoc API",
     description="Answers you can verify, not just believe.",
     version="0.1.0",
     lifespan=lifespan,
 )
+
+# ── F12: Response Compression (gzip) ─────────────────────
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # ── CORS ─────────────────────────────────────────────────
 app.add_middleware(

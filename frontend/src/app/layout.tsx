@@ -1,7 +1,30 @@
 import type { Metadata } from "next";
+import { Inter, Source_Serif_4, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/AuthProvider";
 import { ToastContainer } from "@/components/Toast";
+
+// ── F17: Font loading via next/font (replaces CSS @import) ──
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const sourceSerif4 = Source_Serif_4({
+  subsets: ["latin"],
+  variable: "--font-source-serif",
+  display: "swap",
+  weight: ["400", "600", "700"],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains-mono",
+  display: "swap",
+  weight: ["400", "500"],
+});
 
 export const metadata: Metadata = {
   title: "Veridoc — Answers you can verify, not just believe.",
@@ -36,7 +59,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-screen bg-gradient-to-br from-veridoc-50 via-white to-veridoc-100/20 dark:from-veridoc-950 dark:via-slate-900 dark:to-veridoc-900/20">
+      <body className={`${inter.variable} ${sourceSerif4.variable} ${jetbrainsMono.variable} min-h-screen bg-gradient-to-br from-veridoc-50 via-white to-veridoc-100/20 dark:from-veridoc-950 dark:via-slate-900 dark:to-veridoc-900/20`}>
         <AuthProvider>{children}</AuthProvider>
         <ToastContainer />
       </body>
