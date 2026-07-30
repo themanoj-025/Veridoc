@@ -1,50 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-
-interface AnalyticsData {
-  total_queries: number;
-  total_users: number;
-  total_documents: number;
-  avg_latency_ms: number;
-  p50_latency_ms: number;
-  p95_latency_ms: number;
-  queries_today: number;
-  queries_this_week: number;
-  most_used_model: string | null;
-  avg_estimated_cost: number | null;
-  top_documents: { document_id: string; citation_count: number }[];
-  recent_queries: { query: string; latency_ms: number; model_used: string; created_at: string | null }[];
-  daily_query_volume: { date: string; count: number }[];
-}
-
-interface CacheStats {
-  hits: number;
-  misses: number;
-  total: number;
-  hit_rate: number;
-  memory_entries: number;
-  redis_available: boolean;
-  enabled: boolean;
-  ttl_seconds: number;
-}
-
-interface FeedbackQueue {
-  total: number;
-  thumbs_down: number;
-  thumbs_up: number;
-  avg_faithfulness: number;
-  recent_entries: {
-    feedback: string;
-    question: string;
-    answer: string;
-    faithfulness_score: number | null;
-    timestamp: string;
-  }[];
-}
+import {
+  useAdminAnalytics,
+  useAdminCacheStats,
+  useAdminFeedbackQueue,
+} from "@/lib/queries";
 
 function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
@@ -59,52 +23,37 @@ function StatCard({ label, value, sub }: { label: string; value: string | number
 export default function AdminPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading } = useAuthStore();
-  const [data, setData] = useState<AnalyticsData | null>(null);
-  const [cacheStats, setCacheStats] = useState<CacheStats | null>(null);
-  const [feedbackQueue, setFeedbackQueue] = useState<FeedbackQueue | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState<"analytics" | "cache" | "feedback">("analytics");
 
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.replace("/login");
-    }
-  }, [isLoading, isAuthenticated, router]);
+  // ▸ F14: Admin data served by React Query
+  const {
+    data: analyticsData,
+    isError: analyticsError,
+    isLoading: loadingAnalytics,
+    refetch: refetchAnalytics,
+  } = useAdminAnalytics();
+  const {
+    data: cacheStats,
+    isLoading: loadingCache,
+    refetch: refetchCache,
+  } = useAdminCacheStats();
+  const {
+    data: feedbackStats,
+    isLoading: loadingFeedback,
+    refetch: refetchFeedback,
+  } = useAdminFeedbackQueue();
 
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    loadAll();
-  }, [isAuthenticated]);
+  const loading = loadingAnalytics || loadingCache || loadingFeedback;
+  const error = analyticsData === null && !loadingAnalytics
+    ? "Admin access required (only the first registered user can access this page)"
+    : analyticsError
+      ? "Failed to load admin data"
+      : null;
 
-  const loadAll = async () => {
-    setLoading(true);
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-    const token = localStorage.getItem("access_token");
-    const headers = { Authorization: `Bearer ${token}` };
-
-    try {
-      const [analyticsRes, cacheRes, feedbackRes] = await Promise.all([
-        fetch(`${API_BASE}/api/v1/admin/analytics`, { headers }),
-        fetch(`${API_BASE}/api/v1/admin/cache-stats`, { headers }),
-        fetch(`${API_BASE}/api/v1/admin/feedback-queue`, { headers }),
-      ]);
-
-      // Early return on any 403 - all admin endpoints share the same auth gate
-      if (analyticsRes.status === 403 || cacheRes.status === 403 || feedbackRes.status === 403) {
-        setError("Admin access required (only the first registered user can access this page)");
-        setLoading(false);
-        return;
-      }
-
-      if (analyticsRes.ok) setData(await analyticsRes.json());
-      if (cacheRes.ok) setCacheStats(await cacheRes.json());
-      if (feedbackRes.ok) setFeedbackQueue(await feedbackRes.json());
-    } catch (err: any) {
-      setError(err.message || "Failed to load admin data");
-    } finally {
-      setLoading(false);
-    }
+  const refreshAll = () => {
+    refetchAnalytics();
+    refetchCache();
+    refetchFeedback();
   };
 
   if (isLoading) {
@@ -145,7 +94,7 @@ export default function AdminPage() {
             Dashboard
           </button>
           <button
-            onClick={loadAll}
+            onClick={refreshAll}
             className="text-sm text-veridoc-500 hover:text-veridoc-600 font-medium"
           >
             Refresh
@@ -201,22 +150,22 @@ export default function AdminPage() {
         )}
 
         {/* Analytics Section */}
-        {data && activeSection === "analytics" && (
+        {analyticsData && activeSection === "analytics" && (
           <div className="space-y-8">
             {/* Stats grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <StatCard label="Total Queries" value={data.total_queries} />
-              <StatCard label="Total Users" value={data.total_users} />
-              <StatCard label="Total Documents" value={data.total_documents} />
-              <StatCard label="Avg Latency" value={`${data.avg_latency_ms.toFixed(0)}ms`} />
-              <StatCard label="P50 Latency" value={`${data.p50_latency_ms.toFixed(0)}ms`} />
-              <StatCard label="P95 Latency" value={`${data.p95_latency_ms.toFixed(0)}ms`} />
-              <StatCard label="Queries Today" value={data.queries_today} />
-              <StatCard label="Queries (7d)" value={data.queries_this_week} />
-              <StatCard label="Most Used Model" value={data.most_used_model || "N/A"} />
+              <StatCard label="Total Queries" value={analyticsData.total_queries} />
+              <StatCard label="Total Users" value={analyticsData.total_users} />
+              <StatCard label="Total Documents" value={analyticsData.total_documents} />
+              <StatCard label="Avg Latency" value={`${analyticsData.avg_latency_ms.toFixed(0)}ms`} />
+              <StatCard label="P50 Latency" value={`${analyticsData.p50_latency_ms.toFixed(0)}ms`} />
+              <StatCard label="P95 Latency" value={`${analyticsData.p95_latency_ms.toFixed(0)}ms`} />
+              <StatCard label="Queries Today" value={analyticsData.queries_today} />
+              <StatCard label="Queries (7d)" value={analyticsData.queries_this_week} />
+              <StatCard label="Most Used Model" value={analyticsData.most_used_model || "N/A"} />
               <StatCard
                 label="Avg Cost/Query"
-                value={data.avg_estimated_cost ? `$${data.avg_estimated_cost.toFixed(6)}` : "N/A"}
+                value={analyticsData.avg_estimated_cost ? `$${analyticsData.avg_estimated_cost.toFixed(6)}` : "N/A"}
               />
             </div>
 
@@ -224,8 +173,8 @@ export default function AdminPage() {
             <div>
               <h3 className="text-sm font-semibold text-foreground mb-3">Daily Query Volume (7 days)</h3>
               <div className="flex items-end gap-2 h-32">
-                {(data.daily_query_volume?.length > 0 ? data.daily_query_volume : []).map((day) => {
-                  const maxCount = Math.max(...(data.daily_query_volume?.map((d) => d.count) || [1]), 1);
+                {(analyticsData.daily_query_volume?.length > 0 ? analyticsData.daily_query_volume : []).map((day) => {
+                  const maxCount = Math.max(...(analyticsData.daily_query_volume?.map((d) => d.count) || [1]), 1);
                   const height = (day.count / maxCount) * 100;
                   return (
                     <div key={day.date} className="flex-1 flex flex-col items-center gap-1">
@@ -257,7 +206,7 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.recent_queries.map((q, i) => (
+                    {analyticsData.recent_queries.map((q, i) => (
                       <tr key={i} className="border-t border-border hover:bg-muted/30">
                         <td className="px-4 py-2 text-foreground max-w-xs truncate">{q.query}</td>
                         <td className="px-4 py-2 text-muted-foreground">{q.latency_ms.toFixed(0)}ms</td>
@@ -267,7 +216,7 @@ export default function AdminPage() {
                         </td>
                       </tr>
                     ))}
-                    {data.recent_queries.length === 0 && (
+                    {analyticsData.recent_queries.length === 0 && (
                       <tr>
                         <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
                           No queries yet
@@ -291,13 +240,13 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.top_documents.map((doc, i) => (
+                    {analyticsData.top_documents.map((doc, i) => (
                       <tr key={i} className="border-t border-border hover:bg-muted/30">
                         <td className="px-4 py-2 text-foreground font-mono text-xs">{doc.document_id}</td>
                         <td className="px-4 py-2 text-foreground font-medium">{doc.citation_count}</td>
                       </tr>
                     ))}
-                    {data.top_documents.length === 0 && (
+                    {analyticsData.top_documents.length === 0 && (
                       <tr>
                         <td colSpan={2} className="px-4 py-8 text-center text-muted-foreground">
                           No citations yet
@@ -403,7 +352,7 @@ export default function AdminPage() {
         )}
 
         {/* Feedback Queue Section (D1) */}
-        {feedbackQueue && activeSection === "feedback" && (
+        {feedbackStats && activeSection === "feedback" && (
           <div className="space-y-6">
             <h2 className="text-lg font-semibold text-foreground">Continuous Feedback Queue</h2>
             <p className="text-sm text-muted-foreground">
@@ -414,16 +363,16 @@ export default function AdminPage() {
             </p>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <StatCard label="Total Entries" value={feedbackQueue.total} />
-              <StatCard label="Thumbs Up" value={feedbackQueue.thumbs_up} />
-              <StatCard label="Thumbs Down" value={feedbackQueue.thumbs_down} />
+              <StatCard label="Total Entries" value={feedbackStats.total} />
+              <StatCard label="Thumbs Up" value={feedbackStats.thumbs_up} />
+              <StatCard label="Thumbs Down" value={feedbackStats.thumbs_down} />
               <StatCard
                 label="Avg Faithfulness"
-                value={`${(feedbackQueue.avg_faithfulness * 100).toFixed(0)}%`}
+                value={`${(feedbackStats.avg_faithfulness * 100).toFixed(0)}%`}
               />
             </div>
 
-            {feedbackQueue.recent_entries.length > 0 && (
+            {feedbackStats.recent_entries.length > 0 && (
               <div>
                 <h3 className="text-sm font-semibold text-foreground mb-3">Recent Entries</h3>
                 <div className="border border-border rounded-xl overflow-hidden">
@@ -437,7 +386,7 @@ export default function AdminPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {feedbackQueue.recent_entries.slice(0, 10).map((entry, i) => (
+                      {feedbackStats.recent_entries.slice(0, 10).map((entry, i) => (
                         <tr key={i} className="border-t border-border hover:bg-muted/30">
                           <td className="px-4 py-2">
                             <span className={cn(
@@ -468,7 +417,7 @@ export default function AdminPage() {
               </div>
             )}
 
-            {feedbackQueue.total === 0 && (
+            {feedbackStats.total === 0 && (
               <div className="p-8 text-center">
                 <div className="w-12 h-12 rounded-2xl bg-veridoc-100 mx-auto mb-3 flex items-center justify-center">
                   <svg className="w-6 h-6 text-veridoc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -482,7 +431,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {!loading && !data && !cacheStats && !feedbackQueue && !error && (
+        {!loading && !analyticsData && !cacheStats && !feedbackStats && !error && (
           <div className="p-8 text-center">
             <p className="text-sm text-muted-foreground">
               No data available. Start by uploading documents and asking questions.

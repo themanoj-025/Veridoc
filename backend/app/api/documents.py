@@ -189,6 +189,7 @@ async def get_document_content(
         "chunk_count": doc.chunk_count,
         "chunks": [
             {
+                "id": str(c.id),
                 "index": c.chunk_index,
                 "content": c.content,
                 "page_number": c.page_number,

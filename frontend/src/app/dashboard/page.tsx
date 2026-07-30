@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/store";
-import { documents, conversations, auth as authApi } from "@/lib/api";
 import { ChatPanel } from "@/components/ChatPanel";
 import { DocumentList } from "@/components/DocumentList";
 import { DocumentViewer } from "@/components/DocumentViewer";
@@ -13,6 +12,12 @@ import { CommandPalette } from "@/components/CommandPalette";
 import { SearchBar } from "@/components/SearchBar";
 import { DocumentListSkeleton, DocumentViewerSkeleton, ChatMessageSkeleton } from "@/components/Skeleton";
 import { searchApi, getApiBase, getAuthHeaders } from "@/lib/api";
+import {
+  useDocuments,
+  useConversations,
+  useCreateConversation,
+  useUploadDocument,
+} from "@/lib/queries";
 import { toast } from "@/lib/toast-store";
 import { cn } from "@/lib/utils";
 
@@ -21,13 +26,9 @@ export default function Dashboard() {
   const { user, isAuthenticated, isLoading, logout } = useAuthStore();
 
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
-  const [docList, setDocList] = useState<any[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const [convList, setConvList] = useState<any[]>([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [loadingDocs, setLoadingDocs] = useState(true);
-  const [loadingConvs, setLoadingConvs] = useState(true);
   const [mobileView, setMobileView] = useState<"docs" | "chat" | "viewer">("docs");
   const [fullTextResults, setFullTextResults] = useState<any[] | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -82,49 +83,37 @@ export default function Dashboard() {
     }
   };
 
+  // Listen for citation-navigate events (F19): switch to the document viewer
+  useEffect(() => {
+    const handler = (e: CustomEvent) => {
+      const docId = e.detail?.documentId;
+      if (docId) {
+        setSelectedDocId(docId);
+        setMobileView("viewer");
+      }
+    };
+    window.addEventListener("citation-navigate" as any, handler as any);
+    return () =>
+      window.removeEventListener("citation-navigate" as any, handler as any);
+  }, []);
+
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.replace("/login");
     }
   }, [isLoading, isAuthenticated, router]);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadDocuments();
-      loadConversations();
-    }
-  }, [isAuthenticated]);
-
-  const loadDocuments = async () => {
-    setLoadingDocs(true);
-    try {
-      const res = await documents.list();
-      setDocList(res.data.items || []);
-    } catch (err) {
-      console.error("Failed to load documents:", err);
-    } finally {
-      setLoadingDocs(false);
-    }
-  };
-
-  const loadConversations = async () => {
-    setLoadingConvs(true);
-    try {
-      const res = await conversations.list();
-      setConvList(res.data.items || []);
-    } catch (err) {
-      console.error("Failed to load conversations:", err);
-    } finally {
-      setLoadingConvs(false);
-    }
-  };
+  // ▸ F14: Server-state managed by React Query
+  const { data: docList = [], isLoading: loadingDocs } = useDocuments();
+  const { data: convList = [], isLoading: loadingConvs } = useConversations();
+  const createConvMutation = useCreateConversation();
+  const uploadMutation = useUploadDocument();
 
   const handleNewConversation = async () => {
     try {
       const docIds = selectedDocId ? [selectedDocId] : [];
-      const res = await conversations.create({ document_ids: docIds });
-      setConversationId(res.data.id);
-      setConvList((prev) => [res.data, ...prev]);
+      const conv = await createConvMutation.mutateAsync({ document_ids: docIds });
+      setConversationId(conv.id);
       setMobileView("chat");
     } catch (err) {
       console.error("Failed to create conversation:", err);
@@ -142,9 +131,8 @@ export default function Dashboard() {
 
     setUploading(true);
     try {
-      await documents.upload(file, title || undefined);
+      await uploadMutation.mutateAsync({ file, title: title || undefined });
       setShowUploadModal(false);
-      loadDocuments();
     } catch (err) {
       console.error("Upload failed:", err);
     } finally {

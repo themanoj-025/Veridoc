@@ -249,6 +249,41 @@ export function streamChat({
   };
 }
 
+// ── Document Content (F19) ────────────────────────────
+export const documentContent = {
+  /** Fetch document content with all chunks for the viewer. */
+  get: (documentId: string) =>
+    api.get(`/api/v1/documents/${documentId}/content`),
+};
+
+// ── Document Sharing (F20) ────────────────────────────
+export const sharing = {
+  /** List shares for a document. */
+  list: (documentId: string) =>
+    api.get(`/api/v1/documents/${documentId}/shares`),
+  /** Share a document with another user. */
+  create: (documentId: string, data: { shared_with_email: string; permission?: string }) =>
+    api.post(`/api/v1/documents/${documentId}/shares`, data),
+  /** Update share permission. */
+  update: (shareId: string, data: { permission: string }) =>
+    api.patch(`/api/v1/shares/${shareId}`, data),
+  /** Remove a share. */
+  delete: (shareId: string) =>
+    api.delete(`/api/v1/shares/${shareId}`),
+};
+
+// ── API Keys (F20) ────────────────────────────────────
+export const apiKeys = {
+  /** List all API keys for the current user. */
+  list: () => api.get("/api/v1/api-keys"),
+  /** Create a new API key (returns the full key once). */
+  create: (data: { name: string; rate_limit_per_minute?: number }) =>
+    api.post("/api/v1/api-keys", data),
+  /** Revoke (delete) an API key. */
+  delete: (keyId: string) =>
+    api.delete(`/api/v1/api-keys/${keyId}`),
+};
+
 // ── Search ──────────────────────────────────────────────
 export const searchApi = {
   fulltext: (q: string, documentId?: string, limit: number = 20, offset: number = 0) =>

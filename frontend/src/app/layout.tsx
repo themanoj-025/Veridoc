@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Source_Serif_4, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/AuthProvider";
+import { QueryProvider } from "@/components/QueryProvider";
 import { ToastContainer } from "@/components/Toast";
 
 // ── F17: Font loading via next/font (replaces CSS @import) ──
@@ -60,7 +61,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.variable} ${sourceSerif4.variable} ${jetbrainsMono.variable} min-h-screen bg-gradient-to-br from-veridoc-50 via-white to-veridoc-100/20 dark:from-veridoc-950 dark:via-slate-900 dark:to-veridoc-900/20`}>
-        <AuthProvider>{children}</AuthProvider>
+        <QueryProvider><AuthProvider>{children}</AuthProvider></QueryProvider>
         <ToastContainer />
       </body>
     </html>

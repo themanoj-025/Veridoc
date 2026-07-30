@@ -21,7 +21,7 @@ from app.core.logging_config import (
 from sqlalchemy import text
 
 from app.core.di import init_container
-from app.api import auth, documents, chat, feedback, search, gdpr, admin
+from app.api import auth, documents, chat, feedback, search, gdpr, admin, sharing, api_keys
 from app.core.rate_limit import limiter, _slowapi_available
 
 logger = structlog.get_logger(__name__)
@@ -148,6 +148,9 @@ app.include_router(feedback.router)
 app.include_router(search.router)
 app.include_router(gdpr.router)
 app.include_router(admin.router)
+app.include_router(sharing.doc_router)
+app.include_router(sharing.router)
+app.include_router(api_keys.router)
 
 
 # ── Correlation ID Middleware ───────────────────────────

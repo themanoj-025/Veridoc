@@ -140,7 +140,13 @@ export function ChatPanel({ conversationId, onNewConversation }: ChatPanelProps)
   };
 
   const handleCitationClick = (citation: any) => {
-    // Dispatch custom event for document viewer to highlight
+    // Dispatch navigation event: dashboard listens to switch to viewer tab
+    window.dispatchEvent(
+      new CustomEvent("citation-navigate", {
+        detail: { documentId: citation.document_id },
+      })
+    );
+    // Dispatch highlight event: DocumentViewer scrolls to the chunk
     window.dispatchEvent(
       new CustomEvent("citation-highlight", {
         detail: { chunkId: citation.chunk_id, documentId: citation.document_id },
