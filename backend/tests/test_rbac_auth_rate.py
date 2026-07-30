@@ -543,4 +543,4 @@ class TestG4_SecretRotation:
 
         # Strong secrets should pass
         _validate_secret("a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4", "TEST_SECRET")
-        _validate_secret("my-strong-secret-that-is-not-a-placeholder!", "TEST_SECRET")
+        _validate_secret("my-strong-unique-random-secret-for-testing", "TEST_SECRET")
