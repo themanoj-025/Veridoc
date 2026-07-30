@@ -81,7 +81,7 @@ export function DocumentViewer({ documentId }: DocumentViewerProps) {
             {doc.filename} · {doc.status}
             {doc.page_count && ` · ${doc.page_count} pages`}
             {doc.chunk_count && ` · ${doc.chunk_count} chunks`}
-            <OCRBadge ocrUsed={doc.ocr_used} size="xs" className="ml-1.5" />
+            <OCRBadge ocrUsed={doc.ocr_used ?? false} size="xs" className="ml-1.5" />
           </p>
       </div>
 
