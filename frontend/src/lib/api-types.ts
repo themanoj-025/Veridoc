@@ -48,6 +48,7 @@ export interface DocumentResponse {
   file_type: string;
   file_size: number;
   status: string;
+  ocr_used?: boolean;
   page_count?: number | null;
   chunk_count?: number | null;
   error_message?: string | null;

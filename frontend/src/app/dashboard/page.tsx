@@ -34,7 +34,6 @@ export default function Dashboard() {
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [showMobileDrawer, setShowMobileDrawer] = useState(false);
-  const [showMobileDrawer, setShowMobileDrawer] = useState(false);
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
   const [touchEnd, setTouchEnd] = useState<{ x: number; y: number } | null>(null);
 
