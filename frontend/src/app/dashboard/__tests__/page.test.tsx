@@ -23,6 +23,7 @@ function createQueryWrapper(): (props: { children: ReactNode }) => JSX.Element {
 vi.mock("@/lib/queries", () => ({
   useDocuments: () => ({ data: [], isLoading: false, error: null }),
   useConversations: () => ({ data: [], isLoading: false, error: null }),
+  useDocumentContent: () => ({ data: null, isLoading: false, error: null }),
   useCreateConversation: () => ({
     mutateAsync: vi.fn().mockResolvedValue({ id: "conv-1", title: "New Chat", document_ids: [] }),
     isLoading: false,
