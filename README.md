@@ -408,7 +408,7 @@ Found a bug? Have a feature request?
 ---
 
 <div align="center">
-  <sub>Built with ❤️ using FastAPI, Next.js, ChromaDB, and Ollama.</sub>
+  <sub>Built using FastAPI, Next.js, ChromaDB, and Ollama.</sub>
   <br>
   <sub>
     <a href="docs/architecture.md">Architecture</a> ·

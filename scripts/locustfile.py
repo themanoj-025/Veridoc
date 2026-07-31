@@ -277,8 +277,9 @@ class VeridocUser(HttpUser):
                 return
             try:
                 data = resp.json()
-                items = data.get("items", [])                except Exception:
-                    return
+                items = data.get("items", [])
+            except Exception:
+                return
             if not items:
                 return
             doc_id = items[0]["id"]
