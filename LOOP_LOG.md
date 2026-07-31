@@ -244,7 +244,7 @@ exact commands in `docs/NEXT_STEPS.md` (items 33-37). ⛔ BLOCKED-HUMAN.
 | ⛔ BLOCKED-HUMAN (exact steps provided) | 12 (Tier 2 items 26-32 + Tier 3 items 33-37) |
 | **Total** | **37** |
 
-**Validation snapshot (2026-07-31, final):** pytest **164 passed / 8 skipped** ·
+**Validation snapshot (2026-07-31, final):** pytest **179 passed / 8 skipped** ·
 vitest **147 passed** · `tsc --noEmit` **0 errors** · mypy **0 errors**
 (9 source files) · `npm run build` ✓ Compiled successfully.
 
