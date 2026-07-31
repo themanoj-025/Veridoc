@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { useAuthStore, useChatStore } from "@/lib/store";
 import { streamChat } from "@/lib/api";
@@ -190,6 +190,154 @@ describe("Bug #1: SSE streaming session lifecycle", () => {
 });
 
 // ════════════════════════════════════════════════════════════════
+// F11: SSE reconnect with exponential backoff
+// ════════════════════════════════════════════════════════════════
+// Original requirement: on stream error/drop, the SSE client reconnects
+// automatically with exponential backoff (1s → 2s → 4s → 8s, capped at
+// 16s, max 3 retries by default).
+
+describe("F11: SSE reconnect with exponential backoff", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("reconnects with exponential backoff after repeated network errors", async () => {
+    const onToken = vi.fn();
+    const onDone = vi.fn();
+    const onError = vi.fn();
+    const onReconnecting = vi.fn();
+
+    let callCount = 0;
+    mockFetch.mockImplementation(() => {
+      callCount += 1;
+      // First two attempts fail with network errors → reconnect with backoff
+      return Promise.reject(new Error(`Network error ${callCount}`));
+    });
+
+    streamChat({ conversationId: "conv-1", message: "Hi", onToken, onDone, onError, onReconnecting, maxRetries: 2 });
+
+    // Attempt 1 fails → schedules retry at 1s (2^0), onReconnecting fires
+    await vi.advanceTimersByTimeAsync(1100);
+    expect(callCount).toBeGreaterThanOrEqual(2);
+    expect(onReconnecting).toHaveBeenCalled();
+
+    // Attempt 2 fails → schedules retry at 2s (2^1)
+    await vi.advanceTimersByTimeAsync(2100);
+    expect(callCount).toBeGreaterThanOrEqual(3);
+
+    // Attempt 3 fails but retries are exhausted (maxRetries=2) → final error
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(onError).toHaveBeenCalled();
+  });
+
+  it("reconnects when a stream drops mid-flight before the done event", async () => {
+    const onDone = vi.fn();
+    const onReconnecting = vi.fn();
+
+    let callCount = 0;
+    mockFetch.mockImplementation(() => {
+      callCount += 1;
+      if (callCount === 1) {
+        // First attempt: delivers a token, then the connection drops mid-stream
+        // (reader.read rejects — NOT a clean EOF, which is treated as a
+        // completed stream). This must trigger an automatic reconnect.
+        return Promise.resolve({
+          ok: true,
+          body: {
+            getReader: () => {
+              let called = false;
+              return {
+                read: () => {
+                  if (!called) {
+                    called = true;
+                    const encoder = new TextEncoder();
+                    return Promise.resolve({
+                      done: false,
+                      value: encoder.encode("event: token\ndata: {\"token\":\"Hel\"}\n\n"),
+                    });
+                  }
+                  return Promise.reject(new Error("Connection dropped"));
+                },
+              };
+            },
+          },
+        });
+      }
+      // Second attempt: completes normally with a done event
+      return Promise.resolve({
+        ok: true,
+        body: {
+          getReader: () => {
+            let called = false;
+            return {
+              read: () => {
+                if (!called) {
+                  called = true;
+                  const encoder = new TextEncoder();
+                  return Promise.resolve({
+                    done: false,
+                    value: encoder.encode("event: done\ndata: {\"content\":\"Recovered\"}\n\n"),
+                  });
+                }
+                return Promise.resolve({ done: true, value: undefined });
+              },
+            };
+          },
+        },
+      });
+    });
+
+    streamChat({ conversationId: "conv-1", message: "Hi", onToken: vi.fn(), onDone, onError: vi.fn(), onReconnecting, maxRetries: 3 });
+
+    // Drop detected → reconnect at 1s; second attempt completes with done
+    await vi.advanceTimersByTimeAsync(1100);
+    await vi.advanceTimersByTimeAsync(2000);
+
+    expect(callCount).toBeGreaterThanOrEqual(2);
+    expect(onReconnecting).toHaveBeenCalled();
+    expect(onDone).toHaveBeenCalledWith(expect.objectContaining({ content: "Recovered" }));
+    expect(onReconnecting).not.toHaveBeenCalledTimes(2);
+  });
+
+  it("does not reconnect when stream completes normally", async () => {
+    const onDone = vi.fn();
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      body: {
+        getReader: () => {
+          let called = false;
+          return {
+            read: () => {
+              if (!called) {
+                called = true;
+                const encoder = new TextEncoder();
+                return Promise.resolve({
+                  done: false,
+                  value: encoder.encode("event: done\ndata: {\"content\":\"Hello\"}\n\n"),
+                });
+              }
+              return Promise.resolve({ done: true, value: undefined });
+            },
+          };
+        },
+      },
+    });
+
+    streamChat({ conversationId: "conv-1", message: "Hi", onToken: vi.fn(), onDone, onError: vi.fn(), maxRetries: 3 });
+
+    await vi.advanceTimersByTimeAsync(5000);
+    // Exactly one fetch — the stream completed with a done event, no reconnect
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(onDone).toHaveBeenCalled();
+  });
+});
+
+// ════════════════════════════════════════════════════════════════
 // Bug #5: Default JWT Secret Committed
 // ════════════════════════════════════════════════════════════════
 // Original bug: Config had a valid-looking non-empty default JWT secret.
@@ -206,7 +354,7 @@ describe("Bug #5: Default JWT secret committed — token validation", () => {
 
     // The frontend should not send Authorization header when no token
     // This is verified by checking the interceptor behavior
-    const interceptorConfig = { headers: {} };
+    const interceptorConfig: { headers: Record<string, string> } = { headers: {} };
     const token = localStorage.getItem("access_token");
     if (token) {
       interceptorConfig.headers.Authorization = `Bearer ${token}`;

@@ -22,7 +22,12 @@ from sqlalchemy import text
 
 from app.core.di import init_container
 from app.api import auth, documents, chat, feedback, search, gdpr, admin, sharing, api_keys
-from app.core.rate_limit import limiter, _slowapi_available
+from app.core.rate_limit import (
+    limiter,
+    _slowapi_available,
+    rate_limit_exceeded_handler,
+    rate_limit_headers_middleware,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -60,8 +65,11 @@ async def lifespan(app: FastAPI):
     container = init_container(app)
     logger.info("di.container_initialized")
 
-    # Initialize job queue (connects to Redis if available)
+    # Initialize job queue (connects to Redis if available). init_container
+    # eagerly initializes the queue, so the type is never None here — but we
+    # assert to satisfy static type checkers (F2: zero type errors).
     queue = container.job_queue
+    assert queue is not None, "DI container failed to initialize job queue"
     await queue.initialize()
     logger.info(
         "queue.initialized",
@@ -82,15 +90,62 @@ async def lifespan(app: FastAPI):
 
 
 def _check_secret_rotation_age(logger) -> None:
-    """G4: Log a warning if secrets haven't been rotated within config window."""
+    """G4: Warn at startup if secrets haven't been rotated within the config window.
+
+    Never a hard failure. Uses ``SECRET_ROTATED_AT`` (ISO date) and
+    ``SECRET_ROTATION_WARNING_DAYS`` from settings:
+    - unset → warning (can't verify)
+    - older than the window → warning
+    - recent → info
+    - malformed date → warning
+    """
+    from datetime import datetime, timedelta, timezone
     from app.core.config import settings
+
     window = getattr(settings, "secret_rotation_warning_days", 90)
-    # We log a gentle reminder at startup. In production, track the
-    # rotation date in a config file or env var SECRET_ROTATED_AT.
-    logger.info(
-        "security.secret_rotation_check",
-        hint=f"Ensure JWT_SECRET and FILE_ENCRYPTION_KEY have been rotated within the last {window} days",
-    )
+    rotated_at = getattr(settings, "secret_rotated_at", None)
+
+    if not rotated_at:
+        logger.warning(
+            "security.secret_rotation",
+            status="never_recorded",
+            window_days=window,
+            hint=(
+                "SECRET_ROTATED_AT is not set. Set it to the ISO date of the last "
+                "JWT_SECRET/FILE_ENCRYPTION_KEY rotation to track secret age."
+            ),
+        )
+        return
+
+    try:
+        rotated = datetime.fromisoformat(str(rotated_at))
+        if rotated.tzinfo is None:
+            rotated = rotated.replace(tzinfo=timezone.utc)
+        age_days = (datetime.now(timezone.utc) - rotated).days
+    except ValueError:
+        logger.warning(
+            "security.secret_rotation",
+            status="invalid_date",
+            value=str(rotated_at),
+            hint="SECRET_ROTATED_AT must be an ISO-8601 date, e.g. 2026-07-31.",
+        )
+        return
+
+    if age_days > window:
+        logger.warning(
+            "security.secret_rotation",
+            status="stale",
+            age_days=age_days,
+            window_days=window,
+            hint=f"JWT_SECRET/FILE_ENCRYPTION_KEY were rotated {age_days} days ago (window: {window}). Please rotate them.",
+        )
+    else:
+        logger.info(
+            "security.secret_rotation",
+            status="fresh",
+            age_days=age_days,
+            window_days=window,
+        )
 
 
 app = FastAPI(
@@ -114,11 +169,13 @@ app.add_middleware(
 
 # ── Rate Limiting ────────────────────────────────────────
 if _slowapi_available:
-    from slowapi import _rate_limit_exceeded_handler
     from slowapi.errors import RateLimitExceeded
 
     app.state.limiter = limiter
-    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
+    # G6: custom 429 handler emits Retry-After + X-RateLimit-* headers
+    app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
+    # G6: middleware injects X-RateLimit-* headers on every limited response
+    app.middleware("http")(rate_limit_headers_middleware)
     logger.info("Rate limiting enabled (%d req/min general)", settings.rate_limit_per_minute)
 else:
     logger.warning("slowapi not installed, rate limiting disabled")

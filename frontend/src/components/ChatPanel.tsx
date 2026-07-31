@@ -6,6 +6,7 @@ import { useChatStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { ThumbsUpDown } from "@/components/ThumbsUpDown";
 import { OCRBadge } from "@/components/OCRBadge";
+import { t, tpl } from "@/lib/i18n";
 import type { Citation as CitationType } from "@/lib/api-types";
 import ReactMarkdown from "react-markdown";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
@@ -55,6 +56,8 @@ export function ChatPanel({ conversationId, onNewConversation }: ChatPanelProps)
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // F11: visible "reconnecting..." state while SSE auto-reconnect retries
+  const [reconnecting, setReconnecting] = useState(false);
 
   const { streamingContent, isStreaming, appendToken, setStreaming, resetStreaming } = useChatStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -101,15 +104,23 @@ export function ChatPanel({ conversationId, onNewConversation }: ChatPanelProps)
     // Start streaming
     setStreaming(true);
     resetStreaming();
+    setReconnecting(false);
 
     const chatCtrl = streamChat({
       conversationId,
       message: userMessage,
       onToken: (token) => {
+        // A token after a reconnect means the stream recovered — hide the banner
+        setReconnecting(false);
         appendToken(token);
+      },
+      onReconnecting: () => {
+        // F11: surface the auto-reconnect attempt to the user
+        setReconnecting(true);
       },
       onDone: (data) => {
         setStreaming(false);
+        setReconnecting(false);
         // Add assistant message
         const assistantMsg: Message = {
           id: data.message_id || `msg-${Date.now()}`,
@@ -126,6 +137,7 @@ export function ChatPanel({ conversationId, onNewConversation }: ChatPanelProps)
       },
       onError: (err) => {
         setStreaming(false);
+        setReconnecting(false);
         setError(err);
         resetStreaming();
       },
@@ -158,12 +170,12 @@ export function ChatPanel({ conversationId, onNewConversation }: ChatPanelProps)
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="p-4 border-b flex items-center justify-between">
-        <h2 className="font-semibold text-sm text-foreground">Chat</h2>
+        <h2 className="font-semibold text-sm text-foreground">{t("chat.title")}</h2>
         <button
           onClick={onNewConversation}
           className="text-xs text-veridoc-500 hover:text-veridoc-600 font-medium"
         >
-          + New Chat
+          {t("dashboard.newChat")}
         </button>
       </div>
 
@@ -179,7 +191,7 @@ export function ChatPanel({ conversationId, onNewConversation }: ChatPanelProps)
                 </svg>
               </div>
               <p className="text-sm text-muted-foreground">
-                Ask a question about your documents
+                {t("chat.emptyState")}
               </p>
             </div>
           </div>
@@ -214,7 +226,7 @@ export function ChatPanel({ conversationId, onNewConversation }: ChatPanelProps)
               {/* Citations */}
               {msg.citations && msg.citations.length > 0 && (
                 <div className="mt-3 pt-2 border-t border-veridoc-200/30">
-                  <p className="text-xs text-veridoc-200 mb-1.5 font-medium">Sources:</p>
+                  <p className="text-xs text-veridoc-200 mb-1.5 font-medium">{t("citation.sources")}</p>
                   <div className="flex flex-wrap gap-1">
                     {msg.citations.slice(0, 3).map((cit, i) => (
                       <button
@@ -226,7 +238,9 @@ export function ChatPanel({ conversationId, onNewConversation }: ChatPanelProps)
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                             d="M4 6h16M4 12h16m-7 6h7" />
                         </svg>
-                        {cit.page_number ? `p.${cit.page_number}` : `src ${i + 1}`}
+                        {cit.page_number
+                          ? tpl("citation.page", { page: cit.page_number })
+                          : tpl("citation.src", { index: i + 1 })}
                         <OCRBadge ocrUsed={cit.ocr_used ?? false} size="xs" />
                       </button>
                     ))}
@@ -238,7 +252,7 @@ export function ChatPanel({ conversationId, onNewConversation }: ChatPanelProps)
               <div className="mt-2 flex items-center gap-2 flex-wrap">
                 {msg.fallback_used && (
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 font-medium">
-                    ⚠️ Answered via fallback model
+                    {t("chat.fallbackModel")}
                   </span>
                 )}
                 {msg.model_used && (
@@ -255,7 +269,7 @@ export function ChatPanel({ conversationId, onNewConversation }: ChatPanelProps)
                       msg.faithfulness_score >= 0.5 ? "bg-amber-400" : "bg-red-400"
                     )} />
                     <span className="text-[10px] text-muted-foreground">
-                      {Math.round(msg.faithfulness_score * 100)}% faithful
+                      {tpl("chat.faithfulLabel", { percent: Math.round(msg.faithfulness_score * 100) })}
                     </span>
                   </span>
                 )}
@@ -290,6 +304,18 @@ export function ChatPanel({ conversationId, onNewConversation }: ChatPanelProps)
           </div>
         )}
 
+        {/* F11: visible reconnecting state during SSE auto-reconnect */}
+        {reconnecting && (
+          <div className="flex justify-start">
+            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-900/20 dark:border-amber-800/40 text-amber-700 dark:text-amber-400 text-xs">
+              <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              {t("chat.reconnecting")}
+            </div>
+          </div>
+        )}
+
         {error && (
           <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
             Error: {error}
@@ -307,7 +333,7 @@ export function ChatPanel({ conversationId, onNewConversation }: ChatPanelProps)
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={conversationId ? "Ask a question..." : "Start a new conversation..."}
+            placeholder={conversationId ? t("chat.inputPlaceholder") : t("chat.startPlaceholder")}
             rows={1}
             className="flex-1 px-4 py-2.5 rounded-xl border border-input bg-secondary/50 resize-none
                        focus:outline-none focus:ring-2 focus:ring-veridoc-500/20 focus:border-veridoc-500

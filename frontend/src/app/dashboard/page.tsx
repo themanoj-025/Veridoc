@@ -20,6 +20,7 @@ import {
 } from "@/lib/queries";
 import { toast } from "@/lib/toast-store";
 import { cn } from "@/lib/utils";
+import { t, tpl } from "@/lib/i18n";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -145,13 +146,13 @@ export default function Dashboard() {
       const res = await searchApi.fulltext(query);
       setFullTextResults(res.data.results || []);
       if (res.data.total > 0) {
-        toast.success(`Found ${res.data.total} results for "${query}"`);
+        toast.success(tpl("dashboard.searchResults", { count: res.data.total, query }));
       } else {
-        toast.info("No results found", `No matches for "${query}"`);
+        toast.info(t("dashboard.noResults"), `No matches for "${query}"`);
       }
     } catch (err) {
       console.error("Full-text search failed:", err);
-      toast.error("Search failed");
+      toast.error(t("dashboard.searchFailed"));
     }
   };
 
@@ -164,15 +165,15 @@ export default function Dashboard() {
         headers: getAuthHeaders(),
       });
       if (res.ok) {
-        toast.success("Account deleted", "All your data has been permanently removed");
+        toast.success(t("dashboard.accountDeleted"), t("dashboard.accountDeletedDetail"));
         logout();
         router.replace("/login");
       } else {
         const data = await res.json();
-        toast.error("Delete failed", data.detail || "Something went wrong");
+        toast.error(t("dashboard.deleteFailed"), data.detail || "Something went wrong");
       }
     } catch (err: any) {
-      toast.error("Delete failed", err.message || "Network error");
+      toast.error(t("dashboard.deleteFailed"), err.message || "Network error");
     } finally {
       setDeletingAccount(false);
       setShowDeleteConfirm(false);
@@ -189,7 +190,7 @@ export default function Dashboard() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-veridoc-500 animate-pulse-slow" />
-          <p className="text-sm text-muted-foreground font-medium">Loading Veridoc...</p>
+          <p className="text-sm text-muted-foreground font-medium">{t("dashboard.loading")}</p>
         </div>
       </div>
     );
@@ -208,7 +209,7 @@ export default function Dashboard() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
-          <span className="font-semibold text-foreground">Veridoc</span>
+          <span className="font-semibold text-foreground">{t("dashboard.title")}</span>
         </div>
 
         {/* Mobile tabs */}
@@ -216,18 +217,18 @@ export default function Dashboard() {
           <button onClick={() => setMobileView("docs")}
             className={cn("px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
               mobileView === "docs" ? "bg-veridoc-100 text-veridoc-700 dark:bg-veridoc-900/50 dark:text-veridoc-300" : "text-muted-foreground")}>
-            Docs
+            {t("dashboard.docs")}
           </button>
           <button onClick={() => setMobileView("chat")}
             className={cn("px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
               mobileView === "chat" ? "bg-veridoc-100 text-veridoc-700 dark:bg-veridoc-900/50 dark:text-veridoc-300" : "text-muted-foreground")}>
-            Chat
+            {t("dashboard.chat")}
           </button>
           {selectedDocId && (
             <button onClick={() => setMobileView("viewer")}
               className={cn("px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
                 mobileView === "viewer" ? "bg-veridoc-100 text-veridoc-700 dark:bg-veridoc-900/50 dark:text-veridoc-300" : "text-muted-foreground")}>
-              View
+              {t("dashboard.view")}
             </button>
           )}
         </div>
@@ -246,9 +247,8 @@ export default function Dashboard() {
         {/* Mobile search trigger */}
         <button
           onClick={() => setShowMobileSearch(true)}
-          className="sm:hidden text-muted-foreground hover:text-foreground transition-colors p-2 rounded-lg hover:bg-surface-hover"
-          title="Search"
-          aria-label="Search documents and conversations"
+          className="sm:hidden text-muted-foreground hover:text-foreground transition-colors p-2 rounded-lg hover:bg-surface-hover"            title={t("common.search")}
+            aria-label={t("dashboard.searchPlaceholder")}
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -259,8 +259,8 @@ export default function Dashboard() {
         <button
           onClick={() => router.push("/admin")}
           className="text-muted-foreground hover:text-foreground transition-colors p-2 rounded-lg hover:bg-surface-hover hidden sm:inline-flex"
-          title="Admin analytics"
-          aria-label="Admin analytics"
+          title={t("dashboard.adminAnalytics")}
+          aria-label={t("dashboard.adminAnalytics")}
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -284,14 +284,14 @@ export default function Dashboard() {
                   a.download = `veridoc-export.json`;
                   a.click();
                   URL.revokeObjectURL(url);
-                  toast.success("Data exported", "Download started");
+                  toast.success(t("gdpr.exportSuccess"), t("gdpr.downloadStarted"));
                 }
               } catch {
-                toast.error("Export failed");
+                toast.error(t("gdpr.exportFailed"));
               }
             }}
             className="text-muted-foreground hover:text-foreground transition-colors p-2 rounded-lg hover:bg-surface-hover"
-            title="Export my data (GDPR)"
+            title={t("gdpr.exportData")}
             aria-label="Export data"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -303,7 +303,7 @@ export default function Dashboard() {
           <button
             onClick={() => setShowDeleteConfirm(true)}
             className="text-muted-foreground hover:text-red-600 transition-colors p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
-            title="Delete account and all data (GDPR)"
+            title={t("gdpr.deleteAccount")}
             aria-label="Delete account"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -319,7 +319,7 @@ export default function Dashboard() {
             onClick={handleLogout}
             className="text-sm text-muted-foreground hover:text-foreground transition-colors px-2 py-1"
           >
-            Sign out
+            {t("dashboard.signOut")}
           </button>
         </div>
       </header>
@@ -336,7 +336,7 @@ export default function Dashboard() {
           onClick={() => setShowMobileDrawer(true)}
           className="fixed bottom-20 left-4 z-40 md:hidden w-10 h-10 rounded-xl bg-card border border-border shadow-lg
                      flex items-center justify-center text-muted-foreground hover:text-foreground transition-all"
-          aria-label="Open sidebar"
+          aria-label={t("dashboard.openSidebar")}
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
@@ -352,7 +352,7 @@ export default function Dashboard() {
             />
             <div className="fixed left-0 top-0 bottom-0 z-50 w-72 bg-card border-r border-border shadow-2xl animate-slide-in-right md:hidden">
               <div className="flex items-center justify-between p-4 border-b">
-                <span className="font-semibold text-sm text-foreground">Navigation</span>
+                <span className="font-semibold text-sm text-foreground">{t("dashboard.navigation")}</span>
                 <button
                   onClick={() => setShowMobileDrawer(false)}
                   className="text-muted-foreground hover:text-foreground transition-colors p-1"
@@ -437,17 +437,17 @@ export default function Dashboard() {
       <div className="fixed bottom-0 left-0 right-0 z-30 border-t bg-card/95 backdrop-blur-md md:hidden safe-area-bottom">
         <div className="flex items-center justify-around h-14 px-2">
           {[
-            { id: "docs" as const, label: "Docs", icon: (
+            { id: "docs" as const, label: t("dashboard.docs"), icon: (
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             ),},
-            { id: "chat" as const, label: "Chat", icon: (
+            { id: "chat" as const, label: t("dashboard.chat"), icon: (
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
               </svg>
             ),},
-            { id: "viewer" as const, label: "View", icon: (
+            { id: "viewer" as const, label: t("dashboard.view"), icon: (
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -494,7 +494,7 @@ export default function Dashboard() {
               <input
                 id="mobile-search-input"
                 autoFocus
-                placeholder="Search documents, conversations..."
+                placeholder={t("dashboard.searchMobilePlaceholder")}
                 className="flex-1 bg-transparent text-foreground placeholder-muted-foreground outline-none text-sm"
                 onKeyDown={(e) => {
                   if (e.key === "Escape") setShowMobileSearch(false);
@@ -504,17 +504,17 @@ export default function Dashboard() {
                 onClick={() => setShowMobileSearch(false)}
                 className="text-sm text-veridoc-500 font-medium"
               >
-                Cancel
+                {t("dashboard.cancel")}
               </button>
             </div>
             <div className="max-h-60 overflow-y-auto">
               {docList.length === 0 && convList.length === 0 ? (
                 <p className="text-xs text-muted-foreground text-center py-6">
-                  No documents or conversations yet
+                  {t("dashboard.noDocsOrConvs")}
                 </p>
               ) : (
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground font-medium px-2 py-1">Documents</p>
+                  <p className="text-xs text-muted-foreground font-medium px-2 py-1">{t("dashboard.documents")}</p>
                   {docList.slice(0, 5).map((doc) => (
                     <button
                       key={doc.id}
@@ -527,14 +527,14 @@ export default function Dashboard() {
                   ))}
                   {convList.length > 0 && (
                     <>
-                      <p className="text-xs text-muted-foreground font-medium px-2 py-1 mt-2">Conversations</p>
+                      <p className="text-xs text-muted-foreground font-medium px-2 py-1 mt-2">{t("dashboard.conversations")}</p>
                       {convList.slice(0, 5).map((conv) => (
                         <button
                           key={conv.id}
                           onClick={() => { setConversationId(conv.id); setMobileView("chat"); setShowMobileSearch(false); }}
                           className="w-full text-left px-3 py-2 rounded-lg hover:bg-secondary transition-colors text-sm"
                         >
-                          <span className="text-foreground">{conv.title || "Untitled"}</span>
+                          <span className="text-foreground">{conv.title || t("dashboard.untitled")}</span>
                         </button>
                       ))}
                     </>
@@ -557,11 +557,10 @@ export default function Dashboard() {
                   d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-center mb-2">Delete Account</h3>
+            <h3 className="text-lg font-semibold text-center mb-2">{t("dashboard.deleteTitle")}</h3>
             <p className="text-sm text-muted-foreground text-center mb-6">
-              This will permanently delete your account and all associated data,
-              including documents, conversations, and usage history.
-              <strong className="text-red-600 dark:text-red-400 block mt-2">This action cannot be undone.</strong>
+              {t("dashboard.deleteMessage")}
+              <strong className="text-red-600 dark:text-red-400 block mt-2">{t("dashboard.deleteWarning")}</strong>
             </p>
             <div className="flex gap-3 justify-center">
               <button
@@ -569,14 +568,14 @@ export default function Dashboard() {
                 disabled={deletingAccount}
                 className="px-4 py-2 rounded-lg border text-sm font-medium hover:bg-secondary transition-colors"
               >
-                Cancel
+                {t("dashboard.cancel")}
               </button>
               <button
                 onClick={handleDeleteAccount}
                 disabled={deletingAccount}
                 className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition-colors"
               >
-                {deletingAccount ? "Deleting..." : "Yes, delete my account"}
+                {deletingAccount ? t("dashboard.deleting") : t("dashboard.deleteConfirm")}
               </button>
             </div>
           </div>
@@ -588,22 +587,22 @@ export default function Dashboard() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
              onClick={() => setShowUploadModal(false)}>
           <div className="bg-card rounded-2xl shadow-xl border border-border p-6 w-full max-w-md animate-scale-in" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold mb-4">Upload Document</h3>
+            <h3 className="text-lg font-semibold mb-4">{t("dashboard.uploadTitle")}</h3>
             <form onSubmit={handleUpload} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">
-                  Title <span className="text-muted-foreground">(optional)</span>
+                  {t("dashboard.uploadTitleOptional")}
                 </label>
                 <input
                   name="title"
                   type="text"
                   className="w-full px-4 py-2 rounded-lg border border-input bg-background focus:outline-none focus:ring-2 focus:ring-veridoc-500/20 focus:border-veridoc-500 transition-all"
-                  placeholder="My Document"
+                  placeholder={t("dashboard.uploadPlaceholder")}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">
-                  File (PDF, DOCX, TXT)
+                  {t("dashboard.uploadFileLabel")}
                 </label>
                 <input
                   type="file"
@@ -623,14 +622,14 @@ export default function Dashboard() {
                   onClick={() => setShowUploadModal(false)}
                   className="px-4 py-2 rounded-lg border text-sm font-medium hover:bg-secondary transition-colors"
                 >
-                  Cancel
+                  {t("dashboard.cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={uploading}
                   className="px-4 py-2 rounded-lg bg-veridoc-500 text-white text-sm font-medium hover:bg-veridoc-600 disabled:opacity-50 transition-colors"
                 >
-                  {uploading ? "Uploading..." : "Upload"}
+                  {uploading ? t("dashboard.uploading") : t("dashboard.upload")}
                 </button>
               </div>
             </form>

@@ -254,17 +254,8 @@ interface FeedbackQueue {
   recent_entries: FeedbackEntry[];
 }
 
-/** Build auth headers from localStorage — used by admin queries. */
-function adminHeaders(): Record<string, string> {
-  const token =
-    typeof window !== "undefined"
-      ? localStorage.getItem("access_token")
-      : null;
-  return {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+// F13: All admin fetches route through the shared api.ts helpers
+// (getApiBase + getAuthHeaders) so auth-header/error handling is uniform.
 
 /** Fetch admin analytics. Returns ``null`` on 403 (no admin access). */
 export function useAdminAnalytics() {
@@ -273,7 +264,7 @@ export function useAdminAnalytics() {
     queryFn: async () => {
       const res = await fetch(
         `${getApiBase()}/api/v1/admin/analytics`,
-        { headers: adminHeaders() },
+        { headers: getAuthHeaders() },
       );
       if (res.status === 403) return null;
       if (!res.ok) throw new Error(`Analytics fetch failed: ${res.status}`);
@@ -289,7 +280,7 @@ export function useAdminCacheStats() {
     queryFn: async () => {
       const res = await fetch(
         `${getApiBase()}/api/v1/admin/cache-stats`,
-        { headers: adminHeaders() },
+        { headers: getAuthHeaders() },
       );
       if (res.status === 403) return null;
       if (!res.ok) throw new Error(`Cache-stats fetch failed: ${res.status}`);
@@ -305,7 +296,7 @@ export function useAdminFeedbackQueue() {
     queryFn: async () => {
       const res = await fetch(
         `${getApiBase()}/api/v1/admin/feedback-queue`,
-        { headers: adminHeaders() },
+        { headers: getAuthHeaders() },
       );
       if (res.status === 403) return null;
       if (!res.ok) throw new Error(`Feedback fetch failed: ${res.status}`);

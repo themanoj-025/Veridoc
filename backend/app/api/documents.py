@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
 from app.core.config import settings
-from app.core.rate_limit import limiter
+from app.core.rate_limit import limiter, get_user_identifier
 from app.models.user import User
 from app.models.document import Document
 from app.repositories import DocumentRepository, ChunkRepository
@@ -38,7 +38,7 @@ MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
     status_code=status.HTTP_201_CREATED,
     operation_id="documents_upload",
 )
-@limiter.limit("10/minute")
+@limiter.limit("10/minute", key_func=get_user_identifier)
 async def upload_document(
     request: Request,
     file: UploadFile = File(...),
@@ -77,6 +77,17 @@ async def upload_document(
     file_path = settings.upload_dir / safe_filename
     with open(file_path, "wb") as f:
         f.write(content)
+
+    # F7: Virus-scan hook — reject the upload if the configured scanner flags it.
+    # Default NoopVirusScanner reports clean; swap in ClamAV via get_virus_scanner().
+    from app.services.ssrf_protection import get_virus_scanner
+    scanner = get_virus_scanner()
+    if not scanner.scan(str(file_path)):
+        file_path.unlink(missing_ok=True)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File failed virus scan and was rejected",
+        )
 
     # Create document record via repository
     doc_repo = DocumentRepository(session)

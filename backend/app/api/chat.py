@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
-from app.core.rate_limit import limiter
+from app.core.rate_limit import limiter, get_user_identifier
 from app.models.user import User
 from app.repositories import ConversationRepository, DocumentRepository
 from app.schemas.chat import (
@@ -56,7 +56,7 @@ async def _build_conversation_response(
     status_code=status.HTTP_201_CREATED,
     operation_id="chat_create_conversation",
 )
-@limiter.limit("30/minute")
+@limiter.limit("30/minute", key_func=get_user_identifier)
 async def create_conversation(
     request: Request,
     body: ConversationCreate,
@@ -196,7 +196,7 @@ async def get_messages(
 
 
 @router.post("/stream", operation_id="chat_stream")
-@limiter.limit("20/minute")
+@limiter.limit("20/minute", key_func=get_user_identifier)
 async def stream_chat(
     request: Request,
     body: ChatRequest,

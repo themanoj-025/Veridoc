@@ -177,6 +177,27 @@ Feature requests are welcome! Please:
 3. **Explain why** it fits Veridoc's architecture (local-first, zero cloud accounts)
 4. **Tag** the issue with `enhancement`
 
+## Dependency Updates (G3)
+
+Veridoc uses Dependabot (`.github/dependabot.yml`) to keep dependencies current,
+and an auto-merge workflow (`.github/workflows/dependabot-auto-merge.yml`) that
+applies the following policy:
+
+- **Patch-level updates** (`version-update:semver-patch`) are **auto-merged**
+  automatically once CI passes. No human review required.
+- **Minor updates** (`version-update:semver-minor`) are also auto-merged — they
+  are low-risk and covered by the full CI suite (unit, integration, build, eval
+  gate).
+- **Major updates** (`version-update:semver-major`) are **never** auto-merged.
+  They require manual review because they may introduce breaking API changes.
+- **Any PR with failing CI is never merged** — the auto-merge workflow only
+  merges when the branch is green.
+- `torch` is pinned with an ignore rule (`>=3.0.0`) because major torch upgrades
+  require manual verification of embedding/reranker compatibility.
+
+To opt out of an auto-merge for a specific dependency, add an `ignore` rule in
+`.github/dependabot.yml` with a comment explaining why.
+
 ---
 
 *Thank you for contributing to Veridoc — answers you can verify, not just believe.*

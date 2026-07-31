@@ -15,7 +15,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
 
-from app.services.evaluation import run_single_eval, compute_metrics
+from app.services.evaluation import run_single_eval, compute_metrics, resolve_document_ids
 
 EVAL_DIR = Path(__file__).resolve().parent.parent / "eval"
 GOLD_QA_PATH = EVAL_DIR / "gold_qa.json"
@@ -48,9 +48,10 @@ async def run_evaluation(
         if qa["type"] == "unanswerable":
             unanswerable_indices.add(i)
 
-        # Determine document IDs to search
+        # Determine document IDs to search — resolve gold-set slugs to real
+        # DB document UUIDs (falls back to "search all" when unresolvable)
         doc_id = qa.get("document_id", "")
-        document_ids = None if doc_id in ("*", "") else [doc_id]
+        document_ids = await resolve_document_ids(doc_id)
 
         try:
             result = await run_single_eval(

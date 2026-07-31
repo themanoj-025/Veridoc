@@ -65,6 +65,13 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
 
+    # ── G4: Secret rotation tracking ──
+    # ISO-8601 date of the last JWT_SECRET / FILE_ENCRYPTION_KEY rotation.
+    # If unset, or older than `secret_rotation_warning_days`, a startup
+    # warning is logged (never a hard failure).
+    secret_rotated_at: str | None = None
+    secret_rotation_warning_days: int = 90
+
     # ── File Encryption (empty — MUST be set in .env) ──
     file_encryption_key: str = ""
 

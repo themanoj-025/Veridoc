@@ -84,3 +84,13 @@ class NoopVirusScanner:
         """No-op scan: always returns True (clean)."""
         logger.debug("No-op virus scan (always clean): %s", file_path)
         return True
+
+
+def get_virus_scanner() -> VirusScanner:
+    """Return the configured virus scanner instance.
+
+    Currently returns the no-op stub. Swap this factory to return a
+    ClamAV-backed scanner (e.g. clamd) to enable real scanning without
+    touching any route handler.
+    """
+    return NoopVirusScanner()

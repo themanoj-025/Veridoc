@@ -216,7 +216,9 @@ async def request_verification_email(
         return {"message": "Email is already verified"}
 
     token = secrets.token_urlsafe(32)
+    from datetime import datetime, timedelta, timezone
     user.verification_token = token
+    user.verification_token_expiry = datetime.now(timezone.utc) + timedelta(hours=24)
     user_repo = UserRepository(session)
     await user_repo.update(user)
     await session.close()
@@ -231,6 +233,8 @@ async def verify_email(
     session: AsyncSession = Depends(get_session),
 ):
     """Verify a user's email address using a verification token."""
+    from datetime import datetime, timezone
+
     user_repo = UserRepository(session)
     user = await user_repo.find_by_verification_token(token)
     if not user:
@@ -239,8 +243,16 @@ async def verify_email(
             detail="Invalid or expired verification token",
         )
 
+    # F4: verification tokens expire after 24h (never replay old links)
+    if user.verification_token_expiry is None or user.verification_token_expiry < datetime.now(timezone.utc):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Verification token has expired. Request a new one.",
+        )
+
     user.is_verified = True
     user.verification_token = None
+    user.verification_token_expiry = None
     await user_repo.update(user)
     await session.close()
     return {"message": "Email verified successfully"}
@@ -261,7 +273,7 @@ async def request_password_reset(
     if user:
         token = secrets.token_urlsafe(32)
         user.reset_token = token
-        from datetime import timedelta, timezone
+        from datetime import datetime, timedelta, timezone
         user.reset_token_expiry = datetime.now(timezone.utc) + timedelta(hours=1)
         await user_repo.update(user)
         await send_password_reset_email(email, token)

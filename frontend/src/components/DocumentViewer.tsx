@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useDocumentContent } from "@/lib/queries";
+import { t, tpl } from "@/lib/i18n";
 import { OCRBadge } from "@/components/OCRBadge";
 
 interface DocumentViewerProps {
@@ -56,9 +57,9 @@ export function DocumentViewer({ documentId }: DocumentViewerProps) {
                 d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-foreground mb-2">No document selected</h3>
+          <h3 className="text-lg font-semibold text-foreground mb-2">{t("document.noSelection")}</h3>
           <p className="text-sm text-muted-foreground">
-            Select a document from the sidebar to view its contents
+            {t("document.noSelectionHint")}
           </p>
         </div>
       </div>
@@ -70,7 +71,7 @@ export function DocumentViewer({ documentId }: DocumentViewerProps) {
       <div className="h-full flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 rounded-full border-2 border-veridoc-200 border-t-veridoc-500 animate-spin" />
-          <p className="text-sm text-muted-foreground">Loading document...</p>
+          <p className="text-sm text-muted-foreground">{t("document.loading")}</p>
         </div>
       </div>
     );
@@ -80,7 +81,7 @@ export function DocumentViewer({ documentId }: DocumentViewerProps) {
     return (
       <div className="h-full flex items-center justify-center">
         <p className="text-sm text-muted-foreground">
-          {error ? `Error: ${error}` : "Document not found"}
+          {error ? `Error: ${error}` : t("document.notFound")}
         </p>
       </div>
     );
@@ -93,8 +94,8 @@ export function DocumentViewer({ documentId }: DocumentViewerProps) {
         <h2 className="font-semibold text-foreground">{content.title}</h2>
         <p className="text-xs text-muted-foreground mt-1">
           {content.filename} · {content.status}
-          {content.page_count != null && ` · ${content.page_count} pages`}
-          {content.chunk_count != null && ` · ${content.chunk_count} chunks`}
+          {content.page_count != null && ` · ${tpl("document.pages", { count: content.page_count })}`}
+          {content.chunk_count != null && ` · ${tpl("document.chunks", { count: content.chunk_count })}`}
         </p>
       </div>
 
@@ -104,8 +105,8 @@ export function DocumentViewer({ documentId }: DocumentViewerProps) {
           <div className="text-center py-12">
             <p className="text-sm text-muted-foreground">
               {content.status === "indexed"
-                ? "No chunks available for this document."
-                : "Document is still being processed. Chunks will appear once indexing completes."}
+                ? t("document.noChunks")
+                : t("document.processing")}
             </p>
           </div>
         ) : (
@@ -117,8 +118,8 @@ export function DocumentViewer({ documentId }: DocumentViewerProps) {
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-medium text-muted-foreground">
-                  Chunk {chunk.index + 1}
-                  {chunk.page_number != null && ` · p.${chunk.page_number}`}
+                  {tpl("document.chunkLabel", { index: chunk.index + 1 })}
+                  {chunk.page_number != null && ` · ${tpl("citation.page", { page: chunk.page_number })}`}
                 </span>
                 <OCRBadge ocrUsed={chunk.ocr_used} size="xs" />
               </div>

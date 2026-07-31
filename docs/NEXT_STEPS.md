@@ -95,11 +95,53 @@ curl -X POST http://localhost:8000/api/v1/documents/upload \
 ## Tier 3 — Requires Human/Cloud Action
 
 ### 33. A1 — Full evaluation harness
+
+**Prep already done (2026-07-31):**
+1. `scripts/run_eval.py` had a latent bug — gold-set `document_id` slugs
+   (`gutenberg_132`, `arxiv_*`, …) were passed verbatim to the retriever,
+   which filters by real DB document UUIDs, so every filtered question would
+   have retrieved nothing. Fixed: `resolve_document_ids()` now lives in
+   `app/services/evaluation.py` and resolves slugs → UUIDs (fuzzy
+   filename/title match) with wildcard/DB-error fallback to search-all.
+2. `use_hybrid=False` was a **no-op** — the `--compare` naive run used the
+   identical hybrid pipeline, making the head-to-head table meaningless.
+   Fixed: the naive path now runs dense-only retrieval (no BM25/RRF/rerank).
+3. Unit tests: `backend/tests/test_eval_harness.py` (15 tests: matching,
+   wildcards, resolution, fallbacks, resolver wiring, naive-path wiring).
+
 ```bash
+# 1. Start the full stack (Postgres, Chroma, Ollama, backend, frontend)
 docker compose up -d
-# Wait for all health checks to pass
+# Wait for health: docker compose ps should show all healthy
+
+# 2. Seed documents into the DB + Chroma so retrieval has a corpus.
+#    Upload the sample corpus via the API (this is what populates Chroma):
+TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"TestPass123!"}' | python -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
+for f in data/documents/*.txt data/documents/*.md data/documents/*.pdf; do
+  curl -X POST http://localhost:8000/api/v1/documents/upload \
+    -H "Authorization: Bearer $TOKEN" \
+    -F "file=@$f" -F "title=$(basename $f)"
+done
+# NOTE: if a seed user doesn't exist, register one first:
+#   curl -X POST http://localhost:8000/api/v1/auth/register -H "Content-Type: application/json" \
+#     -d '{"email":"test@example.com","password":"TestPass123!","full_name":"Eval User"}'
+
+# 3. Wait for indexing to finish, then run the full evaluation
+sleep 30
 python scripts/run_eval.py --compare
+
+# 4. Verify the real measured report was written
+tail -40 eval/evaluation-report.md
 ```
+
+**Deliverable:** `eval/evaluation-report.md` generated fresh with real
+measured numbers (answer/refusal accuracy, mean faithfulness, P50/P95
+latency). Note: the report does not exist in the repo yet, so the first real
+run creates it — there are no stale estimated numbers to hunt down. Then
+update the scorecard in `docs/audit-before-after.md` from the measured
+results.
 
 ### 34. A2 — Red-team tests
 ```bash

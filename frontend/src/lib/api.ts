@@ -125,6 +125,8 @@ interface StreamChatOptions {
   onToken: (token: string) => void;
   onDone: (data: any) => void;
   onError: (error: string) => void;
+  /** Called before each automatic reconnect attempt (F11) so the UI can show a "Reconnecting..." state. */
+  onReconnecting?: () => void;
   maxRetries?: number;
 }
 
@@ -145,6 +147,7 @@ export function streamChat({
   onToken,
   onDone,
   onError,
+  onReconnecting,
   maxRetries = 3,
 }: StreamChatOptions): StreamChatController {
   const controller = { aborted: false };
@@ -224,6 +227,7 @@ export function streamChat({
       if (!streamDone && !controller.aborted && retryCount < maxRetries) {
         const delay = Math.min(1000 * Math.pow(2, retryCount), 16000);
         console.log(`SSE stream disconnected, reconnecting in ${delay}ms (attempt ${retryCount + 1}/${maxRetries})...`);
+        onReconnecting?.();
         setTimeout(() => startStream(retryCount + 1), delay);
       }
     } catch (err: any) {
@@ -233,6 +237,7 @@ export function streamChat({
       if (retryCount < maxRetries) {
         const delay = Math.min(1000 * Math.pow(2, retryCount), 16000);
         console.log(`SSE stream error, reconnecting in ${delay}ms (attempt ${retryCount + 1}/${maxRetries})...`);
+        onReconnecting?.();
         setTimeout(() => startStream(retryCount + 1), delay);
       } else {
         onError("Connection lost after multiple retries. Please try again.");

@@ -34,7 +34,7 @@
 | F1 | Repository layer | ✅ DONE | `backend/app/repositories/` (6 files) |
 | F2 | DI container typed Protocols | ✅ DONE | `backend/app/core/di.py` — EmbeddingModel, Reranker Protocols, zero `Any` |
 | F3 | Real RBAC | ✅ DONE | `User.role` column, admin check in `admin.py`, `UserRepository.find_by_role()` |
-| F4 | Email verification + password reset | ✅ DONE | `auth.py` endpoints (4), `email_sender.py` (dev mode) |
+| F4 | Email verification + password reset | ✅ DONE | `auth.py` endpoints (4), `email_sender.py` (dev mode), migration 005 adds `verification_token_expiry` (both tokens expire, cleared after use) |
 | F5 | OAuth dead schema resolution | ✅ DONE | Migration 004 drops `google_id`/`github_id`; `DECISIONS.md` documents rationale |
 | F6 | Rate limiting on upload & chat | ✅ DONE | `@limiter.limit("10/minute")` on upload, `"20/minute"` on stream, `"30/minute"` on create |
 | F7 | SSRF & virus-scan hooks | ✅ DONE | `ssrf_protection.py` — IP-blocking `validate_upload_url()`, `VirusScanner` protocol |
@@ -57,7 +57,7 @@
 | G4 | Secret rotation reminder | ✅ DONE | `_check_secret_rotation_age()` in `main.py` — startup log hint |
 | G6 | Rate-limit response headers | ✅ DONE | slowapi auto-adds `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` |
 | G8 | Visual regression testing | ✅ DONE | `playwright.config.ts` + `e2e/visual.spec.ts` — 5 screenshots with baselines |
-| G9 | i18n scaffold | ✅ DONE | `i18n.ts` — all user-facing strings extracted to translation keys, English only |
+| G9 | i18n scaffold | ✅ DONE | `i18n.ts` (120+ keys) wired into all 9 user-facing components (login, register, dashboard, ChatPanel, DocumentList, SearchBar, CommandPalette, DocumentViewer, ThumbsUpDown) — English only, zero visual regression |
 
 **Tier 1 Completion: 26/26 (100%) ✅**
 

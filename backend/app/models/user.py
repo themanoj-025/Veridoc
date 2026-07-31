@@ -27,8 +27,9 @@ class User(Base):
     # F3: RBAC role — set explicitly at registration, not inferred
     role: Mapped[str] = mapped_column(String(20), default="user", nullable=False)
 
-    # F4: Email verification & password reset
+    # F4: Email verification & password reset (both tokens expire)
     verification_token: Mapped[str | None] = mapped_column(String(255), nullable=True, unique=True)
+    verification_token_expiry: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     reset_token: Mapped[str | None] = mapped_column(String(255), nullable=True, unique=True)
     reset_token_expiry: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 

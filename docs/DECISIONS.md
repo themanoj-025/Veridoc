@@ -34,6 +34,19 @@
 
 ---
 
+## F4a: Verification/Reset Token Expiry
+
+**Decision:** Both email-verification and password-reset tokens carry a DB-side expiry timestamp and are single-use (cleared after success).
+
+**Rationale:**
+- The master requirement asks for token fields *with expiry* — an old verification link must never be replayable forever.
+- Verification tokens expire after 24h; reset tokens after 1h (short window because a reset link is the highest-impact action).
+- Expiry is enforced server-side (not just in the JWT), so a leaked token is bounded by the window even if the DB row survives.
+
+**Implementation:** `verification_token_expiry` column added in migration 005; `verify_email`/`reset_password` reject expired tokens with a 400 and clear both token + expiry on success.
+
+---
+
 ## F3: RBAC — Explicit Role Column vs First-User Heuristic
 
 **Decision:** Use an explicit `role` column (`user`/`admin`) set at registration time, not inferred from registration order.

@@ -460,6 +460,85 @@ class TestG2_PromptVersion:
             assert "name" in prompt
             assert "template" in prompt
 
+    def test_prompt_version_resolver_returns_registry_version(self):
+        """The resolver must return the version recorded in the registry."""
+        from app.services.prompt_registry import get_prompt_version
+        version = get_prompt_version("system-prompt")
+        assert version == "1.0.0"
+
+    def test_prompt_version_resolver_unknown_name(self):
+        """Unknown prompt names must resolve to 'unknown', never raise."""
+        from app.services.prompt_registry import get_prompt_version
+        assert get_prompt_version("does-not-exist") == "unknown"
+
+    def test_prompt_template_loaded_from_registry(self):
+        """build_system_prompt must load the template from the registry (G2)."""
+        from app.services.prompt_registry import get_prompt_template
+        template = get_prompt_template("system-prompt")
+        assert template is not None
+        assert "{{context}}" in template
+        assert "Veridoc" in template
+
+    @pytest.mark.asyncio
+    async def test_chat_service_records_prompt_version_on_message(self, mock_db_session, sample_user):
+        """ChatService.save_assistant_message must stamp prompt_version (G2)."""
+        import asyncio
+        from unittest.mock import MagicMock, patch
+
+        from app.models.conversation import Conversation
+        from app.services.chat_service import ChatService
+        from app.schemas.chat import Citation
+
+        conv = Conversation(id=uuid.uuid4(), user_id=sample_user.id, title="t")
+
+        # Capture the Message object passed to session.add
+        added = []
+        mock_db_session.add = MagicMock(side_effect=lambda obj: added.append(obj) or None)
+        mock_db_session.flush = AsyncMock()
+        mock_db_session.commit = AsyncMock()
+
+        service = ChatService(mock_db_session, sample_user)
+        service.llm = MagicMock()
+        service.llm.model_name = "ollama/llama3.1:8b"
+
+        # Prevent the fire-and-forget usage log from opening a real DB session
+        with patch("app.core.database.async_session_factory") as factory:
+            factory.return_value.__aenter__ = AsyncMock(return_value=MagicMock())
+            factory.return_value.__aexit__ = AsyncMock(return_value=False)
+
+            await service.save_assistant_message(
+                conv=conv,
+                content="Answer",
+                citations=[],
+                total_time=1.0,
+                token_count=5,
+                faith_score=0.9,
+                system_prompt="p",
+                message="Q",
+                retrieval_time=1.0,
+                rerank_time=1.0,
+                gen_time=1.0,
+                faith_time=1.0,
+            )
+            # Let the fire-and-forget task finish to avoid pending-task warnings
+            await asyncio.sleep(0.05)
+
+        msg = added[-1]
+        assert msg.role == "assistant"
+        assert msg.prompt_version == "1.0.0"
+
+    def test_build_system_prompt_uses_registry_template(self):
+        """build_system_prompt should inline the registry template with context (G2)."""
+        from app.models.user import User
+        from app.services.chat_service import ChatService
+
+        user = User(id=uuid.uuid4(), email="x@y.z", hashed_password="h")
+        service = ChatService(MagicMock(), user)
+        prompt = service.build_system_prompt("CONTEXT_HERE")
+        assert "CONTEXT_HERE" in prompt
+        assert "{{context}}" not in prompt
+        assert "Veridoc" in prompt
+
 
 # ════════════════════════════════════════════════════════════════
 # G4: Secret rotation warning
@@ -481,6 +560,57 @@ class TestG4_SecretRotation:
         from app.main import _check_secret_rotation_age
         # Should not raise
         _check_secret_rotation_age(logger)
+
+    # ── G4: warning fires / does not fire appropriately ────────────
+
+    def _call_with(self, rotated_at, window_days=90):
+        """Invoke the check with a patched settings object and capture log calls."""
+        from datetime import datetime, timezone
+        from app.main import _check_secret_rotation_age
+        from app.core import config as config_module
+
+        mock_settings = MagicMock()
+        mock_settings.secret_rotated_at = rotated_at
+        mock_settings.secret_rotation_warning_days = window_days
+
+        with patch.object(config_module, "settings", mock_settings):
+            mock_logger = MagicMock()
+            _check_secret_rotation_age(mock_logger)
+        return mock_logger
+
+    def test_warns_when_never_recorded(self):
+        """Unset SECRET_ROTATED_AT → warning (status=never_recorded)."""
+        logger = self._call_with(None)
+        warnings = [c for c in logger.warning.call_args_list if c[0][0] == "security.secret_rotation"]
+        assert len(warnings) == 1
+        assert warnings[0][1]["status"] == "never_recorded"
+
+    def test_warns_when_stale(self):
+        """Rotation older than the window → warning (status=stale)."""
+        from datetime import datetime, timedelta, timezone
+        old = (datetime.now(timezone.utc) - timedelta(days=200)).date().isoformat()
+        logger = self._call_with(old, window_days=90)
+        warnings = [c for c in logger.warning.call_args_list if c[0][0] == "security.secret_rotation"]
+        assert len(warnings) == 1
+        assert warnings[0][1]["status"] == "stale"
+        assert warnings[0][1]["age_days"] > 90
+
+    def test_no_warning_when_fresh(self):
+        """Recent rotation → info (status=fresh), no warning."""
+        from datetime import datetime, timezone
+        fresh = datetime.now(timezone.utc).date().isoformat()
+        logger = self._call_with(fresh, window_days=90)
+        assert not logger.warning.called
+        infos = [c for c in logger.info.call_args_list if c[0][0] == "security.secret_rotation"]
+        assert len(infos) == 1
+        assert infos[0][1]["status"] == "fresh"
+
+    def test_warns_on_malformed_date(self):
+        """A malformed SECRET_ROTATED_AT → warning (status=invalid_date)."""
+        logger = self._call_with("not-a-date")
+        warnings = [c for c in logger.warning.call_args_list if c[0][0] == "security.secret_rotation"]
+        assert len(warnings) == 1
+        assert warnings[0][1]["status"] == "invalid_date"
 
     def test_validate_config_rejects_empty_secrets(self):
         """validate_config() should reject empty JWT_SECRET and FILE_ENCRYPTION_KEY."""

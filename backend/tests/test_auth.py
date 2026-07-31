@@ -581,3 +581,98 @@ class TestNegativeSecurity:
             assert "; DROP TABLE" in loaded.title  # Not executed
 
         await engine.dispose()
+
+
+# ── F4: Email Verification & Password Reset (expiry) ─────
+
+@pytest.mark.asyncio
+async def test_verify_email_success(test_client: AsyncClient, mock_db_session, sample_user):
+    """A valid, unexpired verification token marks the user verified."""
+    from datetime import datetime, timedelta, timezone
+    sample_user.verification_token = "valid-verify-token"
+    sample_user.verification_token_expiry = datetime.now(timezone.utc) + timedelta(hours=1)
+    sample_user.is_verified = False  # prove the endpoint flips it
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=sample_user)
+
+    response = await test_client.post(
+        "/api/v1/auth/verify-email",
+        params={"token": "valid-verify-token"},
+    )
+    assert response.status_code == 200
+    assert "verified" in response.json()["message"].lower()
+    assert sample_user.is_verified is True
+    assert sample_user.verification_token is None
+
+
+@pytest.mark.asyncio
+async def test_verify_email_expired_token_rejected(test_client: AsyncClient, mock_db_session, sample_user):
+    """An expired verification token must be rejected (never replay old links)."""
+    from datetime import datetime, timedelta, timezone
+    sample_user.verification_token = "expired-verify-token"
+    sample_user.verification_token_expiry = datetime.now(timezone.utc) - timedelta(minutes=5)
+    sample_user.is_verified = False
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=sample_user)
+
+    response = await test_client.post(
+        "/api/v1/auth/verify-email",
+        params={"token": "expired-verify-token"},
+    )
+    assert response.status_code == 400
+    assert "expired" in response.json()["detail"].lower()
+    assert sample_user.is_verified is False
+
+
+@pytest.mark.asyncio
+async def test_verify_email_unknown_token_rejected(test_client: AsyncClient, mock_db_session):
+    """An unknown verification token is rejected."""
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=None)
+    response = await test_client.post(
+        "/api/v1/auth/verify-email",
+        params={"token": "no-such-token"},
+    )
+    assert response.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_reset_password_success(test_client: AsyncClient, mock_db_session, sample_user):
+    """A valid, unexpired reset token resets the password."""
+    from datetime import datetime, timedelta, timezone
+    sample_user.reset_token = "valid-reset-token"
+    sample_user.reset_token_expiry = datetime.now(timezone.utc) + timedelta(minutes=30)
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=sample_user)
+
+    response = await test_client.post(
+        "/api/v1/auth/reset-password",
+        params={"token": "valid-reset-token", "new_password": "NewSecurePass456!"},
+    )
+    assert response.status_code == 200
+    assert "reset" in response.json()["message"].lower()
+    assert sample_user.reset_token is None
+
+
+@pytest.mark.asyncio
+async def test_reset_password_expired_token_rejected(test_client: AsyncClient, mock_db_session, sample_user):
+    """An expired reset token must be rejected."""
+    from datetime import datetime, timedelta, timezone
+    sample_user.reset_token = "expired-reset-token"
+    sample_user.reset_token_expiry = datetime.now(timezone.utc) - timedelta(minutes=5)
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=sample_user)
+
+    response = await test_client.post(
+        "/api/v1/auth/reset-password",
+        params={"token": "expired-reset-token", "new_password": "NewSecurePass456!"},
+    )
+    assert response.status_code == 400
+    assert "expired" in response.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_request_password_reset_always_ok(test_client: AsyncClient, mock_db_session):
+    """Requesting a reset never leaks whether the email exists (anti-enumeration)."""
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=None)
+    response = await test_client.post(
+        "/api/v1/auth/request-password-reset",
+        params={"email": "ghost@example.com"},
+    )
+    assert response.status_code == 200
+    assert "If the email exists" in response.json()["message"]

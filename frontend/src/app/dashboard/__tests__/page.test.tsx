@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach, type ReactNode } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { ReactNode } from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAuthStore, useChatStore, useDocumentStore } from "@/lib/store";
