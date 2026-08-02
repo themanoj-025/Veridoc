@@ -43,11 +43,13 @@ async def process_document_task(ctx: dict, document_id: str) -> None:
 
 # ── ARQ Worker Configuration ────────────────────────────
 
+
 def _build_redis_settings() -> Any:
     """Build a RedisSettings object from the app config, or return None."""
     if not settings.redis_url:
         return None
     from arq.connections import RedisSettings
+
     host = settings.redis_host
     port = settings.redis_port
     password = settings.redis_password or None

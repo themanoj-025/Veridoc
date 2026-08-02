@@ -72,6 +72,7 @@ class _RateLimiter:
 
         def noop(func: Callable) -> Callable:
             return func
+
         return noop
 
 
@@ -95,6 +96,7 @@ def get_user_identifier(request) -> str:
         token = auth[7:].strip()
         if token:
             from app.core.security import decode_token
+
             payload = decode_token(token)
             if payload and payload.get("type") == "access":
                 sub = payload.get("sub")
@@ -156,6 +158,7 @@ def build_rate_limit_headers(request: Request) -> dict[str, str]:
         }
     except Exception as exc:  # pragma: no cover - defensive
         import structlog
+
         structlog.get_logger(__name__).debug(
             "rate_limit_header_computation_failed", error=str(exc)
         )

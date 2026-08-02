@@ -76,10 +76,14 @@ class ResponseCache:
     async def init_redis(self) -> None:
         """Try to connect to Redis. Silently falls back to memory cache."""
         if not self._enabled:
-            logger.info("Response cache is disabled via config (redis_cache_enabled=False)")
+            logger.info(
+                "Response cache is disabled via config (redis_cache_enabled=False)"
+            )
             return
         if not settings.redis_url:
-            logger.info("No Redis URL configured — response cache uses in-memory fallback")
+            logger.info(
+                "No Redis URL configured — response cache uses in-memory fallback"
+            )
             return
         try:
             import redis.asyncio as aioredis  # type: ignore[import-untyped]
@@ -94,10 +98,14 @@ class ResponseCache:
             self._redis_available = True
             logger.info(
                 "Response cache connected to Redis at %s:%d (TTL=%ds)",
-                settings.redis_host, settings.redis_port, self._ttl,
+                settings.redis_host,
+                settings.redis_port,
+                self._ttl,
             )
         except Exception as e:
-            logger.warning("Redis unavailable for response cache, using memory fallback: %s", e)
+            logger.warning(
+                "Redis unavailable for response cache, using memory fallback: %s", e
+            )
             self._redis = None
             self._redis_available = False
 
@@ -122,7 +130,11 @@ class ResponseCache:
                 if raw is not None:
                     _hits += 1
                     data = json.loads(raw)
-                    logger.debug("Cache HIT for key=%s (conversation=%s)", key[:40], conversation_id)
+                    logger.debug(
+                        "Cache HIT for key=%s (conversation=%s)",
+                        key[:40],
+                        conversation_id,
+                    )
                     return data
             except Exception as e:
                 logger.debug("Cache read error (falling through): %s", e)

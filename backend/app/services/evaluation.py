@@ -180,10 +180,12 @@ async def run_single_eval(
         reranked = retrieved[:5]
 
     # Build context
-    context = "\n\n".join([
-        f"[Doc: {c.get('document_title', 'unknown')}] {c['content']}"
-        for c in reranked
-    ])
+    context = "\n\n".join(
+        [
+            f"[Doc: {c.get('document_title', 'unknown')}] {c['content']}"
+            for c in reranked
+        ]
+    )
 
     # Generate answer
     llm = get_llm()
@@ -238,10 +240,19 @@ def compute_metrics(
         if i in unanswerable_indices:
             # Check if model refused
             refusal_phrases = [
-                "cannot answer", "cannot determine", "don't have enough",
-                "not enough information", "not provided", "no information",
-                "cannot", "unable to", "not found in", "not mentioned",
-                "does not contain", "isn't mentioned", "aren't provided",
+                "cannot answer",
+                "cannot determine",
+                "don't have enough",
+                "not enough information",
+                "not provided",
+                "no information",
+                "cannot",
+                "unable to",
+                "not found in",
+                "not mentioned",
+                "does not contain",
+                "isn't mentioned",
+                "aren't provided",
             ]
             refused = any(phrase in gen_answer for phrase in refusal_phrases)
             if refused:
@@ -263,7 +274,8 @@ def compute_metrics(
         "total_questions": total,
         "answer_accuracy": correct_count / max(total - total_unanswerable, 1),
         "refusal_accuracy": correct_refusal / max(total_unanswerable, 1),
-        "mean_faithfulness": sum(faithfulness_scores) / max(len(faithfulness_scores), 1),
+        "mean_faithfulness": sum(faithfulness_scores)
+        / max(len(faithfulness_scores), 1),
         "p50_latency_ms": latencies[len(latencies) // 2] if latencies else 0,
         "p95_latency_ms": latencies[int(len(latencies) * 0.95)] if latencies else 0,
         "mean_latency_ms": sum(latencies) / max(len(latencies), 1),

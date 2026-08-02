@@ -30,6 +30,7 @@ def get_reranker() -> object | None:
     # Direct fallback (no caching)
     try:
         from sentence_transformers import CrossEncoder
+
         logger.info("Loading cross-encoder (standalone): ms-marco-MiniLM-L-6-v2")
         model: object = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
         return model
@@ -68,10 +69,13 @@ class HybridRetriever:
         full_corpus = []
         try:
             from app.services.vector_store import get_vector_store as _get_vs  # type: ignore[import]
+
             vs = _get_vs()
             full_corpus = vs.get_all_chunks(document_ids=document_ids)
         except Exception as exc:
-            logger.warning("Full corpus load failed — falling back to dense-only: %s", exc)
+            logger.warning(
+                "Full corpus load failed — falling back to dense-only: %s", exc
+            )
 
         # BM25 search — uses the full corpus, cached per document set
         bm25_results = []
@@ -127,7 +131,9 @@ class HybridRetriever:
         pairs = [(query, c["content"]) for c in chunks]
 
         # Use explicit batch_size if provided, otherwise let the model decide
-        predict_kwargs: dict[str, Any] = {"batch_size": batch_size} if batch_size > 0 else {}
+        predict_kwargs: dict[str, Any] = (
+            {"batch_size": batch_size} if batch_size > 0 else {}
+        )
 
         start = time.time()
         scores = reranker.predict(pairs, **predict_kwargs)

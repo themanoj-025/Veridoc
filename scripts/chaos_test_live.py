@@ -36,11 +36,31 @@ COMPOSE_FILE = Path(__file__).resolve().parent.parent / "docker-compose.yml"
 ALL_SERVICES = ["postgres", "chroma", "redis", "minio", "ollama"]
 
 DEPENDENCY_INFO = {
-    "postgres": {"container": "veridoc-postgres", "health_key": "postgres", "tolerance_seconds": 15},
-    "chroma":   {"container": "veridoc-chroma",   "health_key": "chroma",   "tolerance_seconds": 15},
-    "redis":    {"container": "veridoc-redis",    "health_key": "redis",    "tolerance_seconds": 10},
-    "minio":    {"container": "veridoc-minio",    "health_key": "minio",    "tolerance_seconds": 10},
-    "ollama":   {"container": "veridoc-ollama",   "health_key": "llm",      "tolerance_seconds": 10},
+    "postgres": {
+        "container": "veridoc-postgres",
+        "health_key": "postgres",
+        "tolerance_seconds": 15,
+    },
+    "chroma": {
+        "container": "veridoc-chroma",
+        "health_key": "chroma",
+        "tolerance_seconds": 15,
+    },
+    "redis": {
+        "container": "veridoc-redis",
+        "health_key": "redis",
+        "tolerance_seconds": 10,
+    },
+    "minio": {
+        "container": "veridoc-minio",
+        "health_key": "minio",
+        "tolerance_seconds": 10,
+    },
+    "ollama": {
+        "container": "veridoc-ollama",
+        "health_key": "llm",
+        "tolerance_seconds": 10,
+    },
 }
 
 
@@ -64,12 +84,16 @@ async def check_health() -> dict:
 
 
 def docker_compose_stop(service: str) -> bool:
-    code, output = run_cmd(["docker", "compose", "-f", str(COMPOSE_FILE), "stop", service])
+    code, output = run_cmd(
+        ["docker", "compose", "-f", str(COMPOSE_FILE), "stop", service]
+    )
     return code == 0
 
 
 def docker_compose_start(service: str) -> bool:
-    code, output = run_cmd(["docker", "compose", "-f", str(COMPOSE_FILE), "start", service])
+    code, output = run_cmd(
+        ["docker", "compose", "-f", str(COMPOSE_FILE), "start", service]
+    )
     return code == 0
 
 
@@ -79,9 +103,9 @@ async def test_dependency(service: str, quick: bool = False) -> dict:
     health_key = info["health_key"]
     tolerance = 5 if quick else info["tolerance_seconds"]
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Testing: {service} ({container})")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     result = {"service": service, "container": container, "steps": [], "passed": True}
 
@@ -114,8 +138,13 @@ async def test_dependency(service: str, quick: bool = False) -> dict:
             dep = deps.get(health_key, {})
             dep_status = dep.get("status", "unknown")
             print(f"    PASS - Health 503 ({health_key}={dep_status})")
-            result["steps"].append({"step": "graceful_degradation", "passed": True,
-                                    "evidence": f"503 with {health_key}={dep_status}"})
+            result["steps"].append(
+                {
+                    "step": "graceful_degradation",
+                    "passed": True,
+                    "evidence": f"503 with {health_key}={dep_status}",
+                }
+            )
 
             # (c) Check structured logging in backend container
             code, logs = run_cmd(["docker", "logs", "veridoc-backend", "--tail", "20"])
@@ -124,13 +153,15 @@ async def test_dependency(service: str, quick: bool = False) -> dict:
                 key_lower = health_key.lower()
                 # Look for the health_key in proximity to error/unhealthy
                 has_structured_log = (
-                    (key_lower in log_lower and ("error" in log_lower or "unhealthy" in log_lower))
-                    or f"{key_lower}.*error" in log_lower
-                )
+                    key_lower in log_lower
+                    and ("error" in log_lower or "unhealthy" in log_lower)
+                ) or f"{key_lower}.*error" in log_lower
                 if has_structured_log:
                     print(f"    PASS - Backend logged {health_key} failure")
                 else:
-                    print(f"    INFO - Backend logs checked ({health_key} may not appear)")
+                    print(
+                        f"    INFO - Backend logs checked ({health_key} may not appear)"
+                    )
                 if "error" in log_lower:
                     print(f"    PASS - Error-level log entries found")
             else:
@@ -148,7 +179,9 @@ async def test_dependency(service: str, quick: bool = False) -> dict:
             if dep_status == "error":
                 print(f"    PASS - Health endpoint is resilient, reports partial error")
             elif service == "minio":
-                print(f"    NOTE - MinIO is file-storage only, not checked on every health call")
+                print(
+                    f"    NOTE - MinIO is file-storage only, not checked on every health call"
+                )
             else:
                 print(f"    WARN - {service} stopped but health unaffected")
             result["steps"].append({"step": "graceful_degradation", "passed": True})
@@ -156,8 +189,13 @@ async def test_dependency(service: str, quick: bool = False) -> dict:
         elif health["status_code"] == 0:
             print(f"    FAIL - App unresponsive (HTTP connection failed)")
             result["passed"] = False
-            result["steps"].append({"step": "graceful_degradation", "passed": False,
-                                    "evidence": "Health endpoint unreachable"})
+            result["steps"].append(
+                {
+                    "step": "graceful_degradation",
+                    "passed": False,
+                    "evidence": "Health endpoint unreachable",
+                }
+            )
         else:
             print(f"    INFO - Health returned {health['status_code']}")
             result["steps"].append({"step": "graceful_degradation", "passed": True})
@@ -214,7 +252,16 @@ async def verify_stack_healthy() -> bool:
         return False
 
     code, output = run_cmd(
-        ["docker", "compose", "-f", str(COMPOSE_FILE), "ps", "--services", "--filter", "status=running"]
+        [
+            "docker",
+            "compose",
+            "-f",
+            str(COMPOSE_FILE),
+            "ps",
+            "--services",
+            "--filter",
+            "status=running",
+        ]
     )
     running = [s.strip() for s in output.strip().split("\n") if s.strip()]
     print(f"  Running: {', '.join(running)}")
@@ -231,9 +278,15 @@ async def verify_stack_healthy() -> bool:
 
 
 async def main():
-    parser = argparse.ArgumentParser(description="Live chaos/resilience tests (D4 Tier 2)")
-    parser.add_argument("--service", choices=ALL_SERVICES, help="Test a single dependency only")
-    parser.add_argument("--quick", action="store_true", help="Shorter recovery wait times")
+    parser = argparse.ArgumentParser(
+        description="Live chaos/resilience tests (D4 Tier 2)"
+    )
+    parser.add_argument(
+        "--service", choices=ALL_SERVICES, help="Test a single dependency only"
+    )
+    parser.add_argument(
+        "--quick", action="store_true", help="Shorter recovery wait times"
+    )
     args = parser.parse_args()
 
     print("=" * 60)

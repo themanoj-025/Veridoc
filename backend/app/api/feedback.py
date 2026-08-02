@@ -39,6 +39,7 @@ async def submit_feedback(
     Thumbs-up responses increment a simple count (for analytics).
     """
     import structlog
+
     logger = structlog.get_logger(__name__)
 
     if body.feedback not in ("up", "down"):

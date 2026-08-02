@@ -35,6 +35,7 @@ from app.core.security import create_access_token
 # F6: Per-user rate-limit key
 # ════════════════════════════════════════════════════════════════
 
+
 class TestGetUserIdentifier:
     """The key function must bucket by authenticated user ID when present."""
 
@@ -61,6 +62,7 @@ class TestGetUserIdentifier:
     def test_rejects_refresh_tokens(self):
         """A refresh token must NOT be treated as a user identity."""
         from app.core.security import create_refresh_token
+
         uid = uuid.uuid4()
         refresh = create_refresh_token(uid)
 
@@ -76,6 +78,7 @@ class TestGetUserIdentifier:
 # ════════════════════════════════════════════════════════════════
 # F6 + G6: Real slowapi enforcement — 429, Retry-After, headers
 # ════════════════════════════════════════════════════════════════
+
 
 def _build_limited_app(limit_str: str, key_func=None) -> FastAPI:
     """Build a minimal FastAPI app wired exactly like the Veridoc app.
@@ -105,7 +108,9 @@ def _build_limited_app(limit_str: str, key_func=None) -> FastAPI:
 async def test_429_returned_with_retry_after():
     """Exceeding the limit returns 429 with a numeric Retry-After header."""
     app = _build_limited_app("3/minute")
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         for _ in range(3):
             resp = await client.get("/limited")
             assert resp.status_code == 200
@@ -122,7 +127,9 @@ async def test_429_returned_with_retry_after():
 async def test_rate_limit_headers_present_and_valued():
     """G6: every limited response carries Limit/Remaining/Reset headers."""
     app = _build_limited_app("5/minute")
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         resp = await client.get("/limited")
         assert resp.status_code == 200
         assert resp.headers["X-RateLimit-Limit"] == "5"
@@ -135,7 +142,9 @@ async def test_rate_limit_headers_present_and_valued():
 async def test_429_response_includes_rate_limit_headers():
     """G6: the 429 response itself also carries the rate-limit headers."""
     app = _build_limited_app("2/minute")
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         await client.get("/limited")
         await client.get("/limited")
         resp = await client.get("/limited")
@@ -147,6 +156,7 @@ async def test_429_response_includes_rate_limit_headers():
 # ════════════════════════════════════════════════════════════════
 # F6: per-user enforcement end-to-end (independent buckets)
 # ════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.asyncio
 async def test_per_user_rate_limits_are_independent():
@@ -165,7 +175,9 @@ async def test_per_user_rate_limits_are_independent():
     headers_a = {"Authorization": f"Bearer {token_a}"}
     headers_b = {"Authorization": f"Bearer {token_b}"}
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         # User A uses their entire 3/minute budget
         for _ in range(3):
             resp = await client.get("/limited", headers=headers_a)
@@ -193,7 +205,9 @@ async def test_per_user_same_user_shares_bucket():
     token = create_access_token(uuid.uuid4())
     headers = {"Authorization": f"Bearer {token}"}
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         assert (await client.get("/limited", headers=headers)).status_code == 200
         assert (await client.get("/limited", headers=headers)).status_code == 200
         assert (await client.get("/limited", headers=headers)).status_code == 429

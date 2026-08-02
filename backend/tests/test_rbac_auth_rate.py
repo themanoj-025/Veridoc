@@ -24,17 +24,21 @@ from app.models.conversation import Conversation
 # F3: RBAC — role-based admin check
 # ════════════════════════════════════════════════════════════════
 
+
 class TestF3_RBAC:
     """Admin endpoints must check the `role` column, not registration order."""
 
     @pytest.mark.asyncio
-    async def test_admin_role_required(self, test_client: AsyncClient, sample_user, app):
+    async def test_admin_role_required(
+        self, test_client: AsyncClient, sample_user, app
+    ):
         """A user with role='user' should be denied admin access with 403."""
         sample_user.role = "user"
         from app.core.dependencies import get_current_user
 
         async def override():
             return sample_user
+
         app.dependency_overrides[get_current_user] = override
 
         response = await test_client.get(
@@ -47,13 +51,16 @@ class TestF3_RBAC:
         app.dependency_overrides.pop(get_current_user, None)
 
     @pytest.mark.asyncio
-    async def test_admin_role_granted(self, test_client: AsyncClient, sample_user, app, mock_db_session):
+    async def test_admin_role_granted(
+        self, test_client: AsyncClient, sample_user, app, mock_db_session
+    ):
         """A user with role='admin' should be granted admin access (200, not 403)."""
         sample_user.role = "admin"
         from app.core.dependencies import get_current_user
 
         async def override():
             return sample_user
+
         app.dependency_overrides[get_current_user] = override
 
         # Mock DB queries to return empty results gracefully
@@ -108,12 +115,14 @@ class TestF3_RBAC:
 # F4: Email verification & password reset flows
 # ════════════════════════════════════════════════════════════════
 
+
 class TestF4_EmailVerification:
     """Tests for token generation, expiry, and successful verification/reset."""
 
     def test_verification_token_generation(self):
         """A verification token should be generated and stored on the user."""
         import secrets
+
         token = secrets.token_urlsafe(32)
         user = User(
             email="verify@example.com",
@@ -126,6 +135,7 @@ class TestF4_EmailVerification:
     def test_verify_email_success(self):
         """A valid verification token should mark the user as verified."""
         import secrets
+
         token = secrets.token_urlsafe(32)
         user = User(
             email="verify@example.com",
@@ -230,7 +240,10 @@ class TestF4_EmailVerification:
     @pytest.mark.asyncio
     async def test_email_sender_logs_token(self):
         """The dev-mode email sender should log the token (not send a real email)."""
-        from app.services.email_sender import send_verification_email, send_password_reset_email
+        from app.services.email_sender import (
+            send_verification_email,
+            send_password_reset_email,
+        )
 
         with patch("app.services.email_sender.logger.info") as mock_log:
             await send_verification_email("test@example.com", "test-token-123")
@@ -250,6 +263,7 @@ class TestF4_EmailVerification:
 # F6: Rate limiting — 429 enforcement
 # ════════════════════════════════════════════════════════════════
 
+
 class TestF6_RateLimiting:
     """Rate limits should be enforced on upload and chat endpoints.
     Uses the existing slowapi limiter which returns 429 with Retry-After.
@@ -260,9 +274,11 @@ class TestF6_RateLimiting:
         The _should_rate_limit() function returns False so the
         @limiter.limit() decorator is a no-op in test runs."""
         from app.core import config as _config
+
         assert _config.settings.app_env == "test"
 
         from app.core.rate_limit import _should_rate_limit
+
         assert _should_rate_limit() is False
 
     def test_rate_limit_structure(self):
@@ -283,6 +299,7 @@ class TestF6_RateLimiting:
 # ════════════════════════════════════════════════════════════════
 # F8: Admin audit log
 # ════════════════════════════════════════════════════════════════
+
 
 class TestF8_AdminAuditLog:
     """Admin actions should be recorded in the append-only audit log."""
@@ -316,11 +333,14 @@ class TestF8_AdminAuditLog:
 
         # Use a real in-memory SQLite database
         from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+
         engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
-        factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        factory = async_sessionmaker(
+            engine, class_=AsyncSession, expire_on_commit=False
+        )
         async with factory() as session:
             # Create an audit log entry via ORM
             log = AdminAuditLog(
@@ -333,7 +353,9 @@ class TestF8_AdminAuditLog:
 
             # Read it back
             result = await session.execute(
-                select(AdminAuditLog).where(AdminAuditLog.action == "feedback_queue_accessed")
+                select(AdminAuditLog).where(
+                    AdminAuditLog.action == "feedback_queue_accessed"
+                )
             )
             loaded = result.scalar_one_or_none()
             assert loaded is not None
@@ -346,17 +368,27 @@ class TestF8_AdminAuditLog:
     async def test_audit_log_multiple_entries(self):
         """Multiple admin actions should all be logged separately."""
         from sqlalchemy import select
-        from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+        from sqlalchemy.ext.asyncio import (
+            AsyncSession,
+            create_async_engine,
+            async_sessionmaker,
+        )
         from app.core.database import Base
 
         engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
-        factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        factory = async_sessionmaker(
+            engine, class_=AsyncSession, expire_on_commit=False
+        )
         async with factory() as session:
             actor_id = uuid.uuid4()
-            actions = ["analytics_accessed", "cache_stats_accessed", "feedback_queue_accessed"]
+            actions = [
+                "analytics_accessed",
+                "cache_stats_accessed",
+                "feedback_queue_accessed",
+            ]
             for action in actions:
                 log = AdminAuditLog(actor_id=actor_id, action=action)
                 session.add(log)
@@ -375,6 +407,7 @@ class TestF8_AdminAuditLog:
 # ════════════════════════════════════════════════════════════════
 # G2: Prompt version recording
 # ════════════════════════════════════════════════════════════════
+
 
 class TestG2_PromptVersion:
     """Messages should record which prompt version was used to generate them."""
@@ -402,7 +435,11 @@ class TestG2_PromptVersion:
     async def test_prompt_version_persisted(self):
         """The prompt version should be persisted and retrievable from the DB."""
         from sqlalchemy import select
-        from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+        from sqlalchemy.ext.asyncio import (
+            AsyncSession,
+            create_async_engine,
+            async_sessionmaker,
+        )
         from app.core.database import Base
         from app.models.message import Message
         from app.models.conversation import Conversation
@@ -412,7 +449,9 @@ class TestG2_PromptVersion:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
-        factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        factory = async_sessionmaker(
+            engine, class_=AsyncSession, expire_on_commit=False
+        )
         async with factory() as session:
             user = User(email="prompt@test.com", hashed_password="x" * 60)
             session.add(user)
@@ -446,7 +485,9 @@ class TestG2_PromptVersion:
         import json
         from pathlib import Path
 
-        registry_path = Path(__file__).resolve().parent.parent.parent / "prompts" / "registry.json"
+        registry_path = (
+            Path(__file__).resolve().parent.parent.parent / "prompts" / "registry.json"
+        )
         assert registry_path.exists(), f"Registry file not found at {registry_path}"
 
         with open(registry_path) as f:
@@ -463,24 +504,29 @@ class TestG2_PromptVersion:
     def test_prompt_version_resolver_returns_registry_version(self):
         """The resolver must return the version recorded in the registry."""
         from app.services.prompt_registry import get_prompt_version
+
         version = get_prompt_version("system-prompt")
         assert version == "1.0.0"
 
     def test_prompt_version_resolver_unknown_name(self):
         """Unknown prompt names must resolve to 'unknown', never raise."""
         from app.services.prompt_registry import get_prompt_version
+
         assert get_prompt_version("does-not-exist") == "unknown"
 
     def test_prompt_template_loaded_from_registry(self):
         """build_system_prompt must load the template from the registry (G2)."""
         from app.services.prompt_registry import get_prompt_template
+
         template = get_prompt_template("system-prompt")
         assert template is not None
         assert "{{context}}" in template
         assert "Veridoc" in template
 
     @pytest.mark.asyncio
-    async def test_chat_service_records_prompt_version_on_message(self, mock_db_session, sample_user):
+    async def test_chat_service_records_prompt_version_on_message(
+        self, mock_db_session, sample_user
+    ):
         """ChatService.save_assistant_message must stamp prompt_version (G2)."""
         import asyncio
         from unittest.mock import MagicMock, patch
@@ -493,7 +539,9 @@ class TestG2_PromptVersion:
 
         # Capture the Message object passed to session.add
         added = []
-        mock_db_session.add = MagicMock(side_effect=lambda obj: added.append(obj) or None)
+        mock_db_session.add = MagicMock(
+            side_effect=lambda obj: added.append(obj) or None
+        )
         mock_db_session.flush = AsyncMock()
         mock_db_session.commit = AsyncMock()
 
@@ -544,20 +592,24 @@ class TestG2_PromptVersion:
 # G4: Secret rotation warning
 # ════════════════════════════════════════════════════════════════
 
+
 class TestG4_SecretRotation:
     """The startup config validation should warn about secret rotation age."""
 
     def test_secret_rotation_check_function_exists(self):
         """The _check_secret_rotation_age function should exist in main."""
         from app.main import _check_secret_rotation_age
+
         assert callable(_check_secret_rotation_age)
 
     def test_secret_rotation_check_runs_without_error(self):
         """The rotation check should run without raising exceptions."""
         import structlog
+
         logger = structlog.get_logger(__name__)
 
         from app.main import _check_secret_rotation_age
+
         # Should not raise
         _check_secret_rotation_age(logger)
 
@@ -581,16 +633,25 @@ class TestG4_SecretRotation:
     def test_warns_when_never_recorded(self):
         """Unset SECRET_ROTATED_AT → warning (status=never_recorded)."""
         logger = self._call_with(None)
-        warnings = [c for c in logger.warning.call_args_list if c[0][0] == "security.secret_rotation"]
+        warnings = [
+            c
+            for c in logger.warning.call_args_list
+            if c[0][0] == "security.secret_rotation"
+        ]
         assert len(warnings) == 1
         assert warnings[0][1]["status"] == "never_recorded"
 
     def test_warns_when_stale(self):
         """Rotation older than the window → warning (status=stale)."""
         from datetime import datetime, timedelta, timezone
+
         old = (datetime.now(timezone.utc) - timedelta(days=200)).date().isoformat()
         logger = self._call_with(old, window_days=90)
-        warnings = [c for c in logger.warning.call_args_list if c[0][0] == "security.secret_rotation"]
+        warnings = [
+            c
+            for c in logger.warning.call_args_list
+            if c[0][0] == "security.secret_rotation"
+        ]
         assert len(warnings) == 1
         assert warnings[0][1]["status"] == "stale"
         assert warnings[0][1]["age_days"] > 90
@@ -598,17 +659,26 @@ class TestG4_SecretRotation:
     def test_no_warning_when_fresh(self):
         """Recent rotation → info (status=fresh), no warning."""
         from datetime import datetime, timezone
+
         fresh = datetime.now(timezone.utc).date().isoformat()
         logger = self._call_with(fresh, window_days=90)
         assert not logger.warning.called
-        infos = [c for c in logger.info.call_args_list if c[0][0] == "security.secret_rotation"]
+        infos = [
+            c
+            for c in logger.info.call_args_list
+            if c[0][0] == "security.secret_rotation"
+        ]
         assert len(infos) == 1
         assert infos[0][1]["status"] == "fresh"
 
     def test_warns_on_malformed_date(self):
         """A malformed SECRET_ROTATED_AT → warning (status=invalid_date)."""
         logger = self._call_with("not-a-date")
-        warnings = [c for c in logger.warning.call_args_list if c[0][0] == "security.secret_rotation"]
+        warnings = [
+            c
+            for c in logger.warning.call_args_list
+            if c[0][0] == "security.secret_rotation"
+        ]
         assert len(warnings) == 1
         assert warnings[0][1]["status"] == "invalid_date"
 
@@ -655,7 +725,9 @@ class TestG4_SecretRotation:
 
         try:
             settings.jwt_secret = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"
-            settings.file_encryption_key = "x1y2z3x1y2z3x1y2z3x1y2z3x1y2z3x1y2z3x1y2z3x1y"
+            settings.file_encryption_key = (
+                "x1y2z3x1y2z3x1y2z3x1y2z3x1y2z3x1y2z3x1y2z3x1y"
+            )
             # Should not raise
             validate_config()
         finally:
@@ -667,7 +739,13 @@ class TestG4_SecretRotation:
         from app.core.config import _validate_secret
 
         # These should all raise ValueError
-        for pattern in ["change-me-123", "changeme", "placeholder", "your-secret", "<your-key>"]:
+        for pattern in [
+            "change-me-123",
+            "changeme",
+            "placeholder",
+            "your-secret",
+            "<your-key>",
+        ]:
             with pytest.raises(ValueError):
                 _validate_secret(pattern, "TEST_SECRET")
 

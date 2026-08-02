@@ -32,7 +32,11 @@ from app.schemas.auth import (
     TokenRefresh,
     PasswordChange,
 )
-from app.services.email_sender import send_verification_email, send_password_reset_email, get_dev_email_sender
+from app.services.email_sender import (
+    send_verification_email,
+    send_password_reset_email,
+    get_dev_email_sender,
+)
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
@@ -44,7 +48,9 @@ router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
     operation_id="auth_register",
 )
 @limiter.limit("5/minute")
-async def register(request: Request, body: UserCreate, session: AsyncSession = Depends(get_session)):
+async def register(
+    request: Request, body: UserCreate, session: AsyncSession = Depends(get_session)
+):
     """Register a new user with email and password."""
     user_repo = UserRepository(session)
 
@@ -76,12 +82,18 @@ async def register(request: Request, body: UserCreate, session: AsyncSession = D
 
 @router.post("/login", response_model=TokenResponse, operation_id="auth_login")
 @limiter.limit("5/minute")
-async def login(request: Request, body: UserLogin, session: AsyncSession = Depends(get_session)):
+async def login(
+    request: Request, body: UserLogin, session: AsyncSession = Depends(get_session)
+):
     """Authenticate a user and return JWT tokens."""
     user_repo = UserRepository(session)
     user = await user_repo.find_by_email(body.email)
 
-    if not user or not user.hashed_password or not verify_password(body.password, user.hashed_password):
+    if (
+        not user
+        or not user.hashed_password
+        or not verify_password(body.password, user.hashed_password)
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
@@ -119,12 +131,15 @@ async def refresh(
 
     user_id = payload.get("sub")
     if user_id is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+        )
 
     uid = uuid.UUID(user_id)
 
     # Refresh-token rotation
     from app.core.token_store import validate_and_consume
+
     jti = get_token_jti(payload)
     exp = get_token_exp(payload)
     if not jti or not await validate_and_consume(jti, user_id, expires_at=exp):
@@ -137,7 +152,10 @@ async def refresh(
     user_repo = UserRepository(session)
     user = await user_repo.find_by_id(uid)
     if not user or not user.is_active:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found or inactive",
+        )
 
     access_token = create_access_token(uid)
     new_refresh_token = create_refresh_token(uid)
@@ -175,6 +193,7 @@ async def logout(
         )
 
     from app.core.token_store import revoke_token
+
     jti = get_token_jti(payload)
     exp = get_token_exp(payload)
     if jti:
@@ -190,7 +209,9 @@ async def change_password(
     session: AsyncSession = Depends(get_session),
 ):
     """Change the current user's password."""
-    if not user.hashed_password or not verify_password(body.current_password, user.hashed_password):
+    if not user.hashed_password or not verify_password(
+        body.current_password, user.hashed_password
+    ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Current password is incorrect",
@@ -206,7 +227,9 @@ async def change_password(
 # ── F4: Email Verification ──────────────────────────────
 
 
-@router.post("/request-verification-email", operation_id="auth_request_verification_email")
+@router.post(
+    "/request-verification-email", operation_id="auth_request_verification_email"
+)
 async def request_verification_email(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
@@ -217,6 +240,7 @@ async def request_verification_email(
 
     token = secrets.token_urlsafe(32)
     from datetime import datetime, timedelta, timezone
+
     user.verification_token = token
     user.verification_token_expiry = datetime.now(timezone.utc) + timedelta(hours=24)
     user_repo = UserRepository(session)
@@ -244,7 +268,10 @@ async def verify_email(
         )
 
     # F4: verification tokens expire after 24h (never replay old links)
-    if user.verification_token_expiry is None or user.verification_token_expiry < datetime.now(timezone.utc):
+    if (
+        user.verification_token_expiry is None
+        or user.verification_token_expiry < datetime.now(timezone.utc)
+    ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Verification token has expired. Request a new one.",
@@ -274,6 +301,7 @@ async def request_password_reset(
         token = secrets.token_urlsafe(32)
         user.reset_token = token
         from datetime import datetime, timedelta, timezone
+
         user.reset_token_expiry = datetime.now(timezone.utc) + timedelta(hours=1)
         await user_repo.update(user)
         await send_password_reset_email(email, token)
@@ -292,6 +320,7 @@ async def reset_password(
     from datetime import datetime, timezone
 
     from app.core.security import validate_password_complexity
+
     err = validate_password_complexity(new_password)
     if err:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=err)

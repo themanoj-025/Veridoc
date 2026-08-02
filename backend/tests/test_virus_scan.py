@@ -22,6 +22,7 @@ EICAR = b"X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
 def _override_get_user(app, user):
     async def override():
         return user
+
     app.dependency_overrides[get_current_user] = override
 
 
@@ -33,26 +34,38 @@ class TestVirusScanner:
     def test_noop_scanner_reports_clean(self):
         """The default scanner always reports clean (True)."""
         from app.services.ssrf_protection import NoopVirusScanner
+
         assert NoopVirusScanner().scan("/tmp/any-file.txt") is True
 
     def test_get_virus_scanner_factory_returns_noop_by_default(self):
         """The factory returns the no-op scanner until a real one is configured."""
         from app.services.ssrf_protection import get_virus_scanner
+
         scanner = get_virus_scanner()
         assert scanner.scan("/tmp/file.txt") is True
 
     @pytest.mark.asyncio
     async def test_upload_rejects_infected_file(
-        self, test_client: AsyncClient, mock_db_session, sample_user, sample_user_token, app, temp_upload_dir,
+        self,
+        test_client: AsyncClient,
+        mock_db_session,
+        sample_user,
+        sample_user_token,
+        app,
+        temp_upload_dir,
     ):
         """An EICAR file flagged by the scanner → 400, file removed, no doc created."""
         _override_get_user(app, sample_user)
-        mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=None)
+        mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
+            return_value=None
+        )
 
         fake_scanner = MagicMock()
         fake_scanner.scan = MagicMock(return_value=False)  # infected
 
-        with patch("app.services.ssrf_protection.get_virus_scanner", return_value=fake_scanner):
+        with patch(
+            "app.services.ssrf_protection.get_virus_scanner", return_value=fake_scanner
+        ):
             response = await test_client.post(
                 "/api/v1/documents/upload",
                 headers=_auth(sample_user_token),
@@ -71,11 +84,19 @@ class TestVirusScanner:
 
     @pytest.mark.asyncio
     async def test_upload_accepts_clean_file_through_noop(
-        self, test_client: AsyncClient, mock_db_session, sample_user, sample_user_token, app, temp_upload_dir,
+        self,
+        test_client: AsyncClient,
+        mock_db_session,
+        sample_user,
+        sample_user_token,
+        app,
+        temp_upload_dir,
     ):
         """A clean file passes the no-op scan and proceeds to doc creation."""
         _override_get_user(app, sample_user)
-        mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=None)
+        mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
+            return_value=None
+        )
 
         with patch("app.services.ssrf_protection.get_virus_scanner") as factory:
             factory.return_value.scan.return_value = True

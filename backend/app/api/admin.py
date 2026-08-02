@@ -25,6 +25,7 @@ router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
 # ── F8: Admin audit log helper ─────────────────────────
 
+
 async def _log_admin_action(
     session,
     actor_id: uuid.UUID | None,
@@ -66,7 +67,7 @@ async def get_analytics(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    """Get admin analytics from the usage_logs table."""    # F3: RBAC admin check — explicit role column
+    """Get admin analytics from the usage_logs table."""  # F3: RBAC admin check — explicit role column
     if user.role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -74,10 +75,13 @@ async def get_analytics(
         )
 
     import structlog
+
     logger = structlog.get_logger(__name__)
 
     # F8: Log admin action to audit log
-    await _log_admin_action(session, user.id, "analytics_accessed", "admin", None, {"method": "GET"})
+    await _log_admin_action(
+        session, user.id, "analytics_accessed", "admin", None, {"method": "GET"}
+    )
 
     user_repo = UserRepository(session)
     doc_repo = DocumentRepository(session)
@@ -114,10 +118,12 @@ async def get_analytics(
     top_documents = []
     for row in top_docs_result.all():
         doc_id = str(row.document_id) if row.document_id else "unknown"
-        top_documents.append({
-            "document_id": doc_id,
-            "citation_count": row.citation_count,
-        })
+        top_documents.append(
+            {
+                "document_id": doc_id,
+                "citation_count": row.citation_count,
+            }
+        )
 
     # Recent queries
     recent_logs = await log_repo.get_recent_queries(limit=20)
@@ -133,10 +139,7 @@ async def get_analytics(
 
     # Daily query volume (last 7 days)
     daily_rows = await log_repo.get_daily_volume(since=week_start)
-    daily_query_volume = [
-        {"date": str(row[0]), "count": row[1]}
-        for row in daily_rows
-    ]
+    daily_query_volume = [{"date": str(row[0]), "count": row[1]} for row in daily_rows]
 
     await session.close()
     return AdminAnalyticsResponse(
@@ -181,10 +184,13 @@ async def get_cache_stats(
         )
 
     import structlog
+
     logger = structlog.get_logger(__name__)
 
     # F8: Log admin action
-    await _log_admin_action(session, user.id, "cache_stats_accessed", "admin", None, None)
+    await _log_admin_action(
+        session, user.id, "cache_stats_accessed", "admin", None, None
+    )
 
     cache = get_response_cache()
     stats = cache.stats
@@ -230,10 +236,13 @@ async def get_feedback_queue(
         )
 
     import structlog
+
     logger = structlog.get_logger(__name__)
 
     # F8: Log admin action
-    await _log_admin_action(session, user.id, "feedback_queue_accessed", "admin", None, None)
+    await _log_admin_action(
+        session, user.id, "feedback_queue_accessed", "admin", None, None
+    )
 
     # Load the feedback queue from disk
     eval_dir = Path(__file__).resolve().parent.parent.parent.parent / "eval"

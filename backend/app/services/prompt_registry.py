@@ -12,7 +12,9 @@ import json
 from functools import lru_cache
 from pathlib import Path
 
-_REGISTRY_PATH = Path(__file__).resolve().parent.parent.parent.parent / "prompts" / "registry.json"
+_REGISTRY_PATH = (
+    Path(__file__).resolve().parent.parent.parent.parent / "prompts" / "registry.json"
+)
 
 
 @lru_cache(maxsize=1)

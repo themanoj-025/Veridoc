@@ -57,7 +57,9 @@ class ChatService:
         """Validate the conversation exists and belongs to the current user."""
         conv = await self.conv_repo.find_by_id_and_user(conversation_id, self.user.id)
         if not conv:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found"
+            )
         return conv
 
     async def save_user_message(self, conv: Conversation, message: str) -> Message:
@@ -149,6 +151,7 @@ class ChatService:
         always the exact one recorded on the resulting message.
         """
         from app.services.prompt_registry import get_prompt_template
+
         template = get_prompt_template("system-prompt")
         if template is None:
             # Fallback if registry is unavailable — keeps chat working
@@ -215,6 +218,7 @@ class ChatService:
             try:
                 from app.core.database import async_session_factory
                 from app.models.usage_log import UsageLog
+
                 async with async_session_factory() as log_session:
                     log = UsageLog(
                         user_id=self.user.id,
@@ -266,7 +270,8 @@ class ChatService:
         if cached_response:
             logger.info(
                 "Cache HIT for conversation=%s query=%s",
-                conversation_id_str[:8], body.message[:50],
+                conversation_id_str[:8],
+                body.message[:50],
             )
 
             cached_content = cached_response.get("content", "")
@@ -301,17 +306,23 @@ class ChatService:
 
                     yield {
                         "event": "done",
-                        "data": json.dumps({
-                            "message_id": str(cached_msg.id),
-                            "content": cached_content,
-                            "citations": [c.model_dump() for c in cached_citations],
-                            "latency_ms": 0,
-                            "tokens_used": token_count,
-                            "faithfulness_score": cached_response.get("faithfulness_score", 1.0),
-                            "model_used": cached_response.get("model_used", "cache"),
-                            "fallback_used": False,
-                            "cache_hit": True,
-                        }),
+                        "data": json.dumps(
+                            {
+                                "message_id": str(cached_msg.id),
+                                "content": cached_content,
+                                "citations": [c.model_dump() for c in cached_citations],
+                                "latency_ms": 0,
+                                "tokens_used": token_count,
+                                "faithfulness_score": cached_response.get(
+                                    "faithfulness_score", 1.0
+                                ),
+                                "model_used": cached_response.get(
+                                    "model_used", "cache"
+                                ),
+                                "fallback_used": False,
+                                "cache_hit": True,
+                            }
+                        ),
                     }
                 finally:
                     if session is not None:
@@ -323,9 +334,13 @@ class ChatService:
             return EventSourceResponse(cached_generator())
 
         # Cache miss — proceed with full pipeline
-        top_chunks, citations_data, context, retrieval_time, rerank_time = (
-            await self.retrieve_context(search_query, conv)
-        )
+        (
+            top_chunks,
+            citations_data,
+            context,
+            retrieval_time,
+            rerank_time,
+        ) = await self.retrieve_context(search_query, conv)
 
         system_prompt = self.build_system_prompt(context)
         gen_start = time.time()
@@ -383,33 +398,41 @@ class ChatService:
                 fallback_used = getattr(self.llm, "fallback_used", False)
                 actual_model = self.llm.model_name
 
-                await cache.set(conversation_id_str, body.message, {
-                    "message_id": str(msg.id),
-                    "content": full_content,
-                    "citations": [c.model_dump() for c in citations_data],
-                    "faithfulness_score": faith_score,
-                    "model_used": actual_model,
-                })
-
-                yield {
-                    "event": "done",
-                    "data": json.dumps({
+                await cache.set(
+                    conversation_id_str,
+                    body.message,
+                    {
                         "message_id": str(msg.id),
                         "content": full_content,
                         "citations": [c.model_dump() for c in citations_data],
-                        "latency_ms": total_time,
-                        "tokens_used": token_count,
                         "faithfulness_score": faith_score,
                         "model_used": actual_model,
-                        "fallback_used": fallback_used,
-                        "cache_hit": False,
-                    }),
+                    },
+                )
+
+                yield {
+                    "event": "done",
+                    "data": json.dumps(
+                        {
+                            "message_id": str(msg.id),
+                            "content": full_content,
+                            "citations": [c.model_dump() for c in citations_data],
+                            "latency_ms": total_time,
+                            "tokens_used": token_count,
+                            "faithfulness_score": faith_score,
+                            "model_used": actual_model,
+                            "fallback_used": fallback_used,
+                            "cache_hit": False,
+                        }
+                    ),
                 }
 
             except (asyncio.TimeoutError, TimeoutError):
                 yield {
                     "event": "error",
-                    "data": json.dumps({"error": "Request timed out during LLM generation"}),
+                    "data": json.dumps(
+                        {"error": "Request timed out during LLM generation"}
+                    ),
                 }
             except Exception as e:
                 yield {

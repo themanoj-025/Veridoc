@@ -27,6 +27,7 @@ SCRIPT_PATH = Path(__file__).resolve().parent.parent.parent / "scripts" / "run_e
 def eval_mod():
     """Lazily import app.services.evaluation (heavy import chain)."""
     from app.services import evaluation as mod
+
     return mod
 
 
@@ -42,9 +43,12 @@ def run_eval_mod():
 
 # ── Slug normalization / matching ─────────────────────────
 
+
 class TestSlugMatching:
     def test_normalize_strips_non_alphanumerics(self, eval_mod):
-        assert eval_mod._normalize_slug("github_readme_express") == "githubreadmeexpress"
+        assert (
+            eval_mod._normalize_slug("github_readme_express") == "githubreadmeexpress"
+        )
         assert eval_mod._normalize_slug("arXiv_2401.12345") == "arxiv240112345"
 
     def test_exact_slug_matches_filename(self, eval_mod):
@@ -52,7 +56,10 @@ class TestSlugMatching:
 
     def test_slug_with_suffix_matches_bare_filename(self, eval_mod):
         # gold slug 'synthetic_contract_001' → file 'synthetic_contract.txt'
-        assert eval_mod._slug_matches("syntheticcontract001", "synthetic_contract.txt") is True
+        assert (
+            eval_mod._slug_matches("syntheticcontract001", "synthetic_contract.txt")
+            is True
+        )
 
     def test_readme_slug_matches_md(self, eval_mod):
         assert eval_mod._slug_matches("githubreadmeexpress", "github_readme.md") is True
@@ -65,6 +72,7 @@ class TestSlugMatching:
 
 
 # ── Wildcards ────────────────────────────────────────────
+
 
 class TestWildcards:
     @pytest.mark.asyncio
@@ -81,6 +89,7 @@ class TestWildcards:
 
 
 # ── Resolution against the DB ────────────────────────────
+
 
 class TestResolution:
     """Resolution against a fake async DB session (patches the module-level
@@ -116,8 +125,16 @@ class TestResolution:
     @pytest.mark.asyncio
     async def test_resolves_slug_to_uuid(self, eval_mod, monkeypatch):
         rows = [
-            ("11111111-1111-1111-1111-111111111111", "gutenberg_132.txt", "The Art of War"),
-            ("22222222-2222-2222-2222-222222222222", "synthetic_contract.txt", "License"),
+            (
+                "11111111-1111-1111-1111-111111111111",
+                "gutenberg_132.txt",
+                "The Art of War",
+            ),
+            (
+                "22222222-2222-2222-2222-222222222222",
+                "synthetic_contract.txt",
+                "License",
+            ),
         ]
         monkeypatch.setattr(eval_mod, "async_session_factory", self._fake_factory(rows))
 
@@ -131,7 +148,11 @@ class TestResolution:
     @pytest.mark.asyncio
     async def test_contract_slug_suffix_matches(self, eval_mod, monkeypatch):
         rows = [
-            ("33333333-3333-3333-3333-333333333333", "synthetic_contract.txt", "License"),
+            (
+                "33333333-3333-3333-3333-333333333333",
+                "synthetic_contract.txt",
+                "License",
+            ),
         ]
         monkeypatch.setattr(eval_mod, "async_session_factory", self._fake_factory(rows))
 
@@ -140,7 +161,9 @@ class TestResolution:
 
     @pytest.mark.asyncio
     async def test_unmatched_slug_falls_back_to_none(self, eval_mod, monkeypatch):
-        rows = [("11111111-1111-1111-1111-111111111111", "gutenberg_132.txt", "Art of War")]
+        rows = [
+            ("11111111-1111-1111-1111-111111111111", "gutenberg_132.txt", "Art of War")
+        ]
         monkeypatch.setattr(eval_mod, "async_session_factory", self._fake_factory(rows))
 
         assert await eval_mod.resolve_document_ids("nope_does_not_exist") is None
@@ -186,7 +209,13 @@ class TestResolution:
         calls: list = []
 
         async def fake_run_single_eval(question, gold_answer, document_ids, use_hybrid):
-            calls.append({"question": question, "document_ids": document_ids, "hybrid": use_hybrid})
+            calls.append(
+                {
+                    "question": question,
+                    "document_ids": document_ids,
+                    "hybrid": use_hybrid,
+                }
+            )
             return {
                 "question": question,
                 "generated_answer": "Sun Tzu",
@@ -214,6 +243,7 @@ class TestResolution:
 
 
 # ── use_hybrid wiring ────────────────────────────────────
+
 
 class TestUseHybrid:
     """The `--compare` naive path must actually skip hybrid retrieval."""
@@ -243,7 +273,9 @@ class TestUseHybrid:
 
         class FakeHybrid:
             def __init__(self):
-                raise AssertionError("HybridRetriever must NOT be used on the naive path")
+                raise AssertionError(
+                    "HybridRetriever must NOT be used on the naive path"
+                )
 
         # Regression guard: if someone re-wires the naive branch to construct
         # HybridRetriever, this raises and the test fails.

@@ -38,12 +38,17 @@ async def get_current_user(
 
     user_id = payload.get("sub")
     if user_id is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload"
+        )
 
     user_repo = UserRepository(session)
     user = await user_repo.find_by_id(uuid.UUID(user_id))
     if user is None or not user.is_active:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found or inactive",
+        )
 
     # Bind user_id to log context for every log line emitted during this request
     bind_log_context(user_id=str(user.id))

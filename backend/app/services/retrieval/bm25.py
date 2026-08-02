@@ -75,7 +75,11 @@ def _load_from_disk(cache_key: str) -> tuple[Any, list[dict]] | None:
     try:
         with open(path, "rb") as f:
             data = pickle.load(f)
-        logger.info("BM25 index loaded from disk: %s (%d chunks)", path.name, len(data.get("chunks", [])))
+        logger.info(
+            "BM25 index loaded from disk: %s (%d chunks)",
+            path.name,
+            len(data.get("chunks", [])),
+        )
         return data["index"], data["chunks"]
     except (pickle.UnpicklingError, EOFError, Exception) as e:
         logger.warning("BM25 disk load failed, will rebuild: %s", e)
@@ -140,7 +144,11 @@ def get_bm25_index(
     # 1. Check in-memory cache first
     if cache_key in _bm25_indexes:
         cached_index, cached_chunks = _bm25_indexes[cache_key]
-        logger.debug("BM25 cache HIT (memory) for key=%s (%d chunks)", cache_key, len(cached_chunks))
+        logger.debug(
+            "BM25 cache HIT (memory) for key=%s (%d chunks)",
+            cache_key,
+            len(cached_chunks),
+        )
         return cached_index, cached_chunks
 
     # 2. Try disk cache

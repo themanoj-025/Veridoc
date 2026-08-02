@@ -14,7 +14,11 @@ from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.models.message import Message
 from app.models.usage_log import UsageLog
-from app.repositories import DocumentRepository, ConversationRepository, UsageLogRepository
+from app.repositories import (
+    DocumentRepository,
+    ConversationRepository,
+    UsageLogRepository,
+)
 
 router = APIRouter(prefix="/api/v1/user", tags=["user"])
 
@@ -61,27 +65,33 @@ async def export_user_data(
     conversations_data = []
     for conv in conversations:
         msg_result = await session.execute(
-            select(Message).where(Message.conversation_id == conv.id).order_by(Message.created_at)
+            select(Message)
+            .where(Message.conversation_id == conv.id)
+            .order_by(Message.created_at)
         )
         messages = msg_result.scalars().all()
-        conversations_data.append({
-            "id": str(conv.id),
-            "title": conv.title,
-            "is_active": conv.is_active,
-            "created_at": conv.created_at.isoformat() if conv.created_at else None,
-            "updated_at": conv.updated_at.isoformat() if conv.updated_at else None,
-            "messages": [
-                {
-                    "id": str(m.id),
-                    "role": m.role,
-                    "content": m.content,
-                    "latency_ms": m.latency_ms,
-                    "faithfulness_score": m.faithfulness_score,
-                    "created_at": m.created_at.isoformat() if m.created_at else None,
-                }
-                for m in messages
-            ],
-        })
+        conversations_data.append(
+            {
+                "id": str(conv.id),
+                "title": conv.title,
+                "is_active": conv.is_active,
+                "created_at": conv.created_at.isoformat() if conv.created_at else None,
+                "updated_at": conv.updated_at.isoformat() if conv.updated_at else None,
+                "messages": [
+                    {
+                        "id": str(m.id),
+                        "role": m.role,
+                        "content": m.content,
+                        "latency_ms": m.latency_ms,
+                        "faithfulness_score": m.faithfulness_score,
+                        "created_at": m.created_at.isoformat()
+                        if m.created_at
+                        else None,
+                    }
+                    for m in messages
+                ],
+            }
+        )
 
     # Usage logs (last 1000)
     log_result = await session.execute(
@@ -128,6 +138,7 @@ async def delete_account(
 ):
     """Delete the user account and all associated data (GDPR Article 17)."""
     import structlog
+
     logger = structlog.get_logger(__name__)
 
     # Delete all documents (chunks cascade) via repository

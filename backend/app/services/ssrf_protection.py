@@ -58,7 +58,9 @@ def validate_upload_url(url: str) -> bool:
 
         return True
     except socket.gaierror as e:
-        logger.warning("SSRF check failed: unable to resolve hostname", url=url, error=str(e))
+        logger.warning(
+            "SSRF check failed: unable to resolve hostname", url=url, error=str(e)
+        )
         return False
 
 

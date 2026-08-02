@@ -46,6 +46,7 @@ def _get_base_url() -> str:
     """Get the base URL for constructing email links."""
     # Default to localhost; override with FRONTEND_URL env var if set
     import os
+
     return os.environ.get("FRONTEND_URL", "http://localhost:3000")
 
 

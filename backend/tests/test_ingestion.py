@@ -16,6 +16,7 @@ from app.services.ingestion import (
 
 # ── TXT Parsing ──────────────────────────────────────────
 
+
 class TestTextParsing:
     """Tests for plain text file parsing."""
 
@@ -50,6 +51,7 @@ class TestTextParsing:
 
 
 # ── Chunking ─────────────────────────────────────────────
+
 
 class TestChunking:
     """Tests for text chunking logic."""
@@ -112,7 +114,9 @@ class TestChunking:
         )
 
         # Some chunks should be on page 1, some on page 2
-        page_numbers = {c["page_number"] for c in chunks if c["page_number"] is not None}
+        page_numbers = {
+            c["page_number"] for c in chunks if c["page_number"] is not None
+        }
         assert len(page_numbers) > 0
         assert 1 in page_numbers
 
@@ -126,6 +130,7 @@ class TestChunking:
 
 
 # ── Document Parsing Dispatch ────────────────────────────
+
 
 class TestParseDocument:
     """Tests for the parse_document dispatcher."""
@@ -146,6 +151,7 @@ class TestParseDocument:
 
 
 # ── Full Pipeline Mock Test ──────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_process_document_not_found():
@@ -174,7 +180,9 @@ async def test_process_document_success(tmp_path):
     # Create a test document model
     doc_id = uuid.uuid4()
     txt_file = tmp_path / "test_doc.txt"
-    txt_file.write_text("This is a test document with enough content to be chunked and processed " * 20)
+    txt_file.write_text(
+        "This is a test document with enough content to be chunked and processed " * 20
+    )
 
     doc = Document(
         id=doc_id,
@@ -205,6 +213,7 @@ async def test_process_document_success(tmp_path):
     # Mock the heavy dependencies
     with patch("app.services.ingestion.get_embedding_model") as mock_embed:
         import numpy as np
+
         mock_model = MagicMock()
         mock_model.encode = MagicMock(return_value=np.array([[0.1] * 384]))
         mock_embed.return_value = mock_model
@@ -223,11 +232,14 @@ async def test_process_document_success(tmp_path):
 
 # ── Edge Cases ───────────────────────────────────────────
 
+
 def test_chunk_exact_size_multiple():
     """Test chunking when text length is an exact multiple of chunk_size (chars)."""
     # Exactly 1500 chars (default chunk_size), one-word text with no separators
     text = "a" * 1500
-    chunks = chunk_text(text, doc_id="doc-1", doc_title="Test", chunk_size=1500, overlap=0)
+    chunks = chunk_text(
+        text, doc_id="doc-1", doc_title="Test", chunk_size=1500, overlap=0
+    )
 
     assert len(chunks) == 1
     assert len(chunks[0]["content"]) == 1500

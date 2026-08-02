@@ -21,7 +21,17 @@ from app.core.logging_config import (
 from sqlalchemy import text
 
 from app.core.di import init_container
-from app.api import auth, documents, chat, feedback, search, gdpr, admin, sharing, api_keys
+from app.api import (
+    auth,
+    documents,
+    chat,
+    feedback,
+    search,
+    gdpr,
+    admin,
+    sharing,
+    api_keys,
+)
 from app.core.rate_limit import (
     limiter,
     _slowapi_available,
@@ -52,6 +62,7 @@ async def lifespan(app: FastAPI):
     # Pre-download NLTK data so it's NOT done at query time
     try:
         import nltk
+
         nltk.download("punkt", quiet=True)
         nltk.download("punkt_tab", quiet=True)
         logger.info("nltk.downloaded")
@@ -78,6 +89,7 @@ async def lifespan(app: FastAPI):
 
     # Initialize response cache (Redis-backed query cache)
     from app.services.response_cache import get_response_cache
+
     cache = get_response_cache()
     await cache.init_redis()
 
@@ -176,7 +188,9 @@ if _slowapi_available:
     app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
     # G6: middleware injects X-RateLimit-* headers on every limited response
     app.middleware("http")(rate_limit_headers_middleware)
-    logger.info("Rate limiting enabled (%d req/min general)", settings.rate_limit_per_minute)
+    logger.info(
+        "Rate limiting enabled (%d req/min general)", settings.rate_limit_per_minute
+    )
 else:
     logger.warning("slowapi not installed, rate limiting disabled")
 
@@ -191,7 +205,9 @@ try:
         should_respect_env_var=True,
         env_var_name="ENABLE_METRICS",
     )
-    instrumentator.instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
+    instrumentator.instrument(app).expose(
+        app, endpoint="/metrics", include_in_schema=False
+    )
     logger.info("Prometheus metrics enabled at /metrics")
 except ImportError:
     logger.warning("prometheus-fastapi-instrumentator not installed, metrics disabled")
@@ -251,6 +267,7 @@ async def health_check():
     async def _check_postgres():
         try:
             from app.core.database import async_session_factory
+
             async with async_session_factory() as session:
                 await asyncio.wait_for(
                     session.execute(text("SELECT 1")),
@@ -263,18 +280,23 @@ async def health_check():
     async def _check_chroma():
         try:
             import httpx
+
             async with httpx.AsyncClient(timeout=5.0) as client:
                 resp = await client.get(f"{settings.chroma_url}/api/v1/heartbeat")
                 if resp.status_code == 200:
                     deps["chroma"] = {"status": "ok"}
                 else:
-                    deps["chroma"] = {"status": "error", "error": f"HTTP {resp.status_code}"}
+                    deps["chroma"] = {
+                        "status": "error",
+                        "error": f"HTTP {resp.status_code}",
+                    }
         except Exception as e:
             deps["chroma"] = {"status": "error", "error": str(e)}
 
     async def _check_minio():
         try:
             from minio import Minio
+
             client = Minio(
                 settings.minio_endpoint,
                 access_key=settings.minio_access_key,
@@ -289,27 +311,40 @@ async def health_check():
     async def _check_llm():
         try:
             from app.services.llm_provider import get_llm
+
             llm = get_llm()
             # Provider-specific ping
             if llm.model_name.startswith("ollama/"):
                 import httpx
+
                 async with httpx.AsyncClient(timeout=5.0) as client:
                     resp = await client.post(
                         f"{settings.ollama_base_url}/api/generate",
-                        json={"model": settings.ollama_model, "prompt": "hi", "stream": False},
+                        json={
+                            "model": settings.ollama_model,
+                            "prompt": "hi",
+                            "stream": False,
+                        },
                     )
                     if resp.status_code == 200:
                         deps["llm"] = {"status": "ok"}
                     else:
-                        deps["llm"] = {"status": "error", "error": f"HTTP {resp.status_code}"}
+                        deps["llm"] = {
+                            "status": "error",
+                            "error": f"HTTP {resp.status_code}",
+                        }
             else:
-                deps["llm"] = {"status": "ok", "note": f"Provider health not checked: {llm.model_name}"}
+                deps["llm"] = {
+                    "status": "ok",
+                    "note": f"Provider health not checked: {llm.model_name}",
+                }
         except Exception as e:
             deps["llm"] = {"status": "error", "error": str(e)}
 
     async def _check_redis():
         try:
             from app.services.job_queue import JobQueue
+
             q = JobQueue()
             status = await q.get_queue_status()
             deps["redis"] = {
@@ -332,6 +367,7 @@ async def health_check():
     status_code = 200 if all_ok else 503
 
     from fastapi.responses import JSONResponse
+
     return JSONResponse(
         status_code=status_code,
         content={

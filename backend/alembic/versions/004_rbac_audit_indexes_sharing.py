@@ -15,6 +15,7 @@ Revision ID: 004
 Revises: 003
 Create Date: 2026-07-31
 """
+
 from __future__ import annotations
 
 from typing import Sequence, Union
@@ -79,31 +80,70 @@ def upgrade() -> None:
     # ── F8: Create admin_audit_log table ──
     op.create_table(
         "admin_audit_log",
-        sa.Column("id", UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
-        sa.Column("actor_id", UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True),
+        sa.Column(
+            "id",
+            UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("gen_random_uuid()"),
+        ),
+        sa.Column(
+            "actor_id",
+            UUID(as_uuid=True),
+            sa.ForeignKey("users.id", ondelete="SET NULL"),
+            nullable=True,
+        ),
         sa.Column("action", sa.String(255), nullable=False),
         sa.Column("target_type", sa.String(100), nullable=True),
         sa.Column("target_id", sa.String(255), nullable=True),
         sa.Column("metadata_json", sa.Text(), nullable=True),
         sa.Column("ip_address", sa.String(45), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
     )
     op.create_index("idx_admin_audit_actor", "admin_audit_log", ["actor_id"])
     op.create_index("idx_admin_audit_action", "admin_audit_log", ["action"])
-    op.create_index("idx_admin_audit_created", "admin_audit_log", [sa.text("created_at DESC")])
+    op.create_index(
+        "idx_admin_audit_created", "admin_audit_log", [sa.text("created_at DESC")]
+    )
 
     # ── F9: Add composite indexes ──
     op.create_index("idx_documents_user_status", "documents", ["user_id", "status"])
-    op.create_index("idx_conversations_user_active", "conversations", ["user_id", "is_active"])
+    op.create_index(
+        "idx_conversations_user_active", "conversations", ["user_id", "is_active"]
+    )
 
     # ── F20: Create document_shares table ──
     op.create_table(
         "document_shares",
-        sa.Column("id", UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
-        sa.Column("document_id", UUID(as_uuid=True), sa.ForeignKey("documents.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("shared_with_user_id", UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "id",
+            UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("gen_random_uuid()"),
+        ),
+        sa.Column(
+            "document_id",
+            UUID(as_uuid=True),
+            sa.ForeignKey("documents.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column(
+            "shared_with_user_id",
+            UUID(as_uuid=True),
+            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("permission", sa.String(20), nullable=False, server_default="read"),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.UniqueConstraint("document_id", "shared_with_user_id", name="uq_doc_share"),
     )
     op.create_index("idx_doc_shares_document", "document_shares", ["document_id"])
@@ -112,15 +152,30 @@ def upgrade() -> None:
     # ── F20: Create api_keys table ──
     op.create_table(
         "api_keys",
-        sa.Column("id", UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
-        sa.Column("user_id", UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "id",
+            UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("gen_random_uuid()"),
+        ),
+        sa.Column(
+            "user_id",
+            UUID(as_uuid=True),
+            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("key_prefix", sa.String(8), nullable=False),
         sa.Column("key_hash", sa.String(255), nullable=False),
         sa.Column("name", sa.String(255), nullable=False),
         sa.Column("is_active", sa.Boolean(), default=True, nullable=False),
         sa.Column("last_used_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("rate_limit_per_minute", sa.Integer(), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
     )
     op.create_index("idx_api_keys_user", "api_keys", ["user_id"])
     op.create_index("idx_api_keys_prefix", "api_keys", ["key_prefix"], unique=True)

@@ -34,7 +34,5 @@ class DocumentShare(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint(
-            "document_id", "shared_with_user_id", name="uq_doc_share"
-        ),
+        UniqueConstraint("document_id", "shared_with_user_id", name="uq_doc_share"),
     )

@@ -77,7 +77,9 @@ async def test_cache_set_and_get(cache):
     """A value stored in cache should be retrievable."""
     data = {
         "content": "The answer is 42.",
-        "citations": [{"chunk_id": "c1", "document_id": "d1", "text": "Meaning is 42."}],
+        "citations": [
+            {"chunk_id": "c1", "document_id": "d1", "text": "Meaning is 42."}
+        ],
         "faithfulness_score": 0.95,
         "model_used": "llama3.1:8b",
     }
@@ -187,12 +189,16 @@ async def test_redis_cache_hit():
     """When Redis is available, cache reads should use it."""
     reset_cache_for_testing()
     mock_redis = MagicMock()
-    mock_redis.get = AsyncMock(return_value=json.dumps({
-        "content": "From Redis",
-        "citations": [],
-        "faithfulness_score": 0.9,
-        "model_used": "redis-model",
-    }))
+    mock_redis.get = AsyncMock(
+        return_value=json.dumps(
+            {
+                "content": "From Redis",
+                "citations": [],
+                "faithfulness_score": 0.9,
+                "model_used": "redis-model",
+            }
+        )
+    )
     mock_redis.ping = AsyncMock(return_value=True)
 
     with patch("redis.asyncio.from_url", return_value=mock_redis):
@@ -218,12 +224,16 @@ async def test_redis_cache_set():
         cache = ResponseCache()
         await cache.init_redis()
 
-        await cache.set("conv-1", "Test query", {
-            "content": "Cached response",
-            "citations": [],
-            "faithfulness_score": 1.0,
-            "model_used": "test",
-        })
+        await cache.set(
+            "conv-1",
+            "Test query",
+            {
+                "content": "Cached response",
+                "citations": [],
+                "faithfulness_score": 1.0,
+                "model_used": "test",
+            },
+        )
         mock_redis.setex.assert_called_once()
 
 

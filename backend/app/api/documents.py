@@ -5,7 +5,16 @@ from __future__ import annotations
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Form, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Request,
+    UploadFile,
+    File,
+    Form,
+    status,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
@@ -63,7 +72,7 @@ async def upload_document(
     if len(content) > MAX_FILE_SIZE:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"File too large. Maximum size: {MAX_FILE_SIZE // (1024*1024)}MB",
+            detail=f"File too large. Maximum size: {MAX_FILE_SIZE // (1024 * 1024)}MB",
         )
 
     # Determine file type
@@ -81,6 +90,7 @@ async def upload_document(
     # F7: Virus-scan hook — reject the upload if the configured scanner flags it.
     # Default NoopVirusScanner reports clean; swap in ClamAV via get_virus_scanner().
     from app.services.ssrf_protection import get_virus_scanner
+
     scanner = get_virus_scanner()
     if not scanner.scan(str(file_path)):
         file_path.unlink(missing_ok=True)
@@ -135,7 +145,9 @@ async def list_documents(
     )
 
 
-@router.get("/{document_id}", response_model=DocumentResponse, operation_id="documents_get")
+@router.get(
+    "/{document_id}", response_model=DocumentResponse, operation_id="documents_get"
+)
 async def get_document(
     document_id: uuid.UUID,
     user: User = Depends(get_current_user),
@@ -147,12 +159,16 @@ async def get_document(
     doc = await doc_repo.find_by_id_and_user(document_id, user.id)
     if not doc:
         await session.close()
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+        )
     await session.close()
     return DocumentResponse.model_validate(doc)
 
 
-@router.patch("/{document_id}", response_model=DocumentResponse, operation_id="documents_update")
+@router.patch(
+    "/{document_id}", response_model=DocumentResponse, operation_id="documents_update"
+)
 async def update_document(
     document_id: uuid.UUID,
     body: DocumentUpdate,
@@ -164,7 +180,9 @@ async def update_document(
     doc_repo = DocumentRepository(session)
     doc = await doc_repo.find_by_id_and_user(document_id, user.id)
     if not doc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+        )
 
     if body.title is not None:
         doc.title = body.title
@@ -184,7 +202,9 @@ async def get_document_content(
     doc_repo = DocumentRepository(session)
     doc = await doc_repo.find_by_id_and_user(document_id, user.id)
     if not doc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+        )
 
     # Get chunks via repository
     chunk_repo = ChunkRepository(session)
@@ -211,7 +231,11 @@ async def get_document_content(
     }
 
 
-@router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT, operation_id="documents_delete")
+@router.delete(
+    "/{document_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    operation_id="documents_delete",
+)
 async def delete_document(
     document_id: uuid.UUID,
     user: User = Depends(get_current_user),
@@ -222,7 +246,9 @@ async def delete_document(
     doc_repo = DocumentRepository(session)
     doc = await doc_repo.find_by_id_and_user(document_id, user.id)
     if not doc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+        )
 
     # Delete file from disk + Chroma
     await doc_repo.delete_chroma_and_file(doc)
@@ -232,7 +258,11 @@ async def delete_document(
     await session.close()
 
 
-@router.post("/{document_id}/reindex", response_model=IngestionStatus, operation_id="documents_reindex")
+@router.post(
+    "/{document_id}/reindex",
+    response_model=IngestionStatus,
+    operation_id="documents_reindex",
+)
 async def reindex_document(
     document_id: uuid.UUID,
     user: User = Depends(get_current_user),
@@ -243,7 +273,9 @@ async def reindex_document(
     doc_repo = DocumentRepository(session)
     doc = await doc_repo.find_by_id_and_user(document_id, user.id)
     if not doc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+        )
 
     # Reset status
     doc.status = "pending"

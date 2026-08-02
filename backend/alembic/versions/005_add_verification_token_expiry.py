@@ -9,6 +9,7 @@ Revision ID: 005
 Revises: 004
 Create Date: 2026-07-31
 """
+
 from __future__ import annotations
 
 from typing import Sequence, Union
@@ -25,7 +26,9 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     op.add_column(
         "users",
-        sa.Column("verification_token_expiry", sa.DateTime(timezone=True), nullable=True),
+        sa.Column(
+            "verification_token_expiry", sa.DateTime(timezone=True), nullable=True
+        ),
     )
 
 

@@ -13,6 +13,7 @@ Revision ID: 002
 Revises: 001
 Create Date: 2026-07-28
 """
+
 from __future__ import annotations
 
 import json
@@ -35,18 +36,40 @@ def upgrade() -> None:
     # ── 1. Create conversation_documents junction table ──
     op.create_table(
         "conversation_documents",
-        sa.Column("id", UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
-        sa.Column("conversation_id", UUID(as_uuid=True),
-                  sa.ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False, index=True),
-        sa.Column("document_id", UUID(as_uuid=True),
-                  sa.ForeignKey("documents.id", ondelete="CASCADE"), nullable=False, index=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "id",
+            UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("gen_random_uuid()"),
+        ),
+        sa.Column(
+            "conversation_id",
+            UUID(as_uuid=True),
+            sa.ForeignKey("conversations.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        ),
+        sa.Column(
+            "document_id",
+            UUID(as_uuid=True),
+            sa.ForeignKey("documents.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.UniqueConstraint("conversation_id", "document_id", name="uq_conv_doc"),
     )
 
     # Migrate existing data from conversations.document_ids ARRAY
     conv_rows = connection.execute(
-        text("SELECT id, document_ids FROM conversations WHERE document_ids IS NOT NULL AND document_ids != '{}'")
+        text(
+            "SELECT id, document_ids FROM conversations WHERE document_ids IS NOT NULL AND document_ids != '{}'"
+        )
     ).fetchall()
 
     for row in conv_rows:
@@ -68,20 +91,37 @@ def upgrade() -> None:
     # ── 2. Create citation_records table ──
     op.create_table(
         "citation_records",
-        sa.Column("id", UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
-        sa.Column("message_id", UUID(as_uuid=True),
-                  sa.ForeignKey("messages.id", ondelete="CASCADE"), nullable=False, index=True),
+        sa.Column(
+            "id",
+            UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("gen_random_uuid()"),
+        ),
+        sa.Column(
+            "message_id",
+            UUID(as_uuid=True),
+            sa.ForeignKey("messages.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        ),
         sa.Column("chunk_id", sa.String(255), nullable=True),
         sa.Column("document_id", sa.String(255), nullable=True),
         sa.Column("text", sa.Text(), nullable=False),
         sa.Column("page_number", sa.Integer(), nullable=True),
         sa.Column("score", sa.Float(), default=0.0, nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
     )
 
     # Migrate existing data from messages.citations JSON
     msg_rows = connection.execute(
-        text("SELECT id, citations FROM messages WHERE citations IS NOT NULL AND citations::text != 'null'")
+        text(
+            "SELECT id, citations FROM messages WHERE citations IS NOT NULL AND citations::text != 'null'"
+        )
     ).fetchall()
 
     for row in msg_rows:
@@ -121,9 +161,21 @@ def upgrade() -> None:
         batch_op.drop_column("citations")
 
     # ── 4. Add composite indexes ──
-    op.create_index("idx_documents_user_created", "documents", ["user_id", sa.text("created_at DESC")])
-    op.create_index("idx_conversations_user_updated", "conversations", ["user_id", sa.text("updated_at DESC")])
-    op.create_index("idx_messages_conversation_created", "messages", ["conversation_id", sa.text("created_at ASC")])
+    op.create_index(
+        "idx_documents_user_created",
+        "documents",
+        ["user_id", sa.text("created_at DESC")],
+    )
+    op.create_index(
+        "idx_conversations_user_updated",
+        "conversations",
+        ["user_id", sa.text("updated_at DESC")],
+    )
+    op.create_index(
+        "idx_messages_conversation_created",
+        "messages",
+        ["conversation_id", sa.text("created_at ASC")],
+    )
 
     # ── 5. Add tsvector GIN index for full-text search on chunks.content ──
     op.execute(
@@ -144,12 +196,20 @@ def downgrade() -> None:
 
     # Restore ARRAY document_ids column
     from sqlalchemy.dialects.postgresql import ARRAY
-    op.add_column("conversations", sa.Column("document_ids", ARRAY(UUID(as_uuid=True)), default=list, nullable=True))
+
+    op.add_column(
+        "conversations",
+        sa.Column(
+            "document_ids", ARRAY(UUID(as_uuid=True)), default=list, nullable=True
+        ),
+    )
 
     # Migrate data back (simplified: aggregate citation_records into JSON)
     connection = op.get_bind()
     cit_rows = connection.execute(
-        text("SELECT message_id, json_agg(json_build_object('chunk_id', chunk_id, 'document_id', document_id, 'text', text, 'page_number', page_number, 'score', score) ORDER BY created_at) AS citations FROM citation_records GROUP BY message_id")
+        text(
+            "SELECT message_id, json_agg(json_build_object('chunk_id', chunk_id, 'document_id', document_id, 'text', text, 'page_number', page_number, 'score', score) ORDER BY created_at) AS citations FROM citation_records GROUP BY message_id"
+        )
     ).fetchall()
 
     for row in cit_rows:
@@ -161,13 +221,17 @@ def downgrade() -> None:
 
     # Aggregate conversation_documents into ARRAY
     doc_rows = connection.execute(
-        text("SELECT conversation_id, array_agg(document_id ORDER BY created_at) AS doc_ids FROM conversation_documents GROUP BY conversation_id")
+        text(
+            "SELECT conversation_id, array_agg(document_id ORDER BY created_at) AS doc_ids FROM conversation_documents GROUP BY conversation_id"
+        )
     ).fetchall()
 
     for row in doc_rows:
         conv_id, doc_ids = row
         connection.execute(
-            text("UPDATE conversations SET document_ids = :doc_ids WHERE id = :conv_id"),
+            text(
+                "UPDATE conversations SET document_ids = :doc_ids WHERE id = :conv_id"
+            ),
             {"doc_ids": doc_ids, "conv_id": conv_id},
         )
 

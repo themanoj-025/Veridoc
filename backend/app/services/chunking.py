@@ -27,14 +27,14 @@ from typing import Any
 
 # Ordered by priority: most semantic first, fallback last
 _DEFAULT_SEPARATORS = [
-    "\n\n",   # Paragraphs
-    "\n",     # Lines
-    ". ",     # Sentences (period + space)
-    "! ",     # Sentences (exclamation + space)
-    "? ",     # Sentences (question + space)
-    "; ",     # Clauses
-    " ",      # Words
-    "",       # Characters (last resort)
+    "\n\n",  # Paragraphs
+    "\n",  # Lines
+    ". ",  # Sentences (period + space)
+    "! ",  # Sentences (exclamation + space)
+    "? ",  # Sentences (question + space)
+    "; ",  # Clauses
+    " ",  # Words
+    "",  # Characters (last resort)
 ]
 
 
@@ -95,13 +95,15 @@ def recursive_chunk_text(
         if not content:
             continue
         page_number = _find_page_number(char_offset, pages)
-        chunks.append({
-            "document_id": doc_id,
-            "document_title": doc_title,
-            "chunk_index": idx,
-            "content": content,
-            "page_number": page_number,
-        })
+        chunks.append(
+            {
+                "document_id": doc_id,
+                "document_title": doc_title,
+                "chunk_index": idx,
+                "content": content,
+                "page_number": page_number,
+            }
+        )
         char_offset += len(content)
 
     return chunks
@@ -122,7 +124,7 @@ def _recursive_split(text: str, separators: list[str], chunk_size: int) -> list[
 
     if not separator:
         # Last resort — character-level split
-        return [text[i:i + chunk_size] for i in range(0, len(text), chunk_size)]
+        return [text[i : i + chunk_size] for i in range(0, len(text), chunk_size)]
 
     # Split while preserving the separator on each piece
     pieces = _split_preserving_sep(text, separator)

@@ -25,23 +25,17 @@ class UserRepository(BaseRepository[User]):
 
     async def find_by_email(self, email: str) -> User | None:
         """Find a user by email address."""
-        result = await self.session.execute(
-            select(User).where(User.email == email)
-        )
+        result = await self.session.execute(select(User).where(User.email == email))
         return result.scalar_one_or_none()
 
     async def find_by_id(self, id: uuid.UUID) -> User | None:
         """Find a user by primary key."""
-        result = await self.session.execute(
-            select(User).where(User.id == id)
-        )
+        result = await self.session.execute(select(User).where(User.id == id))
         return result.scalar_one_or_none()
 
     async def find_by_role(self, role: str) -> list[User]:
         """Find all users with a specific role."""
-        result = await self.session.execute(
-            select(User).where(User.role == role)
-        )
+        result = await self.session.execute(select(User).where(User.role == role))
         return list(result.scalars().all())
 
     async def find_by_verification_token(self, token: str) -> User | None:

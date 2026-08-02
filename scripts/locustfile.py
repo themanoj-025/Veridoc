@@ -294,9 +294,7 @@ class VeridocUser(HttpUser):
                         detail_data = detail_resp.json()
                         assert "id" in detail_data
                     except (json.JSONDecodeError, AssertionError) as e:
-                        detail_resp.failure(
-                            f"Get document response malformed: {e}"
-                        )
+                        detail_resp.failure(f"Get document response malformed: {e}")
                 elif detail_resp.status_code == 401:
                     self._refresh_token()
                 else:
