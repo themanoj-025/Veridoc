@@ -54,7 +54,8 @@ services:
 
   # ── Chroma (Vector DB) ───────────────────────────────
   chroma:
-    image: chromadb/chroma:latest
+    # Pinned to match client chromadb==0.5.5 in backend/requirements.txt (server :latest drifted, 410 on heartbeat)
+    image: chromadb/chroma:0.5.5
     container_name: veridoc-chroma
     restart: unless-stopped
     volumes:
