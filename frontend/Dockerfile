@@ -6,7 +6,8 @@ COPY package.json ./
 RUN npm install --no-audit --no-fund --legacy-peer-deps
 
 COPY . .
-RUN npm run build
+# Ensure /app/public exists even if the app has no public dir (Next.js tolerates an empty one)
+RUN mkdir -p /app/public && npm run build
 
 # Production runner
 FROM node:20-alpine AS runner
