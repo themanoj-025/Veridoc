@@ -111,7 +111,7 @@ def _check_secret_rotation_age(logger) -> None:
     - recent → info
     - malformed date → warning
     """
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timezone
     from app.core.config import settings
 
     window = getattr(settings, "secret_rotation_warning_days", 90)
@@ -149,7 +149,10 @@ def _check_secret_rotation_age(logger) -> None:
             status="stale",
             age_days=age_days,
             window_days=window,
-            hint=f"JWT_SECRET/FILE_ENCRYPTION_KEY were rotated {age_days} days ago (window: {window}). Please rotate them.",
+            hint=(
+                f"JWT_SECRET/FILE_ENCRYPTION_KEY were rotated {age_days} days ago "
+                f"(window: {window}). Please rotate them."
+            ),
         )
     else:
         logger.info(

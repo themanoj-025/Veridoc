@@ -19,7 +19,8 @@ jobs:
           # (i.e., not starting with ${...})
           secrets_found=0
           for file in docker-compose.yml docker-compose.prod.yml; do
-            if [ ! -f "$file" ]; then continue; fi              for key in JWT_SECRET FILE_ENCRYPTION_KEY POSTGRES_PASSWORD MINIO_SECRET_KEY; do
+            if [ ! -f "$file" ]; then continue; fi
+            for key in JWT_SECRET FILE_ENCRYPTION_KEY POSTGRES_PASSWORD MINIO_SECRET_KEY; do
               # Look for lines like "  JWT_SECRET: some-literal-value" that don't start with $
               while IFS= read -r line; do
                 echo "ERROR: $file contains a hardcoded $key literal value"
@@ -216,6 +217,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build Docker images
+        # Dummy values only for compose interpolation during CI build;
+        # real secrets are never baked into images.
+        env:
+          JWT_SECRET: ci-build-only-dummy-secret
+          FILE_ENCRYPTION_KEY: ci-build-only-dummy-key
         run: docker compose build
 
   # E2E smoke test (B6) — requires full Docker Compose stack

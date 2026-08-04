@@ -8,7 +8,6 @@ implementation can be swapped in via the factory.
 
 from __future__ import annotations
 
-import uuid
 from unittest.mock import MagicMock, patch
 
 import pytest

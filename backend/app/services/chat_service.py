@@ -17,7 +17,6 @@ from app.core.config import settings
 from app.models.user import User
 from app.models.conversation import Conversation
 from app.models.message import Message
-from app.models.usage_log import UsageLog
 from app.models.citation_record import CitationRecord
 from app.repositories import ConversationRepository
 from app.schemas.chat import ChatRequest, Citation

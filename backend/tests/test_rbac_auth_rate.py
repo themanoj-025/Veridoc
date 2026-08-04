@@ -7,17 +7,15 @@ All tests use the existing mocked DB session pattern from conftest.py.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import AsyncClient
 
-from app.core.security import hash_password, create_access_token
+from app.core.security import hash_password
 from app.models.user import User
 from app.models.admin_audit_log import AdminAuditLog
 from app.models.message import Message
-from app.models.conversation import Conversation
 
 
 # ════════════════════════════════════════════════════════════════
@@ -533,7 +531,6 @@ class TestG2_PromptVersion:
 
         from app.models.conversation import Conversation
         from app.services.chat_service import ChatService
-        from app.schemas.chat import Citation
 
         conv = Conversation(id=uuid.uuid4(), user_id=sample_user.id, title="t")
 
@@ -617,7 +614,6 @@ class TestG4_SecretRotation:
 
     def _call_with(self, rotated_at, window_days=90):
         """Invoke the check with a patched settings object and capture log calls."""
-        from datetime import datetime, timezone
         from app.main import _check_secret_rotation_age
         from app.core import config as config_module
 

@@ -114,6 +114,7 @@ services:
       CHROMA_PORT: 8000
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      DATA_DIR: /app/data
       # ── Security: Secrets MUST come from .env, NOT hardcoded here ──
       # These values are required. The backend will refuse to start
       # if JWT_SECRET or FILE_ENCRYPTION_KEY are empty or match known
@@ -178,6 +179,7 @@ services:
       CHROMA_PORT: 8000
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      DATA_DIR: /app/data
       # ── Security: Secrets MUST come from .env, NOT hardcoded here ──
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required — set it in .env}
       FILE_ENCRYPTION_KEY: ${FILE_ENCRYPTION_KEY:?FILE_ENCRYPTION_KEY is required — set it in .env}

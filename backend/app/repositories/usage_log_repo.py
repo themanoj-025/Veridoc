@@ -7,7 +7,7 @@ in ``api/admin.py`` and ``api/gdpr.py``.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from sqlalchemy import func, select, text, delete as sa_delete
 from sqlalchemy.ext.asyncio import AsyncSession

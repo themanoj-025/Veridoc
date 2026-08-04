@@ -106,8 +106,10 @@ class Settings(BaseSettings):
         return f"redis://{auth}{self.redis_host}:{self.redis_port}/{self.redis_db}"
 
     # ── Paths ──
-    data_dir: Path = Path("/app/data")
-    upload_dir: Path = Path("/app/data/uploads")
+    # Local-first defaults so tests/CI work outside the container.
+    # Production/Docker deployments set DATA_DIR=/app/data via compose.
+    data_dir: Path = Path(__file__).resolve().parents[2] / "data"
+    upload_dir: Path = Path(__file__).resolve().parents[2] / "data" / "uploads"
 
     # ── Response Cache (Redis) ──
     redis_cache_enabled: bool = True

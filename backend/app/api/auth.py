@@ -1,11 +1,7 @@
 """Authentication API routes — uses UserRepository for data access."""
 
-import uuid
-
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy.ext.asyncio import AsyncSession
-
 import secrets
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,7 +31,6 @@ from app.schemas.auth import (
 from app.services.email_sender import (
     send_verification_email,
     send_password_reset_email,
-    get_dev_email_sender,
 )
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])

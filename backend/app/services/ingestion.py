@@ -10,7 +10,6 @@ import structlog
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.database import async_session_factory
-from app.models.document import Document
 from app.models.chunk import Chunk
 from app.repositories import DocumentRepository, ChunkRepository
 from app.services.chunking import recursive_chunk_text
@@ -28,7 +27,7 @@ def get_embedding_model() -> object:
     Returns an object with ``.encode(texts, show_progress_bar)`` that
     returns an object with ``.tolist()`` (e.g. a numpy array).
     """
-    from app.core.di import get_di_container, EmbeddingModel
+    from app.core.di import get_di_container
 
     container = get_di_container()
     if container is not None:
