@@ -292,7 +292,7 @@ def main():
     csv_dir = Path(args.csv_dir)
     results: list[dict] = []
 
-    print(f"Veridoc Load Test Runner")
+    print("Veridoc Load Test Runner")
     print(f"  Host:      {args.host}")
     print(f"  Users:     {args.concurrency}")
     print(f"  Run time:  {args.run_time}")

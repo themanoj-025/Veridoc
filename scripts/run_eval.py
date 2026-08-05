@@ -203,7 +203,7 @@ def write_report(
             "",
             f"- **Mean**: {hybrid_metrics.get('mean_faithfulness', 0) * 100:.1f}%",
             "",
-            f"## Latency Distribution",
+            "## Latency Distribution",
             "",
             f"- **P50**: {hybrid_metrics.get('p50_latency_ms', 0):.0f}ms",
             f"- **P95**: {hybrid_metrics.get('p95_latency_ms', 0):.0f}ms",
@@ -236,7 +236,7 @@ async def main():
     # Run hybrid+rerank evaluation
     print("=" * 60)
     hybrid_results, hybrid_metrics = await run_evaluation(gold_qa, use_hybrid=True)
-    print(f"\nHybrid+Re-rank Results:")
+    print("\nHybrid+Re-rank Results:")
     print(f"  Answer Accuracy: {hybrid_metrics.get('answer_accuracy', 0) * 100:.1f}%")
     print(f"  Refusal Accuracy: {hybrid_metrics.get('refusal_accuracy', 0) * 100:.1f}%")
     print(
@@ -250,7 +250,7 @@ async def main():
     if args.compare:
         print("\n" + "=" * 60)
         naive_results, naive_metrics = await run_evaluation(gold_qa, use_hybrid=False)
-        print(f"\nNaive Dense Results:")
+        print("\nNaive Dense Results:")
         print(
             f"  Answer Accuracy: {naive_metrics.get('answer_accuracy', 0) * 100:.1f}%"
         )

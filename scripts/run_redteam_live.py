@@ -355,7 +355,7 @@ async def main():
 
     # 3. Run each test case
     print(f"\nRunning {len(tests)} test cases against Ollama ({args.model})...")
-    print(f"  (each request has a 60-second timeout)\n")
+    print("  (each request has a 60-second timeout)\n")
 
     results = []
     for i, test in enumerate(tests, 1):

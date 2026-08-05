@@ -21,8 +21,6 @@ To see the current queue size without processing:
 
 import argparse
 import json
-import os
-import sys
 from datetime import datetime
 from pathlib import Path
 

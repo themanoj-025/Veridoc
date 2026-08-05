@@ -144,7 +144,6 @@ class VeridocUser(HttpUser):
         ) as resp:
             if resp.status_code == 200:
                 data = resp.json()
-                old_refresh = self.refresh_token
                 self.access_token = data.get("access_token")
                 self.refresh_token = data.get("refresh_token")
                 return True
