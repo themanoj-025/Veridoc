@@ -11,4 +11,15 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+// ── F15: Bundle analysis ─────────────────────────────────────
+// Run: ANALYZE=true npm run build
+// Opens interactive treemap in the browser showing each chunk's composition.
+const withBundleAnalyzer =
+  process.env.ANALYZE === "true"
+    ? require("@next/bundle-analyzer")({
+        enabled: true,
+        openAnalyzer: true,
+      })
+    : (config) => config;
+
+module.exports = withBundleAnalyzer(nextConfig);
