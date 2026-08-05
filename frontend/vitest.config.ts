@@ -9,7 +9,8 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     include: ["**/*.test.{ts,tsx}"],
-    exclude: ["node_modules", ".next"],
+    exclude: ["node_modules", ".next", "e2e/**"],
+    fileParallelism: false,
     css: false,
   },
   resolve: {

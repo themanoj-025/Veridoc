@@ -54,7 +54,8 @@ services:
 
   # ── Chroma (Vector DB) ───────────────────────────────
   chroma:
-    image: chromadb/chroma:latest
+    # Pinned to match client chromadb==0.5.5 in backend/requirements.txt (server :latest drifted, 410 on heartbeat)
+    image: chromadb/chroma:0.5.5
     container_name: veridoc-chroma
     restart: unless-stopped
     volumes:
@@ -100,7 +101,7 @@ services:
     environment:
       APP_ENV: development
       POSTGRES_USER: veridoc
-      POSTGRES_PASSWORD: veridoc_local_dev
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-veridoc_local_dev}
       POSTGRES_DB: veridoc
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
@@ -113,6 +114,7 @@ services:
       CHROMA_PORT: 8000
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      DATA_DIR: /app/data
       # ── Security: Secrets MUST come from .env, NOT hardcoded here ──
       # These values are required. The backend will refuse to start
       # if JWT_SECRET or FILE_ENCRYPTION_KEY are empty or match known
@@ -164,7 +166,7 @@ services:
     environment:
       APP_ENV: development
       POSTGRES_USER: veridoc
-      POSTGRES_PASSWORD: veridoc_local_dev
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-veridoc_local_dev}
       POSTGRES_DB: veridoc
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
@@ -177,6 +179,7 @@ services:
       CHROMA_PORT: 8000
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      DATA_DIR: /app/data
       # ── Security: Secrets MUST come from .env, NOT hardcoded here ──
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required — set it in .env}
       FILE_ENCRYPTION_KEY: ${FILE_ENCRYPTION_KEY:?FILE_ENCRYPTION_KEY is required — set it in .env}

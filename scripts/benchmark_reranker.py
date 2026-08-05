@@ -37,7 +37,9 @@ def main():
         print(f"      Model loaded in {load_time:.1f}s")
     except Exception as e:
         print(f"      FAILED: {e}")
-        print("\n      Cannot load the cross-encoder model. Ensure sentence-transformers")
+        print(
+            "\n      Cannot load the cross-encoder model. Ensure sentence-transformers"
+        )
         print("      and torch are installed:  pip install -r backend/requirements.txt")
         sys.exit(1)
 
@@ -106,7 +108,9 @@ def main():
     start = time.time()
     scores_batch = reranker.predict(pairs)
     elapsed_batch = (time.time() - start) * 1000
-    print(f"        {elapsed_batch:.1f} ms  ({elapsed_batch / len(pairs):.1f} ms per pair)")
+    print(
+        f"        {elapsed_batch:.1f} ms  ({elapsed_batch / len(pairs):.1f} ms per pair)"
+    )
 
     # Benchmark: batch_size=20 (single batch for 20 candidates)
     print("      Running batch_size=20 (single batch)...")
@@ -120,10 +124,14 @@ def main():
     print(f"  RESULTS")
     print(f"{'=' * 60}")
     print(f"  {'Method':<25} {'Total (ms)':<15} {'Per-pair (ms)':<15}")
-    print(f"  {'-'*25} {'-'*15} {'-'*15}")
+    print(f"  {'-' * 25} {'-' * 15} {'-' * 15}")
     print(f"  {'batch_size=1':<25} {elapsed_1:<15.0f} {elapsed_1 / len(pairs):<15.1f}")
-    print(f"  {'default (model decides)':<25} {elapsed_batch:<15.0f} {elapsed_batch / len(pairs):<15.1f}")
-    print(f"  {'batch_size=20 (single)':<25} {elapsed_20:<15.0f} {elapsed_20 / len(pairs):<15.1f}")
+    print(
+        f"  {'default (model decides)':<25} {elapsed_batch:<15.0f} {elapsed_batch / len(pairs):<15.1f}"
+    )
+    print(
+        f"  {'batch_size=20 (single)':<25} {elapsed_20:<15.0f} {elapsed_20 / len(pairs):<15.1f}"
+    )
     print(f"{'=' * 60}")
 
     # Compute speedup
@@ -136,15 +144,23 @@ def main():
     # Verify consistency
     # Check that all three runs produce the same ranking (roughly)
     ranks_1 = sorted(range(len(scores_1)), key=lambda i: scores_1[i], reverse=True)
-    ranks_batch = sorted(range(len(scores_batch)), key=lambda i: scores_batch[i], reverse=True)
+    ranks_batch = sorted(
+        range(len(scores_batch)), key=lambda i: scores_batch[i], reverse=True
+    )
     rank_diff = sum(abs(r1 - r2) for r1, r2 in zip(ranks_1, ranks_batch))
-    print(f"  Ranking consistency (1 vs default): {rank_diff} position differences across {len(scores_1)} items")
+    print(
+        f"  Ranking consistency (1 vs default): {rank_diff} position differences across {len(scores_1)} items"
+    )
     if rank_diff == 0:
         print("  [OK] Rankings are identical -- batching preserves ranking quality")
     else:
-        print(f"  ⚠ Rankings differ by {rank_diff} positions (may be due to floating-point precision)")
+        print(
+            f"  ⚠ Rankings differ by {rank_diff} positions (may be due to floating-point precision)"
+        )
 
-    print(f"\n  Done. Log these numbers in BUILD_LOG.md under 'B10 — Cross-encoder batching'.")
+    print(
+        f"\n  Done. Log these numbers in BUILD_LOG.md under 'B10 — Cross-encoder batching'."
+    )
 
 
 if __name__ == "__main__":

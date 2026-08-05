@@ -61,6 +61,7 @@ async def fulltext_search(
 
     # Sanitize query for tsquery (remove special characters)
     import re
+
     safe_query = re.sub(r"[^\w\s]", " ", q.strip())
     # Convert to tsquery format: "word1 word2" → "word1 & word2"
     tsquery = " & ".join(safe_query.split())

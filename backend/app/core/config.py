@@ -65,6 +65,13 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
 
+    # ── G4: Secret rotation tracking ──
+    # ISO-8601 date of the last JWT_SECRET / FILE_ENCRYPTION_KEY rotation.
+    # If unset, or older than `secret_rotation_warning_days`, a startup
+    # warning is logged (never a hard failure).
+    secret_rotated_at: str | None = None
+    secret_rotation_warning_days: int = 90
+
     # ── File Encryption (empty — MUST be set in .env) ──
     file_encryption_key: str = ""
 
@@ -72,6 +79,7 @@ class Settings(BaseSettings):
     llm_provider: Literal["ollama", "claude", "openai"] = "ollama"
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama3.1:8b"
+    llm_timeout: int = 60  # seconds; used by chat_service, llm_provider, job_queue, worker
 
     # ── Optional API Keys ──
     anthropic_api_key: str | None = None
@@ -98,8 +106,10 @@ class Settings(BaseSettings):
         return f"redis://{auth}{self.redis_host}:{self.redis_port}/{self.redis_db}"
 
     # ── Paths ──
-    data_dir: Path = Path("/app/data")
-    upload_dir: Path = Path("/app/data/uploads")
+    # Local-first defaults so tests/CI work outside the container.
+    # Production/Docker deployments set DATA_DIR=/app/data via compose.
+    data_dir: Path = Path(__file__).resolve().parents[2] / "data"
+    upload_dir: Path = Path(__file__).resolve().parents[2] / "data" / "uploads"
 
     # ── Response Cache (Redis) ──
     redis_cache_enabled: bool = True

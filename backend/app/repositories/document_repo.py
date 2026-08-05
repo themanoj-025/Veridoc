@@ -26,10 +26,14 @@ class DocumentRepository(BaseRepository[Document]):
 
     # ── User-scoped lookups ──────────────────────────────────
 
-    async def find_by_id_and_user(self, document_id: uuid.UUID, user_id: uuid.UUID) -> Document | None:
+    async def find_by_id_and_user(
+        self, document_id: uuid.UUID, user_id: uuid.UUID
+    ) -> Document | None:
         """Find a document by ID, scoped to the owning user."""
         result = await self.session.execute(
-            select(Document).where(Document.id == document_id, Document.user_id == user_id)
+            select(Document).where(
+                Document.id == document_id, Document.user_id == user_id
+            )
         )
         return result.scalar_one_or_none()
 
@@ -63,7 +67,9 @@ class DocumentRepository(BaseRepository[Document]):
     async def list_all_by_user(self, user_id: uuid.UUID) -> list[Document]:
         """Get ALL documents for a user (no pagination). Used by GDPR export."""
         result = await self.session.execute(
-            select(Document).where(Document.user_id == user_id).order_by(Document.created_at.desc())
+            select(Document)
+            .where(Document.user_id == user_id)
+            .order_by(Document.created_at.desc())
         )
         return list(result.scalars().all())
 
@@ -112,6 +118,7 @@ class DocumentRepository(BaseRepository[Document]):
         for doc in docs[0]:
             await self.delete_chroma_and_file(doc)
         from sqlalchemy import delete as sa_delete
+
         await self.session.execute(
             sa_delete(Document).where(Document.user_id == user_id)
         )
@@ -127,6 +134,7 @@ class DocumentRepository(BaseRepository[Document]):
         # Remove from Chroma
         try:
             from app.services.vector_store import get_vector_store
+
             vs = get_vector_store()
             await vs.delete_document(str(doc.id))
         except Exception:

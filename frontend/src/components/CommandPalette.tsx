@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { t } from "@/lib/i18n";
 import { useAuthStore } from "@/lib/store";
 
 interface Command {
@@ -33,8 +34,8 @@ export function CommandPalette() {
   const commands: Command[] = [
     {
       id: "new-chat",
-      label: "New Conversation",
-      description: "Start a new chat conversation",
+      label: t("command.newChat"),
+      description: t("command.newChatDesc"),
       icon: (
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -49,8 +50,8 @@ export function CommandPalette() {
     },
     {
       id: "toggle-theme",
-      label: "Toggle Dark Mode",
-      description: "Switch between light and dark theme",
+      label: t("command.toggleTheme"),
+      description: t("command.toggleThemeDesc"),
       icon: (
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
@@ -64,8 +65,8 @@ export function CommandPalette() {
     },
     {
       id: "upload-doc",
-      label: "Upload Document",
-      description: "Upload a PDF, DOCX, or TXT file",
+      label: t("documents.upload"),
+      description: t("command.uploadDesc"),
       icon: (
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -79,8 +80,8 @@ export function CommandPalette() {
     },
     {
       id: "search-docs",
-      label: "Search Documents",
-      description: "Search across all your documents",
+      label: t("command.searchDocs"),
+      description: t("command.searchDocsDesc"),
       icon: (
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -94,8 +95,8 @@ export function CommandPalette() {
     },
     {
       id: "sign-out",
-      label: "Sign Out",
-      description: "Log out of your account",
+      label: t("dashboard.signOut"),
+      description: t("command.signOutDesc"),
       icon: (
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -193,7 +194,7 @@ export function CommandPalette() {
                 setSelectedIndex(0);
               }}
               onKeyDown={handleKeyDown}
-              placeholder="Search commands..."
+              placeholder={t("command.searchPlaceholder")}
               className="flex-1 bg-transparent text-foreground placeholder-muted-foreground outline-none text-sm"
             />
             <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted text-xs text-muted-foreground font-mono">
@@ -205,7 +206,7 @@ export function CommandPalette() {
           <div className="max-h-80 overflow-y-auto p-2">
             {filtered.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-sm text-muted-foreground">No results found</p>
+                <p className="text-sm text-muted-foreground">{t("common.noResults")}</p>
               </div>
             ) : (
               <div className="space-y-1">
@@ -242,9 +243,9 @@ export function CommandPalette() {
           {/* Footer hint */}
           <div className="px-4 py-2 border-t border-border bg-muted/50">
             <p className="text-xs text-muted-foreground">
-              Press <kbd className="px-1 py-0.5 rounded bg-background font-mono">↑</kbd>{" "}
-              <kbd className="px-1 py-0.5 rounded bg-background font-mono">↓</kbd> to navigate,{" "}
-              <kbd className="px-1 py-0.5 rounded bg-background font-mono">↵</kbd> to select
+              {t("command.footerPress")} <kbd className="px-1 py-0.5 rounded bg-background font-mono">↑</kbd>{" "}
+              <kbd className="px-1 py-0.5 rounded bg-background font-mono">↓</kbd> {t("command.footerNavigate")}{" "}
+              <kbd className="px-1 py-0.5 rounded bg-background font-mono">↵</kbd> {t("command.footerSelect")}
             </p>
           </div>
         </div>

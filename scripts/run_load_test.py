@@ -70,16 +70,25 @@ def run_locust(
     csv_prefix.parent.mkdir(parents=True, exist_ok=True)
 
     cmd = [
-        sys.executable, "-m", "locust",
-        "-f", str(Path(__file__).resolve().parent / "locustfile.py"),
+        sys.executable,
+        "-m",
+        "locust",
+        "-f",
+        str(Path(__file__).resolve().parent / "locustfile.py"),
         "--headless",
-        "--users", str(users),
-        "--spawn-rate", str(spawn_rate),
-        "--run-time", run_time,
-        "--host", host,
-        "--csv", str(csv_prefix),
+        "--users",
+        str(users),
+        "--spawn-rate",
+        str(spawn_rate),
+        "--run-time",
+        run_time,
+        "--host",
+        host,
+        "--csv",
+        str(csv_prefix),
         "--only-summary",
-        "--stop-timeout", "5",
+        "--stop-timeout",
+        "5",
     ]
 
     print(f"\n{'=' * 60}")
@@ -113,7 +122,9 @@ def run_locust(
                         stats["rps"] = float(row.get("Requests/s", 0))
                         stats["fail_percent"] = float(row.get("Failure Percentage", 0))
                         stats["total_requests"] = int(row.get("Request Count", 0))
-                        stats["avg_ms"] = float(row.get("Average Response Time (ms)", 0))
+                        stats["avg_ms"] = float(
+                            row.get("Average Response Time (ms)", 0)
+                        )
                         stats["p50_ms"] = float(row.get("50% (ms)", 0))
                         stats["p95_ms"] = float(row.get("95% (ms)", 0))
             print(f"  Parsed stats from CSV: {stats_path.name}")
@@ -185,36 +196,38 @@ def write_report(results: list[dict], host: str, run_time: str):
             f"{r['p95_ms']:.0f} | {r['fail_percent']:.1f}% |"
         )
 
-    lines.extend([
-        "",
-        "## Observations",
-        "",
-        "*This section should be filled in after reviewing the actual results.*",
-        "",
-        "### Bottleneck Analysis",
-        "",
-        "1. **At 1 user**: Baseline latency for unauthenticated endpoints.",
-        "2. **At 5 users**: First sign of auth bottleneck (JWT signing + DB session overhead).",
-        "3. **At 10 users**: Postgres connection pool contention may appear.",
-        "4. **At 25 users**: ChromaDB query latency becomes significant.",
-        "",
-        "### Recommendations",
-        "",
-        "1. Increase Postgres pool size in `database.py` for higher concurrency.",
-        "2. Add Redis-backed session caching for JWT validation.",
-        "3. Consider read replicas for document listing queries.",
-        "4. Add CDN caching for health endpoint (extreme load only).",
-        "",
-        "## Reproduction",
-        "",
-        "```bash",
-        "docker compose up -d",
-        "pip install locust",
-        f"python scripts/run_load_test.py --host {host} --run-time {run_time}",
-        "```",
-        "",
-        "*Veridoc load test report. Results reflect the local Docker Compose stack.*",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Observations",
+            "",
+            "*This section should be filled in after reviewing the actual results.*",
+            "",
+            "### Bottleneck Analysis",
+            "",
+            "1. **At 1 user**: Baseline latency for unauthenticated endpoints.",
+            "2. **At 5 users**: First sign of auth bottleneck (JWT signing + DB session overhead).",
+            "3. **At 10 users**: Postgres connection pool contention may appear.",
+            "4. **At 25 users**: ChromaDB query latency becomes significant.",
+            "",
+            "### Recommendations",
+            "",
+            "1. Increase Postgres pool size in `database.py` for higher concurrency.",
+            "2. Add Redis-backed session caching for JWT validation.",
+            "3. Consider read replicas for document listing queries.",
+            "4. Add CDN caching for health endpoint (extreme load only).",
+            "",
+            "## Reproduction",
+            "",
+            "```bash",
+            "docker compose up -d",
+            "pip install locust",
+            f"python scripts/run_load_test.py --host {host} --run-time {run_time}",
+            "```",
+            "",
+            "*Veridoc load test report. Results reflect the local Docker Compose stack.*",
+        ]
+    )
 
     report_path = docs_dir / "load-test-report.md"
     report_path.write_text("\n".join(lines) + "\n")

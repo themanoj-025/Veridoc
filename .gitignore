@@ -41,6 +41,7 @@ data/pgdata/
 data/chroma/
 data/minio/
 data/ollama/
+backend/data/
 
 # Large data files
 eval/squad_dev_v2.0.json

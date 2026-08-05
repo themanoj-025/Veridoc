@@ -14,19 +14,25 @@ from app.core.dependencies import get_current_user
 
 # ── Helpers ──────────────────────────────────────────────
 
+
 def _override_get_user(app, user):
     """Override the get_current_user dependency for a test."""
+
     async def override():
         return user
+
     app.dependency_overrides[get_current_user] = override
 
 
 # ── Register ─────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_register_success(test_client: AsyncClient, mock_db_session, app):
     """Test successful user registration returns tokens and user data."""
-    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=None)
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
+        return_value=None
+    )
 
     response = await test_client.post(
         "/api/v1/auth/register",
@@ -47,9 +53,13 @@ async def test_register_success(test_client: AsyncClient, mock_db_session, app):
 
 
 @pytest.mark.asyncio
-async def test_register_duplicate_email(test_client: AsyncClient, mock_db_session, sample_user):
+async def test_register_duplicate_email(
+    test_client: AsyncClient, mock_db_session, sample_user
+):
     """Test registration with existing email returns 409."""
-    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=sample_user)
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
+        return_value=sample_user
+    )
 
     response = await test_client.post(
         "/api/v1/auth/register",
@@ -91,10 +101,13 @@ async def test_register_password_no_complexity(test_client: AsyncClient):
 
 # ── Login ────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_login_success(test_client: AsyncClient, mock_db_session, sample_user):
     """Test successful login returns tokens and user data."""
-    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=sample_user)
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
+        return_value=sample_user
+    )
 
     response = await test_client.post(
         "/api/v1/auth/login",
@@ -112,9 +125,13 @@ async def test_login_success(test_client: AsyncClient, mock_db_session, sample_u
 
 
 @pytest.mark.asyncio
-async def test_login_wrong_password(test_client: AsyncClient, mock_db_session, sample_user):
+async def test_login_wrong_password(
+    test_client: AsyncClient, mock_db_session, sample_user
+):
     """Test login with wrong password returns 401."""
-    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=sample_user)
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
+        return_value=sample_user
+    )
 
     response = await test_client.post(
         "/api/v1/auth/login",
@@ -131,7 +148,9 @@ async def test_login_wrong_password(test_client: AsyncClient, mock_db_session, s
 @pytest.mark.asyncio
 async def test_login_nonexistent_user(test_client: AsyncClient, mock_db_session):
     """Test login with non-existent email returns 401."""
-    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=None)
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
+        return_value=None
+    )
 
     response = await test_client.post(
         "/api/v1/auth/login",
@@ -145,10 +164,14 @@ async def test_login_nonexistent_user(test_client: AsyncClient, mock_db_session)
 
 
 @pytest.mark.asyncio
-async def test_login_inactive_user(test_client: AsyncClient, mock_db_session, sample_user):
+async def test_login_inactive_user(
+    test_client: AsyncClient, mock_db_session, sample_user
+):
     """Test login with inactive user returns 403."""
     sample_user.is_active = False
-    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=sample_user)
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
+        return_value=sample_user
+    )
 
     response = await test_client.post(
         "/api/v1/auth/login",
@@ -164,10 +187,15 @@ async def test_login_inactive_user(test_client: AsyncClient, mock_db_session, sa
 
 # ── Token Refresh (with rotation) ────────────────────────
 
+
 @pytest.mark.asyncio
-async def test_refresh_success(test_client: AsyncClient, mock_db_session, sample_user, sample_refresh_token):
+async def test_refresh_success(
+    test_client: AsyncClient, mock_db_session, sample_user, sample_refresh_token
+):
     """Test successful token refresh returns new tokens."""
-    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=sample_user)
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
+        return_value=sample_user
+    )
 
     response = await test_client.post(
         "/api/v1/auth/refresh",
@@ -201,6 +229,7 @@ async def test_refresh_expired_token(test_client: AsyncClient):
     from jose import jwt
 
     from app.core.config import settings
+
     expired_payload = {
         "sub": str(uuid.uuid4()),
         "type": "refresh",
@@ -217,7 +246,9 @@ async def test_refresh_expired_token(test_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_refresh_token_reuse_rejected(test_client: AsyncClient, mock_db_session, sample_user):
+async def test_refresh_token_reuse_rejected(
+    test_client: AsyncClient, mock_db_session, sample_user
+):
     """Test that reusing a consumed refresh token is rejected (rotation)."""
     mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
         return_value=sample_user,
@@ -225,6 +256,7 @@ async def test_refresh_token_reuse_rejected(test_client: AsyncClient, mock_db_se
 
     # Generate a refresh token
     from app.core.security import create_refresh_token
+
     refresh_token = create_refresh_token(sample_user.id)
 
     # First use — should succeed
@@ -245,10 +277,14 @@ async def test_refresh_token_reuse_rejected(test_client: AsyncClient, mock_db_se
 
 # ── Logout ───────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_logout_revokes_refresh_token(
-    test_client: AsyncClient, mock_db_session, sample_user,
-    sample_refresh_token, app,
+    test_client: AsyncClient,
+    mock_db_session,
+    sample_user,
+    sample_refresh_token,
+    app,
 ):
     """Test that logout revokes the refresh token so it can't be reused."""
     _override_get_user(app, sample_user)
@@ -263,7 +299,9 @@ async def test_logout_revokes_refresh_token(
     assert "successfully" in response.json()["message"]
 
     # Refreshing with the same token should now fail
-    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=sample_user)
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
+        return_value=sample_user
+    )
     resp2 = await test_client.post(
         "/api/v1/auth/refresh",
         json={"refresh_token": sample_refresh_token},
@@ -291,8 +329,11 @@ async def test_logout_rejects_invalid_token(test_client: AsyncClient, app, sampl
 
 # ── Me ───────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
-async def test_get_me_authenticated(test_client: AsyncClient, sample_user, sample_user_token, app):
+async def test_get_me_authenticated(
+    test_client: AsyncClient, sample_user, sample_user_token, app
+):
     """Test /me returns user data when authenticated."""
     _override_get_user(app, sample_user)
 
@@ -318,6 +359,7 @@ async def test_get_me_unauthenticated(test_client: AsyncClient):
 
 
 # ── Change Password ──────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_change_password_success(sample_user, sample_user_token):
@@ -347,6 +389,7 @@ async def test_change_password_wrong_current(sample_user):
 
 # ── Security Utilities ───────────────────────────────────
 
+
 class TestSecurityUtilities:
     """Unit tests for security utility functions."""
 
@@ -358,6 +401,7 @@ class TestSecurityUtilities:
         assert len(hashed) > 20
 
         from app.core.security import verify_password
+
         assert verify_password(password, hashed) is True
         assert verify_password("wrong_password", hashed) is False
 
@@ -419,6 +463,7 @@ class TestSecurityUtilities:
     def test_get_token_jti(self):
         """Test extracting JTI from token payload."""
         from app.core.security import get_token_jti
+
         user_id = uuid.uuid4()
         token = create_access_token(user_id)
         payload = decode_token(token)
@@ -429,6 +474,7 @@ class TestSecurityUtilities:
     def test_get_token_exp(self):
         """Test extracting expiration from token payload."""
         from app.core.security import get_token_exp
+
         user_id = uuid.uuid4()
         token = create_access_token(user_id)
         payload = decode_token(token)
@@ -439,11 +485,14 @@ class TestSecurityUtilities:
 
 # ── Negative Security Tests (G29) ───────────────────────
 
+
 class TestNegativeSecurity:
     """Security regression tests: tampered JWT, expired JWT, cross-user access, SQL injection."""
 
     @pytest.mark.asyncio
-    async def test_tampered_jwt_rejected(self, test_client: AsyncClient, sample_user_token: str):
+    async def test_tampered_jwt_rejected(
+        self, test_client: AsyncClient, sample_user_token: str
+    ):
         """A JWT with a tampered signature must be rejected with 401."""
         # Corrupt the signature part of the token
         parts = sample_user_token.rsplit(".", 1)
@@ -478,7 +527,11 @@ class TestNegativeSecurity:
 
     @pytest.mark.asyncio
     async def test_cross_user_document_access_rejected(
-        self, test_client: AsyncClient, mock_db_session, app, sample_user,
+        self,
+        test_client: AsyncClient,
+        mock_db_session,
+        app,
+        sample_user,
     ):
         """A user accessing another user's document by ID must be rejected with 404."""
         from app.core.dependencies import get_current_user
@@ -506,7 +559,11 @@ class TestNegativeSecurity:
 
     @pytest.mark.asyncio
     async def test_cross_user_conversation_access_rejected(
-        self, test_client: AsyncClient, mock_db_session, app, sample_user,
+        self,
+        test_client: AsyncClient,
+        mock_db_session,
+        app,
+        sample_user,
     ):
         """A user accessing another user's conversation by ID must be rejected with 404."""
         from app.core.dependencies import get_current_user
@@ -551,14 +608,20 @@ class TestNegativeSecurity:
 
         # Level 2-3: Actual DB save/load with real in-memory SQLite
         # We reuse the real_db_session pattern from test_schema.py
-        from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+        from sqlalchemy.ext.asyncio import (
+            AsyncSession,
+            create_async_engine,
+            async_sessionmaker,
+        )
         from app.core.database import Base
 
         engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
-        factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        factory = async_sessionmaker(
+            engine, class_=AsyncSession, expire_on_commit=False
+        )
         async with factory() as session:
             # Create a user
             user = User(email="test@example.com", hashed_password="h" * 60)
@@ -572,6 +635,7 @@ class TestNegativeSecurity:
 
             # Load it back
             from sqlalchemy import select
+
             result = await session.execute(
                 select(Conversation).where(Conversation.id == conv.id)
             )
@@ -581,3 +645,131 @@ class TestNegativeSecurity:
             assert "; DROP TABLE" in loaded.title  # Not executed
 
         await engine.dispose()
+
+
+# ── F4: Email Verification & Password Reset (expiry) ─────
+
+
+@pytest.mark.asyncio
+async def test_verify_email_success(
+    test_client: AsyncClient, mock_db_session, sample_user
+):
+    """A valid, unexpired verification token marks the user verified."""
+    from datetime import datetime, timedelta, timezone
+
+    sample_user.verification_token = "valid-verify-token"
+    sample_user.verification_token_expiry = datetime.now(timezone.utc) + timedelta(
+        hours=1
+    )
+    sample_user.is_verified = False  # prove the endpoint flips it
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
+        return_value=sample_user
+    )
+
+    response = await test_client.post(
+        "/api/v1/auth/verify-email",
+        params={"token": "valid-verify-token"},
+    )
+    assert response.status_code == 200
+    assert "verified" in response.json()["message"].lower()
+    assert sample_user.is_verified is True
+    assert sample_user.verification_token is None
+
+
+@pytest.mark.asyncio
+async def test_verify_email_expired_token_rejected(
+    test_client: AsyncClient, mock_db_session, sample_user
+):
+    """An expired verification token must be rejected (never replay old links)."""
+    from datetime import datetime, timedelta, timezone
+
+    sample_user.verification_token = "expired-verify-token"
+    sample_user.verification_token_expiry = datetime.now(timezone.utc) - timedelta(
+        minutes=5
+    )
+    sample_user.is_verified = False
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
+        return_value=sample_user
+    )
+
+    response = await test_client.post(
+        "/api/v1/auth/verify-email",
+        params={"token": "expired-verify-token"},
+    )
+    assert response.status_code == 400
+    assert "expired" in response.json()["detail"].lower()
+    assert sample_user.is_verified is False
+
+
+@pytest.mark.asyncio
+async def test_verify_email_unknown_token_rejected(
+    test_client: AsyncClient, mock_db_session
+):
+    """An unknown verification token is rejected."""
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
+        return_value=None
+    )
+    response = await test_client.post(
+        "/api/v1/auth/verify-email",
+        params={"token": "no-such-token"},
+    )
+    assert response.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_reset_password_success(
+    test_client: AsyncClient, mock_db_session, sample_user
+):
+    """A valid, unexpired reset token resets the password."""
+    from datetime import datetime, timedelta, timezone
+
+    sample_user.reset_token = "valid-reset-token"
+    sample_user.reset_token_expiry = datetime.now(timezone.utc) + timedelta(minutes=30)
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
+        return_value=sample_user
+    )
+
+    response = await test_client.post(
+        "/api/v1/auth/reset-password",
+        params={"token": "valid-reset-token", "new_password": "NewSecurePass456!"},
+    )
+    assert response.status_code == 200
+    assert "reset" in response.json()["message"].lower()
+    assert sample_user.reset_token is None
+
+
+@pytest.mark.asyncio
+async def test_reset_password_expired_token_rejected(
+    test_client: AsyncClient, mock_db_session, sample_user
+):
+    """An expired reset token must be rejected."""
+    from datetime import datetime, timedelta, timezone
+
+    sample_user.reset_token = "expired-reset-token"
+    sample_user.reset_token_expiry = datetime.now(timezone.utc) - timedelta(minutes=5)
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
+        return_value=sample_user
+    )
+
+    response = await test_client.post(
+        "/api/v1/auth/reset-password",
+        params={"token": "expired-reset-token", "new_password": "NewSecurePass456!"},
+    )
+    assert response.status_code == 400
+    assert "expired" in response.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_request_password_reset_always_ok(
+    test_client: AsyncClient, mock_db_session
+):
+    """Requesting a reset never leaks whether the email exists (anti-enumeration)."""
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
+        return_value=None
+    )
+    response = await test_client.post(
+        "/api/v1/auth/request-password-reset",
+        params={"email": "ghost@example.com"},
+    )
+    assert response.status_code == 200
+    assert "If the email exists" in response.json()["message"]

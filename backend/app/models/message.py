@@ -23,7 +23,10 @@ class Message(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     conversation_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("conversations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     role: Mapped[str] = mapped_column(String(50), nullable=False)  # user, assistant
     content: Mapped[str] = mapped_column(Text, nullable=False)
@@ -36,6 +39,9 @@ class Message(Base):
     # Faithfulness score
     faithfulness_score: Mapped[float | None] = mapped_column(Float, nullable=True)
 
+    # G2: Prompt version tracking — which system prompt version was used
+    prompt_version: Mapped[str | None] = mapped_column(String(20), nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -43,6 +49,8 @@ class Message(Base):
     # Relationships
     conversation = relationship("Conversation", back_populates="messages")
     citation_records = relationship(
-        "CitationRecord", back_populates="message",
-        lazy="selectin", cascade="all, delete-orphan",
+        "CitationRecord",
+        back_populates="message",
+        lazy="selectin",
+        cascade="all, delete-orphan",
     )

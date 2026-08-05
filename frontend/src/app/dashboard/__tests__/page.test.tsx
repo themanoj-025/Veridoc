@@ -1,8 +1,39 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { ReactNode } from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAuthStore, useChatStore, useDocumentStore } from "@/lib/store";
 
 // ── Mocks ───────────────────────────────────────────────
+
+// Create a fresh QueryClient for each test
+function createQueryWrapper(): (props: { children: ReactNode }) => JSX.Element {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, gcTime: 0 },
+    },
+  });
+  const Wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+  Wrapper.displayName = "QueryWrapper";
+  return Wrapper;
+}
+
+// Mock the queries module so useDocuments/useConversations return controlled data
+vi.mock("@/lib/queries", () => ({
+  useDocuments: () => ({ data: [], isLoading: false, error: null }),
+  useConversations: () => ({ data: [], isLoading: false, error: null }),
+  useDocumentContent: () => ({ data: null, isLoading: false, error: null }),
+  useCreateConversation: () => ({
+    mutateAsync: vi.fn().mockResolvedValue({ id: "conv-1", title: "New Chat", document_ids: [] }),
+    isLoading: false,
+  }),
+  useUploadDocument: () => ({
+    mutateAsync: vi.fn().mockResolvedValue({ id: "doc-1" }),
+    isLoading: false,
+  }),
+}));
 
 const mockPush = vi.fn();
 const mockReplace = vi.fn();
@@ -50,7 +81,8 @@ beforeEach(() => {
 
 async function renderDashboard() {
   const Dashboard = (await import("@/app/dashboard/page")).default;
-  return render(<Dashboard />);
+  const Wrapper = createQueryWrapper();
+  return render(<Dashboard />, { wrapper: Wrapper });
 }
 
 const sampleUser = {

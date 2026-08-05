@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { t, tpl } from "@/lib/i18n";
 
 interface SearchResult {
   id: string;
@@ -134,7 +135,7 @@ export function SearchBar({
           }}
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
-          placeholder="Search documents & conversations..."
+          placeholder={t("dashboard.searchPlaceholder")}
           className="w-full pl-10 pr-4 py-2 rounded-xl border border-input bg-background text-sm
                      focus:outline-none focus:ring-2 focus:ring-veridoc-500/20 focus:border-veridoc-500
                      transition-all duration-150 placeholder:text-muted-foreground/60"
@@ -159,7 +160,7 @@ export function SearchBar({
         <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-xl overflow-hidden z-30 animate-scale-in">
           {results.length === 0 ? (
             <div className="p-4 text-center">
-              <p className="text-sm text-muted-foreground">No results found</p>
+              <p className="text-sm text-muted-foreground">{t("common.noResults")}</p>
               {onFullTextSearch && (
                 <button
                   onClick={() => {
@@ -169,7 +170,7 @@ export function SearchBar({
                   }}
                   className="mt-2 text-sm text-veridoc-500 hover:text-veridoc-600 font-medium"
                 >
-                  Search inside documents for &ldquo;{query}&rdquo;
+                  {tpl("search.fullText", { query })}
                 </button>
               )}
             </div>

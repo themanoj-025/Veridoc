@@ -61,7 +61,9 @@ def status() -> None:
     if queue:
         down_count = sum(1 for e in queue if e.get("feedback") == "down")
         print(f"  Thumbs-down:       {down_count}")
-        print(f"  Avg faithfulness:  {sum(e.get('faithfulness_score', 0) or 0 for e in queue) / len(queue):.2f}")
+        print(
+            f"  Avg faithfulness:  {sum(e.get('faithfulness_score', 0) or 0 for e in queue) / len(queue):.2f}"
+        )
 
 
 def auto_promote(threshold: float = 0.8) -> int:
@@ -111,12 +113,12 @@ def interactive_promote() -> int:
     promoted = 0
     remaining = []
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Reviewing {len(queue)} feedback entries")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     for i, entry in enumerate(queue):
-        print(f"\n--- Entry {i+1}/{len(queue)} ---")
+        print(f"\n--- Entry {i + 1}/{len(queue)} ---")
         print(f"Question:    {entry.get('question', '?')[:200]}")
         print(f"Answer:      {entry.get('answer', '?')[:300]}")
         print(f"Faithfulness: {entry.get('faithfulness_score', 'N/A')}")
@@ -157,11 +159,11 @@ def interactive_promote() -> int:
     save_json(eval_dir / "gold_qa.json", gold)
     save_json(eval_dir / "continuous_feedback.json", remaining)
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Promoted: {promoted}")
     print(f"Remaining in queue: {len(remaining)}")
     print(f"Gold set now: {len(gold)} entries")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     return promoted
 
 

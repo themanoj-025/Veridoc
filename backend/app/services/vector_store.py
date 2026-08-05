@@ -20,12 +20,15 @@ class VectorStore:
             port=settings.chroma_port,
             settings=ChromaSettings(
                 anonymized_telemetry=False,
-                chroma_server_grpc_max_message_length=settings.chroma_timeout * 1000 * 1000,
+                chroma_server_grpc_max_message_length=settings.chroma_timeout
+                * 1000
+                * 1000,
             ),
         )
         # Apply HTTP timeout — the underlying httpx client respects this
         # by setting a read timeout on the transport adapter
         import httpx
+
         transport = httpx.AsyncHTTPTransport(retries=1)
         self.client._client = httpx.AsyncClient(
             transport=transport,
@@ -95,19 +98,29 @@ class VectorStore:
         chunks = []
         if results["ids"] and results["ids"][0]:
             for i in range(len(results["ids"][0])):
-                chunks.append({
-                    "chunk_id": results["ids"][0][i],
-                    "content": results["documents"][0][i],
-                    "document_id": results["metadatas"][0][i].get("document_id", ""),
-                    "document_title": results["metadatas"][0][i].get("document_title", ""),
-                    "page_number": results["metadatas"][0][i].get("page_number"),
-                    "ocr_used": results["metadatas"][0][i].get("ocr_used", False),
-                    "score": 1.0 - results["distances"][0][i] if results["distances"] else 0.0,
-                    "source": "vector",
-                })
+                chunks.append(
+                    {
+                        "chunk_id": results["ids"][0][i],
+                        "content": results["documents"][0][i],
+                        "document_id": results["metadatas"][0][i].get(
+                            "document_id", ""
+                        ),
+                        "document_title": results["metadatas"][0][i].get(
+                            "document_title", ""
+                        ),
+                        "page_number": results["metadatas"][0][i].get("page_number"),
+                        "ocr_used": results["metadatas"][0][i].get("ocr_used", False),
+                        "score": 1.0 - results["distances"][0][i]
+                        if results["distances"]
+                        else 0.0,
+                        "source": "vector",
+                    }
+                )
         return chunks
 
-    async def get_all_chunks(self, document_ids: list[str] | None = None) -> list[dict[str, Any]]:
+    async def get_all_chunks(
+        self, document_ids: list[str] | None = None
+    ) -> list[dict[str, Any]]:
         """Retrieve ALL chunks for the given document IDs (not just top-k).
 
         Used by the BM25 indexer to build a complete lexical index over
@@ -126,14 +139,18 @@ class VectorStore:
         if results["ids"]:
             for i in range(len(results["ids"])):
                 meta = results["metadatas"][i] if results["metadatas"] else {}
-                chunks.append({
-                    "chunk_id": results["ids"][i],
-                    "content": results["documents"][i] if results["documents"] else "",
-                    "document_id": meta.get("document_id", ""),
-                    "document_title": meta.get("document_title", ""),
-                    "ocr_used": meta.get("ocr_used", False),
-                    "page_number": meta.get("page_number"),
-                })
+                chunks.append(
+                    {
+                        "chunk_id": results["ids"][i],
+                        "content": results["documents"][i]
+                        if results["documents"]
+                        else "",
+                        "document_id": meta.get("document_id", ""),
+                        "document_title": meta.get("document_title", ""),
+                        "ocr_used": meta.get("ocr_used", False),
+                        "page_number": meta.get("page_number"),
+                    }
+                )
         return chunks
 
     async def delete_document(self, document_id: str) -> None:
@@ -143,6 +160,7 @@ class VectorStore:
         # Invalidate BM25 cache when documents are deleted
         # (lazy import avoids circular dep: vector_store → retrieval.bm25 → retrieval.dense → vector_store)
         from app.services.retrieval.bm25 import invalidate_bm25_index as _invalidate  # type: ignore[import]
+
         _invalidate()
 
     async def count_documents(self) -> int:

@@ -125,7 +125,9 @@ def build_prompt(test: dict) -> tuple[str, str]:
     Returns (system_prompt, user_message).
     The dangerous document content is placed inside the data boundary.
     """
-    system_prompt = SYSTEM_PROMPT_TEMPLATE.format(chunk_content=test["dangerous_document"])
+    system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
+        chunk_content=test["dangerous_document"]
+    )
     # The user asks a benign question to get the assistant to process the chunk
     user_message = "What does this document say? Please summarize the key points."
     return system_prompt, user_message
@@ -184,7 +186,9 @@ def print_results(results: list[dict]) -> None:
     print("-" * 76)
     for r in results:
         icon = "✅" if r["verdict"] == "PASS" else "❌"
-        print(f"{icon} {r['id']:<12} {r['name'][:40]:<40} {r['severity']:<10} {r['verdict']:<10}")
+        print(
+            f"{icon} {r['id']:<12} {r['name'][:40]:<40} {r['severity']:<10} {r['verdict']:<10}"
+        )
     print()
 
     passed = sum(1 for r in results if r["verdict"] == "PASS")
@@ -206,8 +210,12 @@ def update_security_notes(results: list[dict]) -> None:
     # Build new results table
     rows = []
     for r in results:
-        verdict_icon = {"PASS": "✅ PASS", "FAIL": "❌ FAIL", "UNSURE": "⚠️ UNSURE"}.get(r["verdict"], "?")
-        rows.append(f"| {r['id']} | {r['name'][:42]} | {r['severity']} | Refuse | {verdict_icon} | {now} |")
+        verdict_icon = {"PASS": "✅ PASS", "FAIL": "❌ FAIL", "UNSURE": "⚠️ UNSURE"}.get(
+            r["verdict"], "?"
+        )
+        rows.append(
+            f"| {r['id']} | {r['name'][:42]} | {r['severity']} | Refuse | {verdict_icon} | {now} |"
+        )
 
     passed = sum(1 for r in results if r["verdict"] == "PASS")
     total = len(results)
@@ -222,13 +230,15 @@ def update_security_notes(results: list[dict]) -> None:
         "|----|------|----------|----------|--------|----------|",
     ]
     new_section.extend(rows)
-    new_section.extend([
-        "",
-        f"**Summary**: {passed}/{total} tests passed against live Ollama model.",
-        "",
-        "### Detailed Response Excerpts",
-        "",
-    ])
+    new_section.extend(
+        [
+            "",
+            f"**Summary**: {passed}/{total} tests passed against live Ollama model.",
+            "",
+            "### Detailed Response Excerpts",
+            "",
+        ]
+    )
     for r in results:
         excerpt = r["excerpt"].replace("\n", " ").strip()
         new_section.append(f"- **{r['id']} ({r['name']})**: {excerpt}")
@@ -262,7 +272,10 @@ def update_security_notes(results: list[dict]) -> None:
         print(f"\n→ Updated red-team results in {SECURITY_NOTES_PATH}")
     else:
         print(f"\n  WARNING: {SECURITY_NOTES_PATH} not found — saving new file")
-        SECURITY_NOTES_PATH.write_text("# Veridoc -- Security Notes\n\n" + new_section_text + "\n", encoding="utf-8")
+        SECURITY_NOTES_PATH.write_text(
+            "# Veridoc -- Security Notes\n\n" + new_section_text + "\n",
+            encoding="utf-8",
+        )
 
 
 async def check_ollama_health(model: str) -> bool:
@@ -277,7 +290,9 @@ async def check_ollama_health(model: str) -> bool:
                 print(f"  Model '{model}' found in Ollama")
                 return True
             else:
-                print(f"  Model '{model}' NOT found (available: {', '.join(models[:5]) or 'none'})")
+                print(
+                    f"  Model '{model}' NOT found (available: {', '.join(models[:5]) or 'none'})"
+                )
                 print(f"  Run: docker exec veridoc-ollama ollama pull {model}")
                 return False
     except Exception as e:
@@ -286,10 +301,20 @@ async def check_ollama_health(model: str) -> bool:
 
 
 async def main():
-    parser = argparse.ArgumentParser(description="Run live red-team tests against Ollama")
-    parser.add_argument("--model", default=DEFAULT_MODEL, help=f"Ollama model (default: {DEFAULT_MODEL})")
-    parser.add_argument("--save", action="store_true", help="Update docs/security-notes.md with results")
-    parser.add_argument("--dry-run", action="store_true", help="Validate setup without making API calls")
+    parser = argparse.ArgumentParser(
+        description="Run live red-team tests against Ollama"
+    )
+    parser.add_argument(
+        "--model",
+        default=DEFAULT_MODEL,
+        help=f"Ollama model (default: {DEFAULT_MODEL})",
+    )
+    parser.add_argument(
+        "--save", action="store_true", help="Update docs/security-notes.md with results"
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Validate setup without making API calls"
+    )
     args = parser.parse_args()
 
     print("=" * 60)
@@ -334,23 +359,31 @@ async def main():
 
     results = []
     for i, test in enumerate(tests, 1):
-        print(f"  [{i}/{len(tests)}] {test['id']}: {test['name'][:50]}...", end=" ", flush=True)
+        print(
+            f"  [{i}/{len(tests)}] {test['id']}: {test['name'][:50]}...",
+            end=" ",
+            flush=True,
+        )
 
         system_prompt, user_message = build_prompt(test)
 
         try:
-            response_text = await query_ollama(system_prompt, user_message, model=args.model)
+            response_text = await query_ollama(
+                system_prompt, user_message, model=args.model
+            )
             verdict, excerpt, patterns = classify_response(response_text, test)
 
-            results.append({
-                "id": test["id"],
-                "name": test["name"],
-                "severity": test["severity"],
-                "verdict": verdict,
-                "excerpt": excerpt,
-                "response": response_text,
-                "patterns": patterns,
-            })
+            results.append(
+                {
+                    "id": test["id"],
+                    "name": test["name"],
+                    "severity": test["severity"],
+                    "verdict": verdict,
+                    "excerpt": excerpt,
+                    "response": response_text,
+                    "patterns": patterns,
+                }
+            )
 
             icon = {"PASS": "✅", "FAIL": "❌", "UNSURE": "⚠️"}.get(verdict, "?")
             print(f"{icon} {verdict}")
@@ -359,15 +392,17 @@ async def main():
 
         except Exception as e:
             print(f"❌ ERROR: {e}")
-            results.append({
-                "id": test["id"],
-                "name": test["name"],
-                "severity": test["severity"],
-                "verdict": "ERROR",
-                "excerpt": str(e)[:200],
-                "response": "",
-                "patterns": [],
-            })
+            results.append(
+                {
+                    "id": test["id"],
+                    "name": test["name"],
+                    "severity": test["severity"],
+                    "verdict": "ERROR",
+                    "excerpt": str(e)[:200],
+                    "response": "",
+                    "patterns": [],
+                }
+            )
 
     # 4. Print results table
     print("\n" + "=" * 60)

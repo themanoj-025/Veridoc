@@ -44,8 +44,8 @@ GOLD_QA_PATH = EVAL_DIR / "gold_qa.json"
 TUNING_RESULTS_PATH = EVAL_DIR / "tuning_results.json"
 
 # ── Defaults (the configs currently in use) ───────────────────────────
-DEFAULT_RRF_K = 60           # rrf.py line: k: int = 60
-DEFAULT_BM25_WEIGHT = 1.0   # implicit; BM25 and dense are equally weighted in RRF
+DEFAULT_RRF_K = 60  # rrf.py line: k: int = 60
+DEFAULT_BM25_WEIGHT = 1.0  # implicit; BM25 and dense are equally weighted in RRF
 
 
 def load_gold_qa() -> list[dict]:
@@ -89,7 +89,7 @@ def chunk_document(text: str, chunk_size: int = 500, overlap: int = 50) -> list[
             chunks.append(current.strip())
             # overlap: keep last part of current
             words = current.split()
-            current = " ".join(words[-max(1, overlap // 5):]) + " " + para
+            current = " ".join(words[-max(1, overlap // 5) :]) + " " + para
         else:
             current += "\n\n" + para if current else para
     if current.strip():
@@ -126,6 +126,7 @@ def dummy_embedding(text: str, dim: int = 384) -> list[float]:
     performance across configurations.
     """
     import hashlib
+
     h = hashlib.md5(text.encode()).digest()
     # Expand to dim dimensions via repeated hashing
     vec = np.zeros(dim)
@@ -137,6 +138,7 @@ def dummy_embedding(text: str, dim: int = 384) -> list[float]:
 
 # ── Retrieval functions (lightweight, no Chroma/LLM dependency) ────────
 
+
 def dense_search_simple(
     query: str,
     corpus: list[dict],
@@ -147,7 +149,9 @@ def dense_search_simple(
     scores = []
     for c in corpus:
         c_vec = np.array(dummy_embedding(c["content"]))
-        sim = np.dot(q_vec, c_vec) / (np.linalg.norm(q_vec) * np.linalg.norm(c_vec) + 1e-10)
+        sim = np.dot(q_vec, c_vec) / (
+            np.linalg.norm(q_vec) * np.linalg.norm(c_vec) + 1e-10
+        )
         scores.append(sim)
     top_indices = np.argsort(scores)[-top_k:][::-1]
     results = []
@@ -203,13 +207,17 @@ def rrf_merge(
         cid = r.get("content", str(rank))
         if cid not in scores:
             scores[cid] = dict(r)
-        scores[cid]["rrf_score"] = scores[cid].get("rrf_score", 0.0) + bm25_weight / (k + rank + 1)
+        scores[cid]["rrf_score"] = scores[cid].get("rrf_score", 0.0) + bm25_weight / (
+            k + rank + 1
+        )
 
     for rank, r in enumerate(dense_results):
         cid = r.get("content", str(rank))
         if cid not in scores:
             scores[cid] = dict(r)
-        scores[cid]["rrf_score"] = scores[cid].get("rrf_score", 0.0) + dense_weight / (k + rank + 1)
+        scores[cid]["rrf_score"] = scores[cid].get("rrf_score", 0.0) + dense_weight / (
+            k + rank + 1
+        )
 
     sorted_results = sorted(
         scores.values(),
@@ -247,6 +255,7 @@ def mrr(retrieved: list[str], relevant: set[str]) -> float:
 
 # ── Evaluation ────────────────────────────────────────────────────────
 
+
 def evaluate_config(
     corpus: dict[str, list[dict]],
     gold_qa: list[dict],
@@ -280,7 +289,9 @@ def evaluate_config(
         # Run retrieval
         bm25_res = bm25_search_simple(query, doc_corpus, top_k=top_k * 2)
         dense_res = dense_search_simple(query, doc_corpus, top_k=top_k * 2)
-        merged = rrf_merge(bm25_res, dense_res, k=rrf_k, top_k=top_k, bm25_weight=bm25_weight)
+        merged = rrf_merge(
+            bm25_res, dense_res, k=rrf_k, top_k=top_k, bm25_weight=bm25_weight
+        )
 
         # Get retrieved document_ids
         retrieved_ids = [r["document_id"] for r in merged]
@@ -308,20 +319,29 @@ def print_metrics_table(
 ) -> None:
     """Print a metrics row. Pass an empty dict for ``metrics`` when only the header is wanted."""
     if header:
-        print(f"{'Config':<40} {'P@5':>8} {'P@10':>8} {'R@5':>8} {'R@10':>8} {'MRR':>8}")
+        print(
+            f"{'Config':<40} {'P@5':>8} {'P@10':>8} {'R@5':>8} {'R@10':>8} {'MRR':>8}"
+        )
         print("-" * 80)
     elif metrics:
-        print(f"{label:<40} {metrics['precision@5']:>7.2%} {metrics['precision@10']:>7.2%} "
-              f"{metrics['recall@5']:>7.2%} {metrics['recall@10']:>7.2%} {metrics['MRR']:>7.3f}")
+        print(
+            f"{label:<40} {metrics['precision@5']:>7.2%} {metrics['precision@10']:>7.2%} "
+            f"{metrics['recall@5']:>7.2%} {metrics['recall@10']:>7.2%} {metrics['MRR']:>7.3f}"
+        )
 
 
 def save_tuning_results(best_config: dict) -> None:
     """Save tuning results as JSON for reference."""
     import json as _json
+
     data = {
         "updated": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
         "method": "Grid search over RRF k and BM25 weight against gold Q&A set",
-        "default": {"rrf_k": 60, "bm25_weight": 1.0, "metrics": best_config["default_metrics"]},
+        "default": {
+            "rrf_k": 60,
+            "bm25_weight": 1.0,
+            "metrics": best_config["default_metrics"],
+        },
         "tuned": {
             "rrf_k": best_config["rrf_k"],
             "bm25_weight": best_config["bm25_weight"],
@@ -332,13 +352,13 @@ def save_tuning_results(best_config: dict) -> None:
     print(f"\n→ Saved tuning results to {TUNING_RESULTS_PATH}")
 
 
-
-
-
 def main():
     import argparse
+
     parser = argparse.ArgumentParser(description="Tune hybrid retrieval weights")
-    parser.add_argument("--quick", action="store_true", help="Smaller grid for faster runs")
+    parser.add_argument(
+        "--quick", action="store_true", help="Smaller grid for faster runs"
+    )
     args = parser.parse_args()
 
     print("=" * 60)
@@ -368,14 +388,23 @@ def main():
         bm25_weights = [0.3, 0.5, 0.7, 1.0, 1.5, 2.0]
 
     configs = list(itertools.product(rrf_k_values, bm25_weights))
-    print(f"\nGrid: {len(configs)} configurations ({len(rrf_k_values)} k × {len(bm25_weights)} weights)")
+    print(
+        f"\nGrid: {len(configs)} configurations ({len(rrf_k_values)} k × {len(bm25_weights)} weights)"
+    )
 
     # 3. Evaluate default config
     print(f"\nEvaluating default (k={DEFAULT_RRF_K}, w={DEFAULT_BM25_WEIGHT})...")
     default_metrics = evaluate_config(
-        corpus, gold_qa, rrf_k=DEFAULT_RRF_K, bm25_weight=DEFAULT_BM25_WEIGHT,
+        corpus,
+        gold_qa,
+        rrf_k=DEFAULT_RRF_K,
+        bm25_weight=DEFAULT_BM25_WEIGHT,
     )
-    print_metrics_table(f"Default (k={DEFAULT_RRF_K}, w={DEFAULT_BM25_WEIGHT})", default_metrics, header=True)
+    print_metrics_table(
+        f"Default (k={DEFAULT_RRF_K}, w={DEFAULT_BM25_WEIGHT})",
+        default_metrics,
+        header=True,
+    )
 
     # 4. Grid search
     print("\nGrid search:")
@@ -401,7 +430,9 @@ def main():
     # 5. Report
     print("\n" + "=" * 60)
     print(f"Best configuration: k={best_config[0]}, BM25 weight={best_config[1]}")
-    print(f"  Composite score: {best_score:.4f} (vs default: {np.mean([default_metrics['precision@5'], default_metrics['recall@5'], default_metrics['MRR']]):.4f})")
+    print(
+        f"  Composite score: {best_score:.4f} (vs default: {np.mean([default_metrics['precision@5'], default_metrics['recall@5'], default_metrics['MRR']]):.4f})"
+    )
 
     # 6. Show all configs sorted
     print("\nAll configurations sorted by composite score:")
@@ -444,7 +475,7 @@ embeddings and cross-encoder reranking.
     # Print final short table
     print("Before/After summary:")
     print(f"  {'Metric':<20} {'Before':>10} {'After':>10} {'Δ':>10}")
-    print(f"  {'-'*50}")
+    print(f"  {'-' * 50}")
     for metric in ["precision@5", "precision@10", "recall@5", "recall@10", "MRR"]:
         before = default_metrics[metric]
         after = best_config[2][metric]

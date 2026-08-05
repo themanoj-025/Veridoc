@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
+from app.core.rate_limit import limiter, get_user_identifier
 from app.models.user import User
 from app.repositories import ConversationRepository, DocumentRepository
 from app.schemas.chat import (
@@ -33,7 +34,9 @@ async def _build_conversation_response(
     """Build a ConversationResponse using the repository."""
     conv = await conv_repo.find_by_id(conv_id)
     if not conv:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found"
+        )
     doc_ids, doc_titles = await conv_repo.get_document_ids_and_titles(conv_id)
     return ConversationResponse(
         id=conv.id,
@@ -49,18 +52,21 @@ async def _build_conversation_response(
 
 # ── Conversations ────────────────────────────────────────
 
+
 @router.post(
     "/conversations",
     response_model=ConversationResponse,
     status_code=status.HTTP_201_CREATED,
     operation_id="chat_create_conversation",
 )
+@limiter.limit("30/minute", key_func=get_user_identifier)
 async def create_conversation(
+    request: Request,
     body: ConversationCreate,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    """Create a new conversation."""
+    """Create a new conversation. Rate-limited: 30 per minute (F6)."""
     doc_repo = DocumentRepository(session)
     conv_repo = ConversationRepository(session)
 
@@ -74,6 +80,7 @@ async def create_conversation(
             )
 
     from app.models.conversation import Conversation
+
     conv = Conversation(user_id=user.id, title=body.title)
     await conv_repo.create(conv)
 
@@ -107,16 +114,18 @@ async def list_conversations(
     for conv_raw, doc_ids_raw, doc_titles_raw in rows:
         doc_ids = [d for d in (doc_ids_raw or []) if d is not None]
         doc_titles = [t for t in (doc_titles_raw or []) if t is not None]
-        responses.append(ConversationResponse(
-            id=conv_raw.id,
-            user_id=conv_raw.user_id,
-            title=conv_raw.title,
-            is_active=conv_raw.is_active,
-            document_ids=doc_ids,
-            document_titles=doc_titles,
-            created_at=conv_raw.created_at,
-            updated_at=conv_raw.updated_at,
-        ))
+        responses.append(
+            ConversationResponse(
+                id=conv_raw.id,
+                user_id=conv_raw.user_id,
+                title=conv_raw.title,
+                is_active=conv_raw.is_active,
+                document_ids=doc_ids,
+                document_titles=doc_titles,
+                created_at=conv_raw.created_at,
+                updated_at=conv_raw.updated_at,
+            )
+        )
     await session.close()
     return ConversationListResponse(
         items=responses,
@@ -142,7 +151,9 @@ async def get_conversation(
     conv = await conv_repo.find_by_id_and_user(conversation_id, user.id)
     if not conv:
         await session.close()
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found"
+        )
     result = await _build_conversation_response(conv_repo, conversation_id)
     await session.close()
     return result
@@ -163,12 +174,15 @@ async def delete_conversation(
     conv_repo = ConversationRepository(session)
     conv = await conv_repo.find_by_id_and_user(conversation_id, user.id)
     if not conv:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found"
+        )
     await conv_repo.delete(conv)
     await session.close()
 
 
 # ── Messages ─────────────────────────────────────────────
+
 
 @router.get(
     "/conversations/{conversation_id}/messages",
@@ -184,16 +198,18 @@ async def get_messages(
     conv_repo = ConversationRepository(session)
     conv = await conv_repo.find_by_id_and_user(conversation_id, user.id)
     if not conv:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found"
+        )
 
     await session.close()
-    return [
-        MessageResponse.from_message(m) for m in conv.messages
-    ]
+    return [MessageResponse.from_message(m) for m in conv.messages]
 
 
 @router.post("/stream", operation_id="chat_stream")
+@limiter.limit("20/minute", key_func=get_user_identifier)
 async def stream_chat(
+    request: Request,
     body: ChatRequest,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
@@ -201,6 +217,7 @@ async def stream_chat(
     """Stream a chat response via SSE with citations.
 
     Delegates to ChatService for the full pipeline.
+    Rate-limited: 20 chat requests per minute (F6).
     """
     bind_log_context(conversation_id=str(body.conversation_id))
     service = ChatService(session, user)

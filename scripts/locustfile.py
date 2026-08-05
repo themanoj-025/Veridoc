@@ -277,8 +277,9 @@ class VeridocUser(HttpUser):
                 return
             try:
                 data = resp.json()
-                items = data.get("items", [])                except Exception:
-                    return
+                items = data.get("items", [])
+            except Exception:
+                return
             if not items:
                 return
             doc_id = items[0]["id"]
@@ -293,9 +294,7 @@ class VeridocUser(HttpUser):
                         detail_data = detail_resp.json()
                         assert "id" in detail_data
                     except (json.JSONDecodeError, AssertionError) as e:
-                        detail_resp.failure(
-                            f"Get document response malformed: {e}"
-                        )
+                        detail_resp.failure(f"Get document response malformed: {e}")
                 elif detail_resp.status_code == 401:
                     self._refresh_token()
                 else:

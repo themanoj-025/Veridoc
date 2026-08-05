@@ -10,7 +10,6 @@ import structlog
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.database import async_session_factory
-from app.models.document import Document
 from app.models.chunk import Chunk
 from app.repositories import DocumentRepository, ChunkRepository
 from app.services.chunking import recursive_chunk_text
@@ -19,11 +18,14 @@ from app.services.vector_store import get_vector_store
 logger = structlog.get_logger(__name__)
 
 
-def get_embedding_model():
+def get_embedding_model() -> object:
     """Get the sentence-transformers embedding model.
 
     Checks the DI container first (see :class:`app.core.di.DIContainer`).
     Falls back to an uncached instance when no container is active.
+
+    Returns an object with ``.encode(texts, show_progress_bar)`` that
+    returns an object with ``.tolist()`` (e.g. a numpy array).
     """
     from app.core.di import get_di_container
 
@@ -31,8 +33,10 @@ def get_embedding_model():
     if container is not None:
         return container.get_or_create_embedding_model()
     from sentence_transformers import SentenceTransformer
+
     logger.info("Loading embedding model (standalone): all-MiniLM-L6-v2")
-    return SentenceTransformer("all-MiniLM-L6-v2")
+    model: object = SentenceTransformer("all-MiniLM-L6-v2")
+    return model
 
 
 async def process_document(
@@ -63,7 +67,9 @@ async def process_document(
             doc.status = "chunking"
             await session.flush()
 
-            chunks = chunk_text(text, doc_id=str(doc.id), doc_title=doc.title, pages=pages)
+            chunks = chunk_text(
+                text, doc_id=str(doc.id), doc_title=doc.title, pages=pages
+            )
             doc.chunk_count = len(chunks)
 
             # Save chunks to DB via repository
@@ -100,12 +106,19 @@ async def process_document(
 
             # 5. Done
             doc.status = "indexed"
-            doc.page_count = max(pages.values()) if pages else len(set(pages.values())) if pages else None
+            doc.page_count = (
+                max(pages.values())
+                if pages
+                else len(set(pages.values()))
+                if pages
+                else None
+            )
             await session.commit()
 
             # Invalidate BM25 cache so subsequent queries pick up the new content
             # (lazy import avoids circular dep: ingestion → retrieval.bm25 → retrieval.dense → ingestion)
             from app.services.retrieval.bm25 import invalidate_bm25_index as _invalidate  # type: ignore[import]
+
             _invalidate()
             logger.info(f"Document {doc.id} indexed with {len(chunks)} chunks")
 

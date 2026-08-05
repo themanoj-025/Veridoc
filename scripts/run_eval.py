@@ -15,7 +15,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
 
-from app.services.evaluation import run_single_eval, compute_metrics
+from app.services.evaluation import (
+    run_single_eval,
+    compute_metrics,
+    resolve_document_ids,
+)
 
 EVAL_DIR = Path(__file__).resolve().parent.parent / "eval"
 GOLD_QA_PATH = EVAL_DIR / "gold_qa.json"
@@ -35,7 +39,9 @@ async def run_evaluation(
     use_hybrid: bool = True,
 ) -> tuple[list[dict], dict]:
     """Run evaluation on all gold Q&A pairs."""
-    print(f"\nRunning evaluation with {'hybrid+rerank' if use_hybrid else 'naive dense'} retrieval...")
+    print(
+        f"\nRunning evaluation with {'hybrid+rerank' if use_hybrid else 'naive dense'} retrieval..."
+    )
     print(f"  Total questions: {len(gold_qa)}")
     print()
 
@@ -43,14 +49,15 @@ async def run_evaluation(
     unanswerable_indices = set()
 
     for i, qa in enumerate(gold_qa):
-        print(f"  [{i+1}/{len(gold_qa)}] {qa['question'][:60]}...")
+        print(f"  [{i + 1}/{len(gold_qa)}] {qa['question'][:60]}...")
 
         if qa["type"] == "unanswerable":
             unanswerable_indices.add(i)
 
-        # Determine document IDs to search
+        # Determine document IDs to search — resolve gold-set slugs to real
+        # DB document UUIDs (falls back to "search all" when unresolvable)
         doc_id = qa.get("document_id", "")
-        document_ids = None if doc_id in ("*", "") else [doc_id]
+        document_ids = await resolve_document_ids(doc_id)
 
         try:
             result = await run_single_eval(
@@ -64,16 +71,18 @@ async def run_evaluation(
             results.append(result)
         except Exception as e:
             print(f"    ERROR: {e}")
-            results.append({
-                "id": qa["id"],
-                "question": qa["question"],
-                "generated_answer": "",
-                "gold_answer": qa["gold_answer"],
-                "faithfulness_score": 0.0,
-                "latency_ms": 0,
-                "type": qa["type"],
-                "error": str(e),
-            })
+            results.append(
+                {
+                    "id": qa["id"],
+                    "question": qa["question"],
+                    "generated_answer": "",
+                    "gold_answer": qa["gold_answer"],
+                    "faithfulness_score": 0.0,
+                    "latency_ms": 0,
+                    "type": qa["type"],
+                    "error": str(e),
+                }
+            )
 
     metrics = compute_metrics(results, unanswerable_indices)
     return results, metrics
@@ -113,16 +122,31 @@ def write_report(
 
     if hybrid_metrics and naive_metrics:
         metrics_list = [
-            ("Answer Accuracy", f"{naive_metrics.get('answer_accuracy', 0)*100:.1f}%",
-             f"{hybrid_metrics.get('answer_accuracy', 0)*100:.1f}%"),
-            ("Refusal Accuracy", f"{naive_metrics.get('refusal_accuracy', 0)*100:.1f}%",
-             f"{hybrid_metrics.get('refusal_accuracy', 0)*100:.1f}%"),
-            ("Mean Faithfulness", f"{naive_metrics.get('mean_faithfulness', 0)*100:.1f}%",
-             f"{hybrid_metrics.get('mean_faithfulness', 0)*100:.1f}%"),
-            ("P50 Latency", f"{naive_metrics.get('p50_latency_ms', 0):.0f}ms",
-             f"{hybrid_metrics.get('p50_latency_ms', 0):.0f}ms"),
-            ("P95 Latency", f"{naive_metrics.get('p95_latency_ms', 0):.0f}ms",
-             f"{hybrid_metrics.get('p95_latency_ms', 0):.0f}ms"),
+            (
+                "Answer Accuracy",
+                f"{naive_metrics.get('answer_accuracy', 0) * 100:.1f}%",
+                f"{hybrid_metrics.get('answer_accuracy', 0) * 100:.1f}%",
+            ),
+            (
+                "Refusal Accuracy",
+                f"{naive_metrics.get('refusal_accuracy', 0) * 100:.1f}%",
+                f"{hybrid_metrics.get('refusal_accuracy', 0) * 100:.1f}%",
+            ),
+            (
+                "Mean Faithfulness",
+                f"{naive_metrics.get('mean_faithfulness', 0) * 100:.1f}%",
+                f"{hybrid_metrics.get('mean_faithfulness', 0) * 100:.1f}%",
+            ),
+            (
+                "P50 Latency",
+                f"{naive_metrics.get('p50_latency_ms', 0):.0f}ms",
+                f"{hybrid_metrics.get('p50_latency_ms', 0):.0f}ms",
+            ),
+            (
+                "P95 Latency",
+                f"{naive_metrics.get('p95_latency_ms', 0):.0f}ms",
+                f"{hybrid_metrics.get('p95_latency_ms', 0):.0f}ms",
+            ),
         ]
         for name, naive_val, hybrid_val in metrics_list:
             improvement = ""
@@ -131,22 +155,36 @@ def write_report(
                 improvement = f"+{imp:.1f}%" if imp > 0 else f"{imp:.1f}%"
             elif "ms" in naive_val and "ms" in hybrid_val:
                 imp = float(naive_val.strip("ms")) - float(hybrid_val.strip("ms"))
-                improvement = f"-{imp:.0f}ms faster" if imp > 0 else f"+{abs(imp):.0f}ms slower"
+                improvement = (
+                    f"-{imp:.0f}ms faster" if imp > 0 else f"+{abs(imp):.0f}ms slower"
+                )
             lines.append(f"| {name} | {naive_val} | {hybrid_val} | {improvement} |")
     else:
-        lines.append(f"| Answer Accuracy | N/A | {hybrid_metrics.get('answer_accuracy', 0)*100:.1f}% | — |")
-        lines.append(f"| Refusal Accuracy | N/A | {hybrid_metrics.get('refusal_accuracy', 0)*100:.1f}% | — |")
-        lines.append(f"| Mean Faithfulness | N/A | {hybrid_metrics.get('mean_faithfulness', 0)*100:.1f}% | — |")
-        lines.append(f"| P50 Latency | N/A | {hybrid_metrics.get('p50_latency_ms', 0):.0f}ms | — |")
-        lines.append(f"| P95 Latency | N/A | {hybrid_metrics.get('p95_latency_ms', 0):.0f}ms | — |")
+        lines.append(
+            f"| Answer Accuracy | N/A | {hybrid_metrics.get('answer_accuracy', 0) * 100:.1f}% | — |"
+        )
+        lines.append(
+            f"| Refusal Accuracy | N/A | {hybrid_metrics.get('refusal_accuracy', 0) * 100:.1f}% | — |"
+        )
+        lines.append(
+            f"| Mean Faithfulness | N/A | {hybrid_metrics.get('mean_faithfulness', 0) * 100:.1f}% | — |"
+        )
+        lines.append(
+            f"| P50 Latency | N/A | {hybrid_metrics.get('p50_latency_ms', 0):.0f}ms | — |"
+        )
+        lines.append(
+            f"| P95 Latency | N/A | {hybrid_metrics.get('p95_latency_ms', 0):.0f}ms | — |"
+        )
 
-    lines.extend([
-        "",
-        "## Detailed Results",
-        "",
-        "| # | Question | Type | Faithfulness | Latency | Status |",
-        "|---|----------|------|-------------|---------|--------|",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Detailed Results",
+            "",
+            "| # | Question | Type | Faithfulness | Latency | Status |",
+            "|---|----------|------|-------------|---------|--------|",
+        ]
+    )
 
     for i, r in enumerate(hybrid_results):
         q = r.get("question", "")[:50]
@@ -154,29 +192,33 @@ def write_report(
         f = r.get("faithfulness_score", 0)
         lat = r.get("latency_ms", 0)
         status = "✅" if f >= 0.7 else "⚠️" if f >= 0.4 else "❌"
-        lines.append(f"| {i+1} | {q}... | {t} | {f*100:.0f}% | {lat:.0f}ms | {status} |")
+        lines.append(
+            f"| {i + 1} | {q}... | {t} | {f * 100:.0f}% | {lat:.0f}ms | {status} |"
+        )
 
-    lines.extend([
-        "",
-        "## Faithfulness Distribution",
-        "",
-        f"- **Mean**: {hybrid_metrics.get('mean_faithfulness', 0)*100:.1f}%",
-        "",
-        f"## Latency Distribution",
-        "",
-        f"- **P50**: {hybrid_metrics.get('p50_latency_ms', 0):.0f}ms",
-        f"- **P95**: {hybrid_metrics.get('p95_latency_ms', 0):.0f}ms",
-        f"- **Mean**: {hybrid_metrics.get('mean_latency_ms', 0):.0f}ms",
-        "",
-        "## Test Set Composition",
-        "",
-        f"- Total questions: {hybrid_metrics.get('total_questions', 0)}",
-        f"- Unanswerable: {sum(1 for r in hybrid_results if r.get('type') == 'unanswerable')}",
-        "",
-        "---",
-        "",
-        "*Veridoc evaluation harness report.*",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Faithfulness Distribution",
+            "",
+            f"- **Mean**: {hybrid_metrics.get('mean_faithfulness', 0) * 100:.1f}%",
+            "",
+            f"## Latency Distribution",
+            "",
+            f"- **P50**: {hybrid_metrics.get('p50_latency_ms', 0):.0f}ms",
+            f"- **P95**: {hybrid_metrics.get('p95_latency_ms', 0):.0f}ms",
+            f"- **Mean**: {hybrid_metrics.get('mean_latency_ms', 0):.0f}ms",
+            "",
+            "## Test Set Composition",
+            "",
+            f"- Total questions: {hybrid_metrics.get('total_questions', 0)}",
+            f"- Unanswerable: {sum(1 for r in hybrid_results if r.get('type') == 'unanswerable')}",
+            "",
+            "---",
+            "",
+            "*Veridoc evaluation harness report.*",
+        ]
+    )
 
     REPORT_PATH.write_text("\n".join(lines) + "\n")
     print(f"\nReport written to: {REPORT_PATH}")
@@ -184,7 +226,9 @@ def write_report(
 
 async def main():
     parser = argparse.ArgumentParser(description="Run Veridoc evaluation")
-    parser.add_argument("--compare", action="store_true", help="Run naive vs hybrid comparison")
+    parser.add_argument(
+        "--compare", action="store_true", help="Run naive vs hybrid comparison"
+    )
     args = parser.parse_args()
 
     gold_qa = load_gold_qa()
@@ -193,9 +237,11 @@ async def main():
     print("=" * 60)
     hybrid_results, hybrid_metrics = await run_evaluation(gold_qa, use_hybrid=True)
     print(f"\nHybrid+Re-rank Results:")
-    print(f"  Answer Accuracy: {hybrid_metrics.get('answer_accuracy', 0)*100:.1f}%")
-    print(f"  Refusal Accuracy: {hybrid_metrics.get('refusal_accuracy', 0)*100:.1f}%")
-    print(f"  Mean Faithfulness: {hybrid_metrics.get('mean_faithfulness', 0)*100:.1f}%")
+    print(f"  Answer Accuracy: {hybrid_metrics.get('answer_accuracy', 0) * 100:.1f}%")
+    print(f"  Refusal Accuracy: {hybrid_metrics.get('refusal_accuracy', 0) * 100:.1f}%")
+    print(
+        f"  Mean Faithfulness: {hybrid_metrics.get('mean_faithfulness', 0) * 100:.1f}%"
+    )
     print(f"  P50 Latency: {hybrid_metrics.get('p50_latency_ms', 0):.0f}ms")
 
     naive_results = None
@@ -205,9 +251,15 @@ async def main():
         print("\n" + "=" * 60)
         naive_results, naive_metrics = await run_evaluation(gold_qa, use_hybrid=False)
         print(f"\nNaive Dense Results:")
-        print(f"  Answer Accuracy: {naive_metrics.get('answer_accuracy', 0)*100:.1f}%")
-        print(f"  Refusal Accuracy: {naive_metrics.get('refusal_accuracy', 0)*100:.1f}%")
-        print(f"  Mean Faithfulness: {naive_metrics.get('mean_faithfulness', 0)*100:.1f}%")
+        print(
+            f"  Answer Accuracy: {naive_metrics.get('answer_accuracy', 0) * 100:.1f}%"
+        )
+        print(
+            f"  Refusal Accuracy: {naive_metrics.get('refusal_accuracy', 0) * 100:.1f}%"
+        )
+        print(
+            f"  Mean Faithfulness: {naive_metrics.get('mean_faithfulness', 0) * 100:.1f}%"
+        )
         print(f"  P50 Latency: {naive_metrics.get('p50_latency_ms', 0):.0f}ms")
 
     write_report(hybrid_results, hybrid_metrics, naive_results, naive_metrics)

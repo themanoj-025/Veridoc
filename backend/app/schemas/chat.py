@@ -37,6 +37,7 @@ class ConversationResponse(BaseModel):
 
 class ConversationListResponse(PaginatedResponse[ConversationResponse]):
     """Paginated list of conversations."""
+
     pass
 
 

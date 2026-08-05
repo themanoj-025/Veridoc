@@ -59,6 +59,7 @@ def _docker_available() -> bool:
         return False
     try:
         import docker
+
         client = docker.from_env()
         client.ping()
         return True
@@ -117,8 +118,7 @@ class _TestVectorStore:
         # in ``requirements.txt``, apply the same ``None``-filter in
         # ``VectorStore.add_chunks()`` too.
         clean_metadatas = [
-            {k: v for k, v in m.items() if v is not None}
-            for m in metadatas
+            {k: v for k, v in m.items() if v is not None} for m in metadatas
         ]
         self._collection.add(
             ids=ids,
@@ -147,15 +147,19 @@ class _TestVectorStore:
         if results["ids"] and results["ids"][0]:
             for i in range(len(results["ids"][0])):
                 meta = results["metadatas"][0][i] if results["metadatas"] else {}
-                chunks.append({
-                    "chunk_id": results["ids"][0][i],
-                    "content": results["documents"][0][i],
-                    "document_id": meta.get("document_id", ""),
-                    "document_title": meta.get("document_title", ""),
-                    "page_number": meta.get("page_number"),
-                    "score": 1.0 - results["distances"][0][i] if results.get("distances") else 0.0,
-                    "source": "vector",
-                })
+                chunks.append(
+                    {
+                        "chunk_id": results["ids"][0][i],
+                        "content": results["documents"][0][i],
+                        "document_id": meta.get("document_id", ""),
+                        "document_title": meta.get("document_title", ""),
+                        "page_number": meta.get("page_number"),
+                        "score": 1.0 - results["distances"][0][i]
+                        if results.get("distances")
+                        else 0.0,
+                        "source": "vector",
+                    }
+                )
         return chunks
 
     async def get_all_chunks(self, document_ids: list[str] | None = None) -> list[dict]:
@@ -167,13 +171,17 @@ class _TestVectorStore:
         if results["ids"]:
             for i in range(len(results["ids"])):
                 meta = results["metadatas"][i] if results["metadatas"] else {}
-                chunks.append({
-                    "chunk_id": results["ids"][i],
-                    "content": results["documents"][i] if results["documents"] else "",
-                    "document_id": meta.get("document_id", ""),
-                    "document_title": meta.get("document_title", ""),
-                    "page_number": meta.get("page_number"),
-                })
+                chunks.append(
+                    {
+                        "chunk_id": results["ids"][i],
+                        "content": results["documents"][i]
+                        if results["documents"]
+                        else "",
+                        "document_id": meta.get("document_id", ""),
+                        "document_title": meta.get("document_title", ""),
+                        "page_number": meta.get("page_number"),
+                    }
+                )
         return chunks
 
     async def delete_document(self, document_id: str) -> None:
@@ -350,17 +358,16 @@ async def test_process_document_end_to_end(
     mock_model.encode = MagicMock(side_effect=_mock_encode)
 
     # Patch the heavy dependencies that process_document() calls
-    with patch("app.services.ingestion.get_vector_store", return_value=test_vs), \
-         patch("app.services.ingestion.get_embedding_model", return_value=mock_model):
-
+    with (
+        patch("app.services.ingestion.get_vector_store", return_value=test_vs),
+        patch("app.services.ingestion.get_embedding_model", return_value=mock_model),
+    ):
         # ── 3. Run the full ingestion orchestrator ───────────
         await process_document(doc_id, session_factory=test_factory)
 
     # ── 4. Verify Postgres: status + chunks ─────────────────
     async with test_factory() as session:
-        result = await session.execute(
-            select(Document).where(Document.id == doc_id)
-        )
+        result = await session.execute(select(Document).where(Document.id == doc_id))
         updated_doc = result.scalar_one_or_none()
         assert updated_doc is not None
         assert updated_doc.status == "indexed", (
@@ -370,9 +377,7 @@ async def test_process_document_end_to_end(
         assert updated_doc.chunk_count > 0
 
         chunk_result = await session.execute(
-            select(Chunk)
-            .where(Chunk.document_id == doc_id)
-            .order_by(Chunk.chunk_index)
+            select(Chunk).where(Chunk.document_id == doc_id).order_by(Chunk.chunk_index)
         )
         orm_chunks = chunk_result.scalars().all()
         assert len(orm_chunks) == updated_doc.chunk_count
@@ -427,14 +432,28 @@ async def test_chromadb_metadata_filtering():
 
     # Add 3 chunks for doc_a
     await vs.add_chunks(
-        [{"document_id": doc_a_id, "chunk_index": i, "content": f"Doc A chunk {i}", "document_title": "A"}
-         for i in range(3)],
+        [
+            {
+                "document_id": doc_a_id,
+                "chunk_index": i,
+                "content": f"Doc A chunk {i}",
+                "document_title": "A",
+            }
+            for i in range(3)
+        ],
         np.random.rand(3, embedding_dim).tolist(),
     )
     # Add 2 chunks for doc_b
     await vs.add_chunks(
-        [{"document_id": doc_b_id, "chunk_index": i, "content": f"Doc B chunk {i}", "document_title": "B"}
-         for i in range(2)],
+        [
+            {
+                "document_id": doc_b_id,
+                "chunk_index": i,
+                "content": f"Doc B chunk {i}",
+                "document_title": "B",
+            }
+            for i in range(2)
+        ],
         np.random.rand(2, embedding_dim).tolist(),
     )
     assert await vs.count_documents() == 5
@@ -478,15 +497,17 @@ async def test_postgres_document_chunk_relationship(pg_session, temp_dir):
         id=uuid.uuid4(),
         user_id=uuid.uuid4(),
         title="Test Document",
-        filename="test.txt", file_type="txt", file_size=100,
-        file_path=str(temp_dir / "test.txt"), status="indexed",
+        filename="test.txt",
+        file_type="txt",
+        file_size=100,
+        file_path=str(temp_dir / "test.txt"),
+        status="indexed",
     )
     pg_session.add(doc)
     await pg_session.flush()
 
     chunks_data = [
-        Chunk(document_id=doc.id, chunk_index=i, content=f"Chunk {i}")
-        for i in range(3)
+        Chunk(document_id=doc.id, chunk_index=i, content=f"Chunk {i}") for i in range(3)
     ]
     for c in chunks_data:
         pg_session.add(c)
@@ -508,7 +529,9 @@ async def test_postgres_document_chunk_relationship(pg_session, temp_dir):
     remaining = await pg_session.execute(
         select(Chunk).where(Chunk.document_id == doc.id)
     )
-    assert remaining.scalar_one_or_none() is None, "Cascade delete should remove all chunks"
+    assert remaining.scalar_one_or_none() is None, (
+        "Cascade delete should remove all chunks"
+    )
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -531,10 +554,14 @@ async def test_postgres_user_scoped_queries(pg_session):
 
     for i in range(5):
         doc = Document(
-            id=uuid.uuid4(), user_id=user_id,
-            title=f"Doc {i}", filename=f"f{i}.txt",
-            file_type="txt", file_size=100 + i,
-            file_path=f"/tmp/f{i}.txt", status="indexed",
+            id=uuid.uuid4(),
+            user_id=user_id,
+            title=f"Doc {i}",
+            filename=f"f{i}.txt",
+            file_type="txt",
+            file_size=100 + i,
+            file_path=f"/tmp/f{i}.txt",
+            status="indexed",
             created_at=now,
         )
         pg_session.add(doc)
@@ -565,6 +592,7 @@ async def test_postgres_user_scoped_queries(pg_session):
         select(Document)
         .where(Document.user_id == user_id)
         .order_by(Document.created_at.desc())
-        .limit(2).offset(1)
+        .limit(2)
+        .offset(1)
     )
     assert len(paginated.scalars().all()) == 2

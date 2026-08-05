@@ -1,5 +1,12 @@
 from app.core.config import settings
-from app.core.database import Base, engine, async_session_factory, get_session, init_db, close_db
+from app.core.database import (
+    Base,
+    engine,
+    async_session_factory,
+    get_session,
+    init_db,
+    close_db,
+)
 from app.core.security import (
     hash_password,
     verify_password,

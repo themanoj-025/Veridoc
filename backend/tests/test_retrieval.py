@@ -62,6 +62,7 @@ SAMPLE_CHUNKS = [
 
 # ── BM25 Search ──────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_bm25_search_empty_chunks():
     """Test BM25 search with empty chunk list returns empty results."""
@@ -105,6 +106,7 @@ async def test_bm25_search_preserves_fields(mock_bm25_builder):
 
 # ── Reciprocal Rank Fusion ───────────────────────────────
 
+
 class TestReciprocalRankFusion:
     """Tests for Reciprocal Rank Fusion algorithm."""
 
@@ -115,7 +117,12 @@ class TestReciprocalRankFusion:
             {"chunk_id": "chunk-2", "content": "dog", "score": 0.8, "source": "bm25"},
         ]
         dense_results = [
-            {"chunk_id": "chunk-3", "content": "cat", "score": 0.85, "source": "vector"},
+            {
+                "chunk_id": "chunk-3",
+                "content": "cat",
+                "score": 0.85,
+                "source": "vector",
+            },
             {"chunk_id": "chunk-1", "content": "fox", "score": 0.7, "source": "vector"},
         ]
 
@@ -164,6 +171,7 @@ class TestReciprocalRankFusion:
 
 # ── Query Rewriting ──────────────────────────────────────
 
+
 class TestQueryRewrite:
     """Tests for query rewriting logic."""
 
@@ -171,7 +179,9 @@ class TestQueryRewrite:
     async def test_rewrite_long_query_no_rewrite(self):
         """Test that long queries without demonstratives are not rewritten."""
         history = [{"role": "user", "content": "What is machine learning?"}]
-        result = await rewrite_query("What is deep learning and how does it work?", history)
+        result = await rewrite_query(
+            "What is deep learning and how does it work?", history
+        )
         assert result is None
 
     @pytest.mark.asyncio
@@ -197,14 +207,18 @@ class TestQueryRewrite:
 
         mock_llm = AsyncMock()
         mock_llm.model_name = "test-model"
-        mock_llm.chat = AsyncMock(return_value="What is machine learning? Explain more about it.")
+        mock_llm.chat = AsyncMock(
+            return_value="What is machine learning? Explain more about it."
+        )
 
         history = [
             {"role": "user", "content": "What is machine learning?"},
             {"role": "assistant", "content": "Machine learning is a subset of AI..."},
         ]
 
-        with patch("app.services.retrieval.query_rewrite.get_llm", return_value=mock_llm):
+        with patch(
+            "app.services.retrieval.query_rewrite.get_llm", return_value=mock_llm
+        ):
             result = await rewrite_query("explain more about it", history)
             assert result is not None
             assert "machine learning" in result.lower()
@@ -212,6 +226,7 @@ class TestQueryRewrite:
 
 
 # ── HybridRetriever ──────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_hybrid_retriever_retrieve():
@@ -280,6 +295,7 @@ async def test_hybrid_retriever_rerank_empty():
 
 
 # ── Session Regression (A1) ──────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_session_no_auto_commit_on_yield():
@@ -368,7 +384,11 @@ class TestBM25DiskPersistence:
 
         chunks = [
             {"chunk_id": "c1", "content": "The quick brown fox.", "document_id": "d1"},
-            {"chunk_id": "c2", "content": "Jumps over the lazy dog.", "document_id": "d1"},
+            {
+                "chunk_id": "c2",
+                "content": "Jumps over the lazy dog.",
+                "document_id": "d1",
+            },
         ]
         # First call: builds index, caches in memory AND writes to disk
         index1, chunks1 = get_bm25_index(chunks, document_ids=["d1"])
@@ -390,8 +410,10 @@ class TestBM25DiskPersistence:
 
         # Both indexes should produce the same scores
         import nltk
+
         tokenized_query = nltk.word_tokenize("fox")
         import numpy as np
+
         scores1 = index1.get_scores(tokenized_query)
         scores2 = index2.get_scores(tokenized_query)
         assert np.array_equal(scores1, scores2)
@@ -473,6 +495,7 @@ class TestBM25DiskPersistence:
 
 # ── Edge Cases ───────────────────────────────────────────
 
+
 class TestRetrievalEdgeCases:
     """Tests for edge cases in retrieval."""
 
@@ -482,7 +505,12 @@ class TestRetrievalEdgeCases:
             {"chunk_id": "same-id", "content": "test", "score": 0.9, "source": "bm25"},
         ]
         dense_results = [
-            {"chunk_id": "same-id", "content": "test", "score": 0.8, "source": "vector"},
+            {
+                "chunk_id": "same-id",
+                "content": "test",
+                "score": 0.8,
+                "source": "vector",
+            },
         ]
 
         merged = reciprocal_rank_fusion(bm25_results, dense_results)

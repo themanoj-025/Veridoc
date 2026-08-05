@@ -57,9 +57,9 @@ const config: Config = {
         },
       },
       fontFamily: {
-        display: ["Inter", "system-ui", "sans-serif"],
-        body: ["Source Serif 4", "Georgia", "serif"],
-        mono: ["JetBrains Mono", "Fira Code", "monospace"],
+        display: ["var(--font-inter)", "system-ui", "sans-serif"],
+        body: ["var(--font-source-serif)", "Georgia", "serif"],
+        mono: ["var(--font-jetbrains-mono)", "Fira Code", "monospace"],
       },
       fontSize: {
         // Small: 0.875rem/1.25rem for UI labels and secondary text

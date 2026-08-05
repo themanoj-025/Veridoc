@@ -19,6 +19,7 @@ from app.core.database import get_session as db_get_session
 
 # ── Test Settings ────────────────────────────────────────
 
+
 @pytest.fixture(autouse=True)
 def patch_settings():
     """Override settings for testing."""
@@ -39,6 +40,7 @@ def patch_settings():
 
 # ── Mock DB Session ──────────────────────────────────────
 
+
 @pytest_asyncio.fixture
 async def mock_db_session():
     """Create a mock async database session."""
@@ -50,13 +52,14 @@ async def mock_db_session():
     async def _refresh_side_effect(obj):
         """Simulate DB refresh by setting server-default fields."""
         import uuid as _uuid
-        if hasattr(obj, 'id') and obj.id is None:
+
+        if hasattr(obj, "id") and obj.id is None:
             obj.id = _uuid.uuid4()
-        if hasattr(obj, 'is_active') and obj.is_active is None:
+        if hasattr(obj, "is_active") and obj.is_active is None:
             obj.is_active = True
-        if hasattr(obj, 'is_verified') and obj.is_verified is None:
+        if hasattr(obj, "is_verified") and obj.is_verified is None:
             obj.is_verified = False
-        if hasattr(obj, 'created_at') and obj.created_at is None:
+        if hasattr(obj, "created_at") and obj.created_at is None:
             obj.created_at = datetime.now(timezone.utc)
 
     session.flush = AsyncMock()
@@ -70,6 +73,7 @@ async def mock_db_session():
 
 
 # ── Mock User ────────────────────────────────────────────
+
 
 @pytest.fixture
 def sample_user() -> User:
@@ -100,6 +104,7 @@ def sample_refresh_token(sample_user: User) -> str:
 
 # ── Mock Chroma/Vector Store ─────────────────────────────
 
+
 @pytest.fixture
 def mock_vector_store():
     """Mock the ChromaDB vector store."""
@@ -113,6 +118,7 @@ def mock_vector_store():
 
 # ── Mock Embedding Model ─────────────────────────────────
 
+
 @pytest.fixture
 def mock_embedding_model():
     """Mock the sentence-transformers embedding model."""
@@ -122,6 +128,7 @@ def mock_embedding_model():
 
 
 # ── Mock LLM Provider ────────────────────────────────────
+
 
 @pytest.fixture
 def mock_llm():
@@ -143,6 +150,7 @@ def mock_llm():
 
 # ── Mock BM25 / NLTK ─────────────────────────────────────
 
+
 @pytest.fixture(autouse=True)
 def mock_nltk():
     """Mock NLTK to avoid punkt download during tests."""
@@ -152,6 +160,7 @@ def mock_nltk():
 
 
 # ── Mock BM25 ────────────────────────────────────────────
+
 
 @pytest.fixture
 def mock_bm25():
@@ -170,6 +179,7 @@ def mock_bm25_builder(mock_bm25):
 
 
 # ── Mock File System ─────────────────────────────────────
+
 
 @pytest.fixture
 def temp_upload_dir(tmp_path):
@@ -209,4 +219,5 @@ async def test_client(mock_db_session) -> AsyncGenerator[AsyncClient, None]:
 def app():
     """Provide the FastAPI app instance for dependency overrides."""
     from app.main import app as _app
+
     return _app

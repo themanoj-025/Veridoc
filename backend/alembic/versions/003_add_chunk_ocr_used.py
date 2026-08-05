@@ -9,6 +9,7 @@ Revision ID: 003
 Revises: 002
 Create Date: 2026-07-29
 """
+
 from __future__ import annotations
 
 from typing import Sequence, Union
@@ -54,7 +55,9 @@ def upgrade() -> None:
 
     # Now make it non-nullable
     with op.batch_alter_table("chunks") as batch_op:
-        batch_op.alter_column("ocr_used", nullable=False, server_default=sa.text("false"))
+        batch_op.alter_column(
+            "ocr_used", nullable=False, server_default=sa.text("false")
+        )
 
 
 def downgrade() -> None:

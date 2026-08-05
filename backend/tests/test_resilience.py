@@ -36,6 +36,7 @@ import pytest_asyncio
 # Fixtures
 # ══════════════════════════════════════════════════════════════════════
 
+
 @pytest_asyncio.fixture
 async def test_client():
     """Standard FastAPI test client with a mocked DB session.
@@ -63,6 +64,7 @@ async def test_client():
     _app.router.lifespan = None
 
     from httpx import AsyncClient, ASGITransport
+
     transport = ASGITransport(app=_app)  # type: ignore[arg-type]
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
@@ -74,12 +76,15 @@ async def test_client():
 # Tests: Postgres unavailable
 # ══════════════════════════════════════════════════════════════════════
 
+
 class TestPostgresFailure:
     """Verify graceful degradation when Postgres is unreachable."""
 
     @patch("app.core.database.async_session_factory")
     async def test_db_connection_failure_returns_503(
-        self, mock_session_factory, test_client,
+        self,
+        mock_session_factory,
+        test_client,
     ):
         """When the DB connection fails, the health endpoint should report
         the issue but the app should still respond (no crash)."""
@@ -116,12 +121,15 @@ class TestPostgresFailure:
 # Tests: ChromaDB unavailable
 # ══════════════════════════════════════════════════════════════════════
 
+
 class TestChromaFailure:
     """Verify graceful degradation when ChromaDB is unreachable."""
 
     @patch("app.services.vector_store.VectorStore.search")
     async def test_chroma_search_failure_returns_graceful_error(
-        self, mock_search, test_client,
+        self,
+        mock_search,
+        test_client,
     ):
         """When ChromaDB search fails, the health endpoint should
         report the issue without crashing."""
@@ -140,6 +148,7 @@ class TestChromaFailure:
 # ══════════════════════════════════════════════════════════════════════
 # Tests: Redis unavailable
 # ══════════════════════════════════════════════════════════════════════
+
 
 class TestRedisFailure:
     """Verify graceful degradation when Redis is unreachable."""
@@ -166,6 +175,7 @@ class TestRedisFailure:
 # Tests: MinIO unavailable
 # ══════════════════════════════════════════════════════════════════════
 
+
 class TestMinIOFailure:
     """Verify graceful degradation when MinIO (S3 storage) is unavailable."""
 
@@ -182,6 +192,7 @@ class TestMinIOFailure:
 # ══════════════════════════════════════════════════════════════════════
 # Tests: LLM / Ollama provider unavailable
 # ══════════════════════════════════════════════════════════════════════
+
 
 class TestLLMFailure:
     """Verify the fallback-routing mechanism (D3) works when the
@@ -264,6 +275,7 @@ class TestLLMFailure:
 # Test: Slow / timeout dependencies
 # ══════════════════════════════════════════════════════════════════════
 
+
 class TestDependencyTimeouts:
     """Verify timeouts are respected and trigger graceful degradation."""
 
@@ -277,6 +289,7 @@ class TestDependencyTimeouts:
 # ══════════════════════════════════════════════════════════════════════
 # Placeholder for Tier 2: real-container validation
 # ══════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.skip(reason="Tier 2: requires running Docker stack")
 class TestRealContainerChaos:
