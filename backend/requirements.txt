@@ -40,7 +40,6 @@ rank-bm25==0.2.2
 
 nltk==3.10.0
 
-nltk==3.10.0
 
 
 # ── MinIO (S3 client) ──
