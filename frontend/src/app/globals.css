@@ -2,10 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+/* F17: Font loading moved to next/font in layout.tsx.
+   The @import below is replaced by next/font for proper performance. */
 
 @layer base {
   :root {
+    /* ── Design System Tokens (Light) ── */
+    --color-surface: #ffffff;
+    --color-surface-secondary: #f8fafc;
+    --color-surface-hover: #f1f5f9;
+    --color-border: #e2e8f0;
+    --color-border-subtle: #f1f5f9;
+
     --background: 210 40% 98%;
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
@@ -16,7 +24,7 @@
     --secondary-foreground: 222 47% 11%;
     --muted: 210 40% 93%;
     --muted-foreground: 215 16% 47%;
-    --accent: 38 92% 50%;
+    --accent-hsl: 38 92% 50%;
     --accent-foreground: 222 47% 11%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
@@ -27,6 +35,13 @@
   }
 
   .dark {
+    /* ── Design System Tokens (Dark) ── */
+    --color-surface: #0f172a;
+    --color-surface-secondary: #1e293b;
+    --color-surface-hover: #334155;
+    --color-border: #334155;
+    --color-border-subtle: #1e293b;
+
     --background: 222 47% 11%;
     --foreground: 210 40% 98%;
     --card: 222 47% 14%;
@@ -37,8 +52,10 @@
     --secondary-foreground: 210 40% 98%;
     --muted: 217 33% 17%;
     --muted-foreground: 215 20% 65%;
+    --accent-hsl: 38 92% 50%;
     --border: 217 33% 20%;
     --input: 217 33% 20%;
+    --ring: 210 100% 50%;
   }
 
   * {
@@ -48,13 +65,26 @@
   body {
     @apply bg-background text-foreground font-display;
   }
+
+  /* Improve text rendering */
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+  }
 }
 
 @layer components {
+  /* ── Citation Chips ── */
   .citation-chip {
     @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
            bg-veridoc-100 text-veridoc-700 cursor-pointer
            hover:bg-veridoc-200 transition-colors duration-150;
+  }
+
+  .dark .citation-chip {
+    @apply bg-veridoc-900/50 text-veridoc-300 hover:bg-veridoc-800/50;
   }
 
   .streaming-cursor::after {
@@ -69,23 +99,98 @@
   .document-page p {
     @apply mb-4;
   }
+
+  .document-page h1, .document-page h2, .document-page h3 {
+    @apply font-display font-semibold text-foreground mt-6 mb-3;
+  }
+
+  /* ── Skeleton Loading ── */
+  .skeleton {
+    @apply relative overflow-hidden rounded bg-muted;
+  }
+
+  .skeleton::after {
+    content: "";
+    @apply absolute inset-0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.4) 50%,
+      transparent 100%
+    );
+    animation: shimmer 2s infinite linear;
+  }
+
+  .dark .skeleton::after {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.05) 50%,
+      transparent 100%
+    );
+  }
+
+  /* ── Toast Container ── */
+  .toast-container {
+    @apply fixed top-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none;
+  }
+
+  .toast-container > * {
+    @apply pointer-events-auto;
+  }
+
+  /* ── Command Palette Overlay ── */
+  .command-palette-overlay {
+    @apply fixed inset-0 z-50 bg-black/50 backdrop-blur-sm;
+    animation: fadeIn 0.15s ease-out;
+  }
+
+  /* ── Mobile bottom nav safe area ── */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
 }
 
-/* Smooth scrolling for citation jumps */
-html {
-  scroll-behavior: smooth;
-}
+@layer utilities {
+  /* ── Theme transitions (scoped to reduce motion) ── */
+  @media (prefers-reduced-motion: no-preference) {
+    html.dark *,
+    html:not(.dark) * {
+      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+  }
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
+  /* ── Scrollbar Styling ── */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
 
-::-webkit-scrollbar-track {
-  @apply bg-transparent;
-}
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
 
-::-webkit-scrollbar-thumb {
-  @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/40;
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/40;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/10 hover:bg-muted-foreground/30;
+  }
+
+  /* ── Line Clamp ── */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 }

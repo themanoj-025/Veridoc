@@ -6,6 +6,7 @@ import Link from "next/link";
 import { auth } from "@/lib/api";
 import { useAuthStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { t } from "@/lib/i18n";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -26,7 +27,7 @@ export default function RegisterPage() {
       login(res.data.access_token, res.data.refresh_token, res.data.user);
       router.push("/dashboard");
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Registration failed. Please try again.");
+      setError(err.response?.data?.detail || t("auth.register.error"));
     } finally {
       setLoading(false);
     }
@@ -41,12 +42,12 @@ export default function RegisterPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-foreground">Veridoc</h1>
-          <p className="text-muted-foreground mt-2">Create your account</p>
+          <h1 className="text-3xl font-bold text-foreground">{t("dashboard.title")}</h1>
+          <p className="text-muted-foreground mt-2">{t("auth.register.tagline")}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border p-8 space-y-5">
-          <h2 className="text-xl font-semibold">Get started</h2>
+          <h2 className="text-xl font-semibold">{t("auth.register.heading")}</h2>
 
           {error && (
             <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
@@ -56,7 +57,7 @@ export default function RegisterPage() {
 
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5" htmlFor="name">
-              Full name <span className="text-muted-foreground">(optional)</span>
+              {t("auth.register.nameLabel")} <span className="text-muted-foreground">{t("auth.register.nameOptional")}</span>
             </label>
             <input
               id="name"
@@ -66,13 +67,13 @@ export default function RegisterPage() {
               className="w-full px-4 py-2.5 rounded-lg border border-input bg-white text-foreground
                          focus:outline-none focus:ring-2 focus:ring-veridoc-500/20 focus:border-veridoc-500
                          transition-all duration-150"
-              placeholder="Jane Doe"
+              placeholder={t("auth.register.namePlaceholder")}
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5" htmlFor="email">
-              Email
+              {t("auth.register.emailLabel")}
             </label>
             <input
               id="email"
@@ -89,7 +90,7 @@ export default function RegisterPage() {
 
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5" htmlFor="password">
-              Password
+              {t("auth.register.passwordLabel")}
             </label>
             <input
               id="password"
@@ -99,7 +100,7 @@ export default function RegisterPage() {
               className="w-full px-4 py-2.5 rounded-lg border border-input bg-white text-foreground
                          focus:outline-none focus:ring-2 focus:ring-veridoc-500/20 focus:border-veridoc-500
                          transition-all duration-150"
-              placeholder="Min. 8 characters"
+              placeholder={t("auth.register.passwordPlaceholder")}
               minLength={8}
               required
             />
@@ -115,13 +116,13 @@ export default function RegisterPage() {
               "disabled:opacity-50 disabled:cursor-not-allowed"
             )}
           >
-            {loading ? "Creating account..." : "Create account"}
+            {loading ? t("auth.register.submitting") : t("auth.register.submit")}
           </button>
 
           <p className="text-center text-sm text-muted-foreground">
-            Already have an account?{" "}
+            {t("auth.register.hasAccount")}{" "}
             <Link href="/login" className="text-veridoc-500 hover:text-veridoc-600 font-medium">
-              Sign in
+              {t("auth.register.signIn")}
             </Link>
           </p>
         </form>

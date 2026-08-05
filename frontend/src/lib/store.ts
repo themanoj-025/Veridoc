@@ -1,15 +1,9 @@
 "use client";
 
 import { create } from "zustand";
+import type { UserResponse } from "@/lib/api-types";
 
-interface User {
-  id: string;
-  email: string;
-  full_name: string | null;
-  is_active: boolean;
-  is_verified: boolean;
-  created_at: string;
-}
+type User = UserResponse;
 
 interface AuthState {
   user: User | null;
@@ -90,9 +84,16 @@ export const useChatStore = create<ChatState>((set) => ({
 interface DocumentState {
   selectedDocumentId: string | null;
   setSelectedDocument: (id: string | null) => void;
+  toggleDarkMode: () => void;
 }
 
 export const useDocumentStore = create<DocumentState>((set) => ({
   selectedDocumentId: null,
   setSelectedDocument: (id) => set({ selectedDocumentId: id }),
+  toggleDarkMode: () => {
+    const isDark = document.documentElement.classList.contains("dark");
+    const next = isDark ? "light" : "dark";
+    document.documentElement.classList.toggle("dark", !isDark);
+    localStorage.setItem("theme", next);
+  },
 }));
