@@ -101,7 +101,7 @@ services:
     environment:
       APP_ENV: development
       POSTGRES_USER: veridoc
-      POSTGRES_PASSWORD: veridoc_local_dev
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-veridoc_local_dev}
       POSTGRES_DB: veridoc
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
@@ -166,7 +166,7 @@ services:
     environment:
       APP_ENV: development
       POSTGRES_USER: veridoc
-      POSTGRES_PASSWORD: veridoc_local_dev
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-veridoc_local_dev}
       POSTGRES_DB: veridoc
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432

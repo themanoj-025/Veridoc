@@ -129,8 +129,9 @@ jobs:
           APP_ENV: test
         # Exclude integration tests (which need testcontainers Docker-in-Docker)
         # and health tests (which try to connect to actual Chroma/Ollama)
-        run: python -m pytest tests/ -v --timeout=30 \
-          -k "not integration and not health"
+        run: |
+          python -m pytest tests/ -v --timeout=30 \
+            -k "not integration and not health"
 
   test-integration:
     runs-on: ubuntu-latest
@@ -174,8 +175,9 @@ jobs:
           POSTGRES_HOST: localhost
           CHROMA_HOST: localhost
           APP_ENV: test
-        run: python -m pytest tests/ -v --timeout=120 \
-          -k "integration or health"
+        run: |
+          python -m pytest tests/ -v --timeout=120 \
+            -k "integration or health"
 
   eval-regression:
     runs-on: ubuntu-latest
