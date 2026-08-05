@@ -10,7 +10,7 @@ export function formatFileSize(bytes: number): string {
   const units = ["B", "KB", "MB", "GB"];
   const k = 1024;
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${units[i]}`;
+  return `${(bytes / Math.pow(k, i)).toFixed(1)} ${units[i]}`;
 }
 
 export function truncate(str: string, length: number): string {

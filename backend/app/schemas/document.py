@@ -50,6 +50,7 @@ class DocumentListResponse(PaginatedResponse[DocumentResponse]):
     Inherits ``items`` (the documents), ``total``, ``limit``, ``offset``
     from ``PaginatedResponse``.
     """
+
     pass
 
 
