@@ -1,9 +1,8 @@
 """Pydantic schemas for authentication."""
 
-from __future__ import annotations
-
 import uuid
 from datetime import datetime
+from typing import Self
 
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
@@ -16,7 +15,7 @@ class UserCreate(BaseModel):
     full_name: str | None = None
 
     @model_validator(mode="after")
-    def _check_password_complexity(self) -> "UserCreate":
+    def _check_password_complexity(self) -> Self:
         err = validate_password_complexity(self.password)
         if err:
             raise ValueError(err)
@@ -55,7 +54,7 @@ class PasswordChange(BaseModel):
     new_password: str = Field(min_length=8, max_length=128)
 
     @model_validator(mode="after")
-    def _check_password_complexity(self) -> "PasswordChange":
+    def _check_password_complexity(self) -> Self:
         err = validate_password_complexity(self.new_password)
         if err:
             raise ValueError(err)

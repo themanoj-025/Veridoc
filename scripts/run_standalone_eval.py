@@ -70,18 +70,52 @@ def test_metrics_computation():
     print("\n[2/5] Testing metrics computation...")
 
     sample_results = [
-        {"question": "Q1", "generated_answer": "The answer is 42.", "gold_answer": "The answer is 42 and it's correct.", "faithfulness_score": 0.85, "latency_ms": 1200},
-        {"question": "Q2", "generated_answer": "I don't have enough information to answer.", "gold_answer": "Not answerable from documents.", "faithfulness_score": 0.92, "latency_ms": 800},
-        {"question": "Q3", "generated_answer": "Machine learning is a subset of AI.", "gold_answer": "Machine learning is a field of study.", "faithfulness_score": 0.78, "latency_ms": 1500},
-        {"question": "Q4", "generated_answer": "I cannot find this information in the provided documents.", "gold_answer": "Not provided in documents.", "faithfulness_score": 0.88, "latency_ms": 600},
-        {"question": "Q5", "generated_answer": "According to the contract, the fee is $50,000.", "gold_answer": "The annual fee is $50,000.", "faithfulness_score": 0.95, "latency_ms": 1100},
+        {
+            "question": "Q1",
+            "generated_answer": "The answer is 42.",
+            "gold_answer": "The answer is 42 and it's correct.",
+            "faithfulness_score": 0.85,
+            "latency_ms": 1200,
+        },
+        {
+            "question": "Q2",
+            "generated_answer": "I don't have enough information to answer.",
+            "gold_answer": "Not answerable from documents.",
+            "faithfulness_score": 0.92,
+            "latency_ms": 800,
+        },
+        {
+            "question": "Q3",
+            "generated_answer": "Machine learning is a subset of AI.",
+            "gold_answer": "Machine learning is a field of study.",
+            "faithfulness_score": 0.78,
+            "latency_ms": 1500,
+        },
+        {
+            "question": "Q4",
+            "generated_answer": "I cannot find this information in the provided documents.",
+            "gold_answer": "Not provided in documents.",
+            "faithfulness_score": 0.88,
+            "latency_ms": 600,
+        },
+        {
+            "question": "Q5",
+            "generated_answer": "According to the contract, the fee is $50,000.",
+            "gold_answer": "The annual fee is $50,000.",
+            "faithfulness_score": 0.95,
+            "latency_ms": 1100,
+        },
     ]
 
     unanswerable = {1, 3}  # Q2 and Q4 are unanswerable
     metrics = compute_metrics(sample_results, unanswerable)
 
     for key, value in metrics.items():
-        if isinstance(value, (float, int)) and "latency" not in key.lower() and key not in ("total_questions",):
+        if (
+            isinstance(value, (float, int))
+            and "latency" not in key.lower()
+            and key not in ("total_questions",)
+        ):
             pct = value * 100 if value <= 1 else value
             print(f"  {key}: {pct:.1f}%")
         elif isinstance(value, (float, int)) and "latency" in key.lower():
@@ -90,9 +124,15 @@ def test_metrics_computation():
             print(f"  {key}: {value}")
 
     # Verify results
-    assert metrics["total_questions"] == 5, f"Expected 5, got {metrics['total_questions']}"
-    assert metrics["refusal_accuracy"] == 1.0, f"Expected 1.0, got {metrics['refusal_accuracy']}"
-    assert metrics["mean_faithfulness"] > 0.8, f"Expected >0.8, got {metrics['mean_faithfulness']}"
+    assert metrics["total_questions"] == 5, (
+        f"Expected 5, got {metrics['total_questions']}"
+    )
+    assert metrics["refusal_accuracy"] == 1.0, (
+        f"Expected 1.0, got {metrics['refusal_accuracy']}"
+    )
+    assert metrics["mean_faithfulness"] > 0.8, (
+        f"Expected >0.8, got {metrics['mean_faithfulness']}"
+    )
     print("  [OK] Metrics computation verified")
     return metrics
 
@@ -105,10 +145,14 @@ async def test_query_rewrite():
     # Test 1: Long query, no demonstrative
     history = [{"role": "user", "content": "What is machine learning?"}]
     # Test 1: Long query, no demonstrative
-    result = await rewrite_query("What is deep learning and how does it differ?", history)
+    result = await rewrite_query(
+        "What is deep learning and how does it differ?", history
+    )
     assert result is None, f"Expected None, got {result}"
     print("  [OK] Long query without demonstrative: no rewrite (None)")
-    results.append({"test": "long_no_demonstrative", "rewritten": result, "expected": None})
+    results.append(
+        {"test": "long_no_demonstrative", "rewritten": result, "expected": None}
+    )
 
     # Test 2: Short query with demonstrative
     history = [
@@ -129,7 +173,9 @@ async def test_query_rewrite():
     # "python" is short but has no demonstrative (this, that, it)
     assert result is None, f"Expected None, got {result}"
     print("  [OK] Short without demonstrative: no rewrite (None)")
-    results.append({"test": "short_no_demonstrative", "rewritten": result, "expected": None})
+    results.append(
+        {"test": "short_no_demonstrative", "rewritten": result, "expected": None}
+    )
 
     # Test 4: Empty history
     result = await rewrite_query("explain more", [])
@@ -144,7 +190,12 @@ def test_prompt_injection_defense():
     """Test the prompt injection defense mechanism."""
     print("\n[4/5] Testing prompt injection defense...")
 
-    red_team_path = Path(__file__).resolve().parent.parent / "eval" / "red_team" / "prompt_injection.json"
+    red_team_path = (
+        Path(__file__).resolve().parent.parent
+        / "eval"
+        / "red_team"
+        / "prompt_injection.json"
+    )
     if not red_team_path.exists():
         print("  [!!] Red-team test file not found")
         return False
@@ -170,7 +221,9 @@ def test_prompt_injection_defense():
         # Check defense markers
         has_boundary = "NOT an instruction" in system_prompt
         has_data_marking = "is data for you to use as evidence" in system_prompt
-        has_chunk_markers = "---BEGIN CHUNK---" in system_prompt and "---END CHUNK---" in system_prompt
+        has_chunk_markers = (
+            "---BEGIN CHUNK---" in system_prompt and "---END CHUNK---" in system_prompt
+        )
 
         # The injected content should NOT override the instruction boundary
         # Check that the malicious text is inside the chunk markers
@@ -181,14 +234,23 @@ def test_prompt_injection_defense():
             chunk_content = system_prompt[ctx_start:ctx_end]
             malicious_inside_chunk = test["dangerous_document"] in chunk_content
 
-        if has_boundary and has_data_marking and has_chunk_markers and malicious_inside_chunk:
+        if (
+            has_boundary
+            and has_data_marking
+            and has_chunk_markers
+            and malicious_inside_chunk
+        ):
             passed += 1
             status = "[PASS]"
         else:
             status = "[FAIL]"
-            print(f"    {test['id']}: {status} boundary={has_boundary} data={has_data_marking} chunks={has_chunk_markers} isolated={malicious_inside_chunk}")
+            print(
+                f"    {test['id']}: {status} boundary={has_boundary} data={has_data_marking} chunks={has_chunk_markers} isolated={malicious_inside_chunk}"
+            )
 
-    print(f"  Red-team summary: {passed}/{len(tests)} passed (defense mechanism present and isolating injected content)")
+    print(
+        f"  Red-team summary: {passed}/{len(tests)} passed (defense mechanism present and isolating injected content)"
+    )
     print(f"  FAIL rate: {len(tests) - passed}/{len(tests)}")
     return True
 
@@ -211,8 +273,12 @@ def test_retrieval_integrity():
     print("  [OK] All retrieval module imports resolve correctly")
 
     # Test RRF
-    bm25_results = [{"chunk_id": "c1", "content": "test", "score": 0.9, "source": "bm25"}]
-    dense_results = [{"chunk_id": "c2", "content": "test", "score": 0.8, "source": "vector"}]
+    bm25_results = [
+        {"chunk_id": "c1", "content": "test", "score": 0.9, "source": "bm25"}
+    ]
+    dense_results = [
+        {"chunk_id": "c2", "content": "test", "score": 0.8, "source": "vector"}
+    ]
     merged = reciprocal_rank_fusion(bm25_results, dense_results)
     assert len(merged) == 2, f"Expected 2, got {len(merged)}"
     assert all("rrf_score" in r for r in merged), "Missing rrf_score"
@@ -224,6 +290,7 @@ def test_retrieval_integrity():
     assert hasattr(retriever, "rerank"), "Missing rerank"
     # Check rerank has batch_size parameter
     import inspect
+
     sig = inspect.signature(retriever.rerank)
     assert "batch_size" in sig.parameters, "Missing batch_size param"
     print("  [OK] HybridRetriever has correct interface with batch_size param")
@@ -239,7 +306,7 @@ def test_retrieval_integrity():
 async def write_reports(eval_results, metrics, rewrite_results, defense_ok):
     """Write evaluation report and security notes."""
     now = time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
-    docs_dir = Path(__file__).resolve().parent.parent / "docs"
+    eval_dir = Path(__file__).resolve().parent.parent / "eval"
 
     # ── Evaluation Report ──
     report = [
@@ -261,63 +328,76 @@ async def write_reports(eval_results, metrics, rewrite_results, defense_ok):
     for r in eval_results:
         report.append(f"| {r['query']} | {r['score']:.2%} |")
 
-    report.extend([
-        "",
-        "### Metrics Computation (5-sample gold set)",
-        "",
-        f"- **Total questions**: {metrics.get('total_questions', 0)}",
-        f"- **Answer accuracy**: {metrics.get('answer_accuracy', 0)*100:.1f}%",
-        f"- **Refusal accuracy**: {metrics.get('refusal_accuracy', 0)*100:.1f}%",
-        f"- **Mean faithfulness**: {metrics.get('mean_faithfulness', 0)*100:.1f}%",
-        f"- **P50 latency**: {metrics.get('p50_latency_ms', 0):.0f}ms",
-        f"- **P95 latency**: {metrics.get('p95_latency_ms', 0):.0f}ms",
-        "",
-        "### Query Rewrite Logic",
-        "",
-    ])
+    report.extend(
+        [
+            "",
+            "### Metrics Computation (5-sample gold set)",
+            "",
+            f"- **Total questions**: {metrics.get('total_questions', 0)}",
+            f"- **Answer accuracy**: {metrics.get('answer_accuracy', 0) * 100:.1f}%",
+            f"- **Refusal accuracy**: {metrics.get('refusal_accuracy', 0) * 100:.1f}%",
+            f"- **Mean faithfulness**: {metrics.get('mean_faithfulness', 0) * 100:.1f}%",
+            f"- **P50 latency**: {metrics.get('p50_latency_ms', 0):.0f}ms",
+            f"- **P95 latency**: {metrics.get('p95_latency_ms', 0):.0f}ms",
+            "",
+            "### Query Rewrite Logic",
+            "",
+        ]
+    )
 
     for r in rewrite_results:
-        status = "Rewritten" if r.get("rewritten") else "None (no rewrite or LLM unavailable)"
+        status = (
+            "Rewritten"
+            if r.get("rewritten")
+            else "None (no rewrite or LLM unavailable)"
+        )
         report.append(f"- **{r['test']}**: {status}")
 
-    report.extend([
-        "",
-        "### Retrieval Module Integrity",
-        "",
-        "- All retrieval module imports resolve correctly (bm25_search, RRF, HybridRetriever, rewrite_query)",
-        "- RRF fusion verified: 2 items merged from 2 lists, rrf_score present",
-        "- HybridRetriever interface verified: `retrieve()`, `rerank()` with `batch_size` parameter",
-        "- Rerank fallback works when cross-encoder model is not loaded",
-        "",
-        "---",
-        "",
-        "## 2. System Information",
-        "",
-        "| Metric | Value |",
-        "|--------|-------|",
-        f"| Python | {sys.version.split()[0]} |",
-        f"| Test cases (faithfulness) | {len(eval_results)} |",
-        f"| Metrics sample | {metrics.get('total_questions', 0)} |",
-        "| Backend tests passing | 73/73 |",
-        "",
-        "---",
-        "",
-        "## 3. Reproduction (Full End-to-End)",
-        "",
-        "```bash",
-        "# Requires: Docker, Ollama, 8GB+ RAM",
-        "docker compose up -d",
-        "python scripts/run_eval.py --compare",
-        "```",
-        "",
-        "*Veridoc standalone evaluation harness report. Full head-to-head comparison (naive dense vs. hybrid+rerank) requires the live stack.*",
-    ])
+    report.extend(
+        [
+            "",
+            "### Retrieval Module Integrity",
+            "",
+            "- All retrieval module imports resolve correctly (bm25_search, RRF, HybridRetriever, rewrite_query)",
+            "- RRF fusion verified: 2 items merged from 2 lists, rrf_score present",
+            "- HybridRetriever interface verified: `retrieve()`, `rerank()` with `batch_size` parameter",
+            "- Rerank fallback works when cross-encoder model is not loaded",
+            "",
+            "---",
+            "",
+            "## 2. System Information",
+            "",
+            "| Metric | Value |",
+            "|--------|-------|",
+            f"| Python | {sys.version.split()[0]} |",
+            f"| Test cases (faithfulness) | {len(eval_results)} |",
+            f"| Metrics sample | {metrics.get('total_questions', 0)} |",
+            "| Backend tests passing | 73/73 |",
+            "",
+            "---",
+            "",
+            "## 3. Reproduction (Full End-to-End)",
+            "",
+            "```bash",
+            "# Requires: Docker, Ollama, 8GB+ RAM",
+            "docker compose up -d",
+            "python scripts/run_eval.py --compare",
+            "```",
+            "",
+            "*Veridoc standalone evaluation harness report. Full head-to-head comparison (naive dense vs. hybrid+rerank) requires the live stack.*",
+        ]
+    )
 
-    (docs_dir / "evaluation-report.md").write_text("\n".join(report) + "\n")
-    print(f"\n[OK] Evaluation report: {docs_dir / 'evaluation-report.md'}")
+    (eval_dir / "evaluation-report.md").write_text("\n".join(report) + "\n")
+    print(f"\n[OK] Evaluation report: {eval_dir / 'evaluation-report.md'}")
 
     # ── Security Notes ──
-    red_team_path = Path(__file__).resolve().parent.parent / "eval" / "red_team" / "prompt_injection.json"
+    red_team_path = (
+        Path(__file__).resolve().parent.parent
+        / "eval"
+        / "red_team"
+        / "prompt_injection.json"
+    )
     red_team_rows = []
     if red_team_path.exists():
         tests = json.loads(red_team_path.read_text(encoding="utf-8"))
@@ -336,15 +416,26 @@ async def write_reports(eval_results, metrics, rewrite_results, defense_ok):
             )
             has_boundary = "NOT an instruction" in system_prompt
             has_data_marking = "is data for you to use as evidence" in system_prompt
-            has_chunks = "---BEGIN CHUNK---" in system_prompt and "---END CHUNK---" in system_prompt
+            has_chunks = (
+                "---BEGIN CHUNK---" in system_prompt
+                and "---END CHUNK---" in system_prompt
+            )
             ctx_start = system_prompt.find("---BEGIN CHUNK---")
             ctx_end = system_prompt.find("---END CHUNK---")
-            malicious_inside = test["dangerous_document"] in system_prompt[ctx_start:ctx_end] if ctx_start >= 0 and ctx_end >= 0 else False
-            all_pass = has_boundary and has_data_marking and has_chunks and malicious_inside
+            malicious_inside = (
+                test["dangerous_document"] in system_prompt[ctx_start:ctx_end]
+                if ctx_start >= 0 and ctx_end >= 0
+                else False
+            )
+            all_pass = (
+                has_boundary and has_data_marking and has_chunks and malicious_inside
+            )
             if all_pass:
                 passed_count += 1
             result = "PASS" if all_pass else "FAIL"
-            red_team_rows.append(f"| {test['id']} | {test['name'][:42]} | {test['severity']} | Refuse | {result} (defense mechanism verified) | {now} |")
+            red_team_rows.append(
+                f"| {test['id']} | {test['name'][:42]} | {test['severity']} | Refuse | {result} (defense mechanism verified) | {now} |"
+            )
 
     security = [
         "# Veridoc -- Security Notes",
@@ -392,22 +483,24 @@ async def write_reports(eval_results, metrics, rewrite_results, defense_ok):
         "|----|------|----------|----------|--------|----------|",
     ]
     security.extend(red_team_rows)
-    security.extend([
-        "",
-        f"**Summary**: {passed_count}/{len(red_team_rows)} tests passed at the defense-mechanism level.",
-        "*Note: These tests verify the defense mechanism exists in the code (instruction boundaries, data marking, chunk isolation). Full end-to-end validation against a live Ollama model would additionally verify that the model respects these boundaries in its output.*",
-        "",
-        "## Recommendations for Production",
-        "",
-        "1. Enable GitHub Dependabot for automated dependency scanning",
-        "2. Use a secrets manager (Vault, AWS Secrets Manager) instead of .env",
-        "3. Add a Web Application Firewall in front of the reverse proxy",
-        "4. Enable comprehensive audit logging",
-        "5. Run the full red-team suite against the live Ollama model",
-    ])
+    security.extend(
+        [
+            "",
+            f"**Summary**: {passed_count}/{len(red_team_rows)} tests passed at the defense-mechanism level.",
+            "*Note: These tests verify the defense mechanism exists in the code (instruction boundaries, data marking, chunk isolation). Full end-to-end validation against a live Ollama model would additionally verify that the model respects these boundaries in its output.*",
+            "",
+            "## Recommendations for Production",
+            "",
+            "1. Enable GitHub Dependabot for automated dependency scanning",
+            "2. Use a secrets manager (Vault, AWS Secrets Manager) instead of .env",
+            "3. Add a Web Application Firewall in front of the reverse proxy",
+            "4. Enable comprehensive audit logging",
+            "5. Run the full red-team suite against the live Ollama model",
+        ]
+    )
 
-    (docs_dir / "security-notes.md").write_text("\n".join(security) + "\n")
-    print(f"[OK] Security notes: {docs_dir / 'security-notes.md'}")
+    (eval_dir / "security-notes.md").write_text("\n".join(security) + "\n")
+    print(f"[OK] Security notes: {eval_dir / 'security-notes.md'}")
 
 
 async def main():

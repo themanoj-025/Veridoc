@@ -54,7 +54,6 @@ def build_gold_qa():
             "source_excerpt": "Results section",
             "type": "multi-hop",
         },
-
         # ── Gutenberg Book Questions ──
         {
             "id": "gutenberg-001",
@@ -101,7 +100,6 @@ def build_gold_qa():
             "source_excerpt": "Multiple chapters",
             "type": "multi-hop",
         },
-
         # ── Contract Questions ──
         {
             "id": "contract-001",
@@ -157,7 +155,6 @@ def build_gold_qa():
             "source_excerpt": "Section 2.3: License Grant",
             "type": "multi-hop",
         },
-
         # ── README Questions ──
         {
             "id": "readme-001",
@@ -186,7 +183,6 @@ def build_gold_qa():
             "source_excerpt": "License section",
             "type": "factual",
         },
-
         # ── Unanswerable Questions ──
         {
             "id": "unans-001",

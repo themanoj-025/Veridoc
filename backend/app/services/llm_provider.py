@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from typing import AsyncGenerator
 
 import httpx
+import structlog
 
 from app.core.config import settings
 
@@ -16,8 +17,7 @@ class LLMProvider(ABC):
 
     @property
     @abstractmethod
-    def model_name(self) -> str:
-        ...
+    def model_name(self) -> str: ...
 
     @abstractmethod
     async def chat(self, system_prompt: str, history: list[dict], message: str) -> str:
@@ -86,6 +86,7 @@ class ClaudeProvider(LLMProvider):
 
     def __init__(self):
         import anthropic
+
         self.client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
         self.model = "claude-sonnet-4-20250514"
 
@@ -128,6 +129,7 @@ class OpenAIProvider(LLMProvider):
 
     def __init__(self):
         from openai import AsyncOpenAI
+
         self.client = AsyncOpenAI(api_key=settings.openai_api_key)
         self.model = "gpt-4o-mini"
 
@@ -169,20 +171,126 @@ class OpenAIProvider(LLMProvider):
 
 # ── Factory ──────────────────────────────────────────────
 
-_provider: LLMProvider | None = None
+
+def _build_llm_provider() -> LLMProvider:
+    """Build the appropriate LLM provider from settings (no caching).
+
+    This function exists separately so it can be called from
+    ``DIContainer.get_or_create_llm()`` without circular imports.
+
+    When the configured primary provider errors or times out, the
+    getter wraps the call in a try/except and falls back to the
+    local Ollama model (if not already primary).  Every fallback
+    event is logged with the provider name and error reason.
+    """
+    logger = structlog.get_logger(__name__)
+
+    if settings.anthropic_api_key and settings.llm_provider == "claude":
+        logger.info(
+            "llm.provider_selected", provider="claude", model="claude-sonnet-4-20250514"
+        )
+        return _with_fallback_to_ollama(ClaudeProvider(), "claude", logger)
+    elif settings.openai_api_key and settings.llm_provider == "openai":
+        logger.info("llm.provider_selected", provider="openai", model="gpt-4o-mini")
+        return _with_fallback_to_ollama(OpenAIProvider(), "openai", logger)
+    logger.info("llm.provider_selected", provider="ollama", model=settings.ollama_model)
+    return OllamaProvider()
+
+
+def _with_fallback_to_ollama(primary: LLMProvider, name: str, logger) -> LLMProvider:
+    """Wrap a primary LLM provider with automatic fallback to Ollama.
+
+    When a request to the primary provider errors or times out, the
+    fallback transparently redirects to the local Ollama model.
+    Every fallback event is logged with the provider name, error,
+    and a "FALLBACK" flag visible in structured logs.
+    """
+    import asyncio
+
+    class FallbackWrapper(LLMProvider):
+        def __init__(self):
+            self._fallback_activated = False
+            self._active_model_name = primary.model_name
+
+        @property
+        def model_name(self) -> str:
+            """Return the actual model name — primary unless fallback activated."""
+            return self._active_model_name
+
+        @property
+        def fallback_used(self) -> bool:
+            """Whether fallback to Ollama was activated on the last call."""
+            return self._fallback_activated
+
+        async def _fallback_to_ollama(self, system_prompt, history, message):
+            """Execute fallback to Ollama and update model tracking."""
+            self._fallback_activated = True
+            fallback = OllamaProvider()
+            self._active_model_name = fallback.model_name
+            logger.info(
+                "llm.fallback_activated",
+                primary=name,
+                fallback=fallback.model_name,
+            )
+            return fallback
+
+        async def chat(
+            self, system_prompt: str, history: list[dict], message: str
+        ) -> str:
+            try:
+                return await asyncio.wait_for(
+                    primary.chat(system_prompt, history, message),
+                    timeout=settings.llm_timeout,
+                )
+            except (asyncio.TimeoutError, Exception) as e:
+                logger.warning(
+                    "llm.fallback",
+                    primary=name,
+                    error=str(e)[:100],
+                    timeout=isinstance(e, asyncio.TimeoutError),
+                )
+                fallback = await self._fallback_to_ollama(
+                    system_prompt, history, message
+                )
+                return await fallback.chat(system_prompt, history, message)
+
+        async def stream_chat(
+            self, system_prompt: str, history: list[dict], message: str
+        ) -> AsyncGenerator[str, None]:
+            try:
+                async for token in asyncio.wait_for(
+                    primary.stream_chat(system_prompt, history, message),
+                    timeout=settings.llm_timeout,
+                ):
+                    yield token
+            except (asyncio.TimeoutError, Exception) as e:
+                logger.warning(
+                    "llm.fallback.stream",
+                    primary=name,
+                    error=str(e)[:100],
+                    timeout=isinstance(e, asyncio.TimeoutError),
+                )
+                fallback = await self._fallback_to_ollama(
+                    system_prompt, history, message
+                )
+                async for token in fallback.stream_chat(
+                    system_prompt, history, message
+                ):
+                    yield token
+
+    return FallbackWrapper()
 
 
 def get_llm() -> LLMProvider:
-    """Get the LLM provider based on environment configuration."""
-    global _provider
-    if _provider is not None:
-        return _provider
+    """Get the LLM provider based on environment configuration.
 
-    if settings.anthropic_api_key and settings.llm_provider == "claude":
-        _provider = ClaudeProvider()
-    elif settings.openai_api_key and settings.llm_provider == "openai":
-        _provider = OpenAIProvider()
-    else:
-        _provider = OllamaProvider()
+    Checks the DI container first.  Falls back to a direct (uncached)
+    provider instance when no container is active (standalone scripts
+    and tests).
+    """
+    from app.core.di import get_di_container
 
-    return _provider
+    container = get_di_container()
+    if container is not None:
+        return container.get_or_create_llm()
+    return _build_llm_provider()

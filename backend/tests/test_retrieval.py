@@ -62,6 +62,7 @@ SAMPLE_CHUNKS = [
 
 # ── BM25 Search ──────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_bm25_search_empty_chunks():
     """Test BM25 search with empty chunk list returns empty results."""
@@ -105,6 +106,7 @@ async def test_bm25_search_preserves_fields(mock_bm25_builder):
 
 # ── Reciprocal Rank Fusion ───────────────────────────────
 
+
 class TestReciprocalRankFusion:
     """Tests for Reciprocal Rank Fusion algorithm."""
 
@@ -115,7 +117,12 @@ class TestReciprocalRankFusion:
             {"chunk_id": "chunk-2", "content": "dog", "score": 0.8, "source": "bm25"},
         ]
         dense_results = [
-            {"chunk_id": "chunk-3", "content": "cat", "score": 0.85, "source": "vector"},
+            {
+                "chunk_id": "chunk-3",
+                "content": "cat",
+                "score": 0.85,
+                "source": "vector",
+            },
             {"chunk_id": "chunk-1", "content": "fox", "score": 0.7, "source": "vector"},
         ]
 
@@ -164,34 +171,27 @@ class TestReciprocalRankFusion:
 
 # ── Query Rewriting ──────────────────────────────────────
 
+
 class TestQueryRewrite:
     """Tests for query rewriting logic."""
 
     @pytest.mark.asyncio
-    async def test_rewrite_long_query_no_change(self):
-        """Test that long queries are not rewritten."""
+    async def test_rewrite_long_query_no_rewrite(self):
+        """Test that long queries without demonstratives are not rewritten."""
         history = [{"role": "user", "content": "What is machine learning?"}]
-        result = await rewrite_query("What is deep learning?", history)
-        assert result is None  # Not rewritten because it's long enough
+        result = await rewrite_query(
+            "What is deep learning and how does it work?", history
+        )
+        assert result is None
 
     @pytest.mark.asyncio
-    async def test_rewrite_short_follow_up(self):
-        """Test that a demonstrative-containing short query gets rewritten.
-
-        With the new LLM-based rewrite, the function returns None when
-        no LLM is available (tests). The old heuristic fallback is dead
-        code and has been removed. The LLM rewrite path is tested via
-        integration with a mock LLM provider.
-        """
+    async def test_rewrite_short_follow_up_no_llm(self):
+        """Test short query rewrite returns None when no LLM available."""
         history = [
             {"role": "user", "content": "What is machine learning?"},
             {"role": "assistant", "content": "Machine learning is..."},
         ]
-        # With the LLM-based rewrite, when no LLM is available,
-        # it falls back to returning None (use original query).
-        # This is the expected behavior — the LLM rewrite is an optimization.
         result = await rewrite_query("explain more", history)
-        # No LLM available in tests, so returns None (falls back to original query)
         assert result is None
 
     @pytest.mark.asyncio
@@ -201,27 +201,24 @@ class TestQueryRewrite:
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_rewrite_long_query_no_change(self):
-        """Test that long queries are not rewritten."""
-        history = [{"role": "user", "content": "What is machine learning?"}]
-        result = await rewrite_query("What is deep learning and how does it work?", history)
-        assert result is None  # Not rewritten because it's long and no demonstrative
-
-    @pytest.mark.asyncio
     async def test_rewrite_with_mock_llm(self):
         """Test LLM-based rewrite with a mocked LLM provider."""
         from unittest.mock import AsyncMock, patch
 
         mock_llm = AsyncMock()
         mock_llm.model_name = "test-model"
-        mock_llm.chat = AsyncMock(return_value="What is machine learning? Explain more about it.")
+        mock_llm.chat = AsyncMock(
+            return_value="What is machine learning? Explain more about it."
+        )
 
         history = [
             {"role": "user", "content": "What is machine learning?"},
             {"role": "assistant", "content": "Machine learning is a subset of AI..."},
         ]
 
-        with patch("app.services.retrieval.query_rewrite.get_llm", return_value=mock_llm):
+        with patch(
+            "app.services.retrieval.query_rewrite.get_llm", return_value=mock_llm
+        ):
             result = await rewrite_query("explain more about it", history)
             assert result is not None
             assert "machine learning" in result.lower()
@@ -229,6 +226,7 @@ class TestQueryRewrite:
 
 
 # ── HybridRetriever ──────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_hybrid_retriever_retrieve():
@@ -298,6 +296,7 @@ async def test_hybrid_retriever_rerank_empty():
 
 # ── Session Regression (A1) ──────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_session_no_auto_commit_on_yield():
     """Regression test for A1: verify get_session() does NOT auto-commit
@@ -358,7 +357,144 @@ async def test_session_no_auto_commit_on_yield():
         mock_session.close.assert_called_once()
 
 
+# ── BM25 Disk Persistence (C1) ───────────────────────────
+
+
+class TestBM25DiskPersistence:
+    """Tests for BM25 index persistence to disk (C1).
+
+    Verifies that indexes can be written to and loaded from disk,
+    and that corrupt/missing files are handled gracefully.
+    """
+
+    def test_bm25_save_and_load_from_disk(self, tmp_path, monkeypatch):
+        """Test BM25 index can be saved and reloaded from disk."""
+        from app.services.retrieval.bm25 import (
+            _ensure_cache_dir,
+            get_bm25_index,
+            _bm25_indexes,
+        )
+
+        # Point cache dir to a temp directory
+        monkeypatch.setattr(
+            "app.services.retrieval.bm25._BM25_CACHE_DIR",
+            tmp_path / "bm25_cache",
+        )
+        _bm25_indexes.clear()
+
+        chunks = [
+            {"chunk_id": "c1", "content": "The quick brown fox.", "document_id": "d1"},
+            {
+                "chunk_id": "c2",
+                "content": "Jumps over the lazy dog.",
+                "document_id": "d1",
+            },
+        ]
+        # First call: builds index, caches in memory AND writes to disk
+        index1, chunks1 = get_bm25_index(chunks, document_ids=["d1"])
+        assert index1 is not None
+        assert len(chunks1) == 2
+
+        # Verify disk file exists
+        cache_dir = _ensure_cache_dir()
+        pkl_files = list(cache_dir.glob("*.pkl"))
+        assert len(pkl_files) == 1
+
+        # Clear memory cache to simulate cold start
+        _bm25_indexes.clear()
+
+        # Second call: should load from disk (not rebuild)
+        index2, chunks2 = get_bm25_index(chunks, document_ids=["d1"])
+        assert index2 is not None
+        assert len(chunks2) == 2
+
+        # Both indexes should produce the same scores
+        import nltk
+
+        tokenized_query = nltk.word_tokenize("fox")
+        import numpy as np
+
+        scores1 = index1.get_scores(tokenized_query)
+        scores2 = index2.get_scores(tokenized_query)
+        assert np.array_equal(scores1, scores2)
+
+    def test_bm25_disk_cache_missing_returns_none(self, tmp_path, monkeypatch):
+        """Test loading a nonexistent disk cache returns None."""
+        from app.services.retrieval.bm25 import _load_from_disk
+
+        monkeypatch.setattr(
+            "app.services.retrieval.bm25._BM25_CACHE_DIR",
+            tmp_path / "bm25_cache",
+        )
+
+        result = _load_from_disk("nonexistent-key")
+        assert result is None
+
+    def test_bm25_corrupt_cache_falls_back_to_rebuild(self, tmp_path, monkeypatch):
+        """Test that a corrupt pickle file triggers a rebuild instead of crashing."""
+        from app.services.retrieval.bm25 import (
+            _disk_cache_path,
+            _build_cache_key,
+            get_bm25_index,
+            _bm25_indexes,
+        )
+
+        monkeypatch.setattr(
+            "app.services.retrieval.bm25._BM25_CACHE_DIR",
+            tmp_path / "bm25_cache",
+        )
+        _bm25_indexes.clear()
+
+        chunks = [
+            {"chunk_id": "c1", "content": "Test content.", "document_id": "d1"},
+        ]
+        cache_key = _build_cache_key(["d1"])
+
+        # Write corrupt data to the cache file
+        cache_path = _disk_cache_path(cache_key)
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        cache_path.write_bytes(b"this is not valid pickle data")
+
+        # Clear memory cache
+        _bm25_indexes.clear()
+
+        # Should rebuild from scratch (not crash)
+        index, loaded_chunks = get_bm25_index(chunks, document_ids=["d1"])
+        assert index is not None
+        assert len(loaded_chunks) == 1
+
+    def test_bm25_invalidate_clears_disk(self, tmp_path, monkeypatch):
+        """Test that invalidate_bm25_index() clears all disk cache files."""
+        from app.services.retrieval.bm25 import (
+            _save_to_disk,
+            _build_cache_key,
+            invalidate_bm25_index,
+            _ensure_cache_dir,
+        )
+
+        monkeypatch.setattr(
+            "app.services.retrieval.bm25._BM25_CACHE_DIR",
+            tmp_path / "bm25_cache",
+        )
+
+        # Save two cache files
+        chunks = [{"chunk_id": "c1", "content": "Test.", "document_id": "d1"}]
+        index = MagicMock()
+        _save_to_disk(_build_cache_key(["d1"]), index, chunks)
+        _save_to_disk(_build_cache_key(["d2"]), index, chunks)
+
+        cache_dir = _ensure_cache_dir()
+        assert len(list(cache_dir.glob("*.pkl"))) == 2
+
+        # Invalidate
+        invalidate_bm25_index()
+
+        # Disk cache should be empty
+        assert len(list(cache_dir.glob("*.pkl"))) == 0
+
+
 # ── Edge Cases ───────────────────────────────────────────
+
 
 class TestRetrievalEdgeCases:
     """Tests for edge cases in retrieval."""
@@ -369,7 +505,12 @@ class TestRetrievalEdgeCases:
             {"chunk_id": "same-id", "content": "test", "score": 0.9, "source": "bm25"},
         ]
         dense_results = [
-            {"chunk_id": "same-id", "content": "test", "score": 0.8, "source": "vector"},
+            {
+                "chunk_id": "same-id",
+                "content": "test",
+                "score": 0.8,
+                "source": "vector",
+            },
         ]
 
         merged = reciprocal_rank_fusion(bm25_results, dense_results)

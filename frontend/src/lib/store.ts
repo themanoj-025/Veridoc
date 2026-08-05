@@ -84,9 +84,16 @@ export const useChatStore = create<ChatState>((set) => ({
 interface DocumentState {
   selectedDocumentId: string | null;
   setSelectedDocument: (id: string | null) => void;
+  toggleDarkMode: () => void;
 }
 
 export const useDocumentStore = create<DocumentState>((set) => ({
   selectedDocumentId: null,
   setSelectedDocument: (id) => set({ selectedDocumentId: id }),
+  toggleDarkMode: () => {
+    const isDark = document.documentElement.classList.contains("dark");
+    const next = isDark ? "light" : "dark";
+    document.documentElement.classList.toggle("dark", !isDark);
+    localStorage.setItem("theme", next);
+  },
 }));

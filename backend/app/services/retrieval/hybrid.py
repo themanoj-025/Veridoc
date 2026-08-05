@@ -12,23 +12,31 @@ from app.services.retrieval.rrf import reciprocal_rank_fusion
 
 logger = structlog.get_logger(__name__)
 
-# Cross-encoder re-ranker (lazy-loaded)
-_reranker = None
 
+def get_reranker() -> object | None:
+    """Get the cross-encoder re-ranker model.
 
-def get_reranker():
-    """Lazy-load the cross-encoder re-ranker model."""
-    global _reranker
-    if _reranker is None:
-        try:
-            from sentence_transformers import CrossEncoder
+    Checks the DI container first (see :class:`app.core.di.DIContainer`).
+    Falls back to an uncached instance when no container is active.
 
-            logger.info("Loading cross-encoder re-ranker: ms-marco-MiniLM-L-6-v2")
-            _reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
-        except Exception as e:
-            logger.warning(f"Failed to load cross-encoder: {e}")
-            _reranker = None
-    return _reranker
+    Returns an object with ``.predict(pairs, **kwargs)`` that returns
+    ``list[float]``, or ``None`` if the model could not be loaded.
+    """
+    from app.core.di import get_di_container
+
+    container = get_di_container()
+    if container is not None:
+        return container.get_or_create_reranker()
+    # Direct fallback (no caching)
+    try:
+        from sentence_transformers import CrossEncoder
+
+        logger.info("Loading cross-encoder (standalone): ms-marco-MiniLM-L-6-v2")
+        model: object = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+        return model
+    except Exception as e:
+        logger.warning(f"Failed to load cross-encoder: {e}")
+        return None
 
 
 class HybridRetriever:
@@ -61,10 +69,13 @@ class HybridRetriever:
         full_corpus = []
         try:
             from app.services.vector_store import get_vector_store as _get_vs  # type: ignore[import]
+
             vs = _get_vs()
             full_corpus = vs.get_all_chunks(document_ids=document_ids)
         except Exception as exc:
-            logger.warning("Full corpus load failed — falling back to dense-only: %s", exc)
+            logger.warning(
+                "Full corpus load failed — falling back to dense-only: %s", exc
+            )
 
         # BM25 search — uses the full corpus, cached per document set
         bm25_results = []
@@ -120,7 +131,9 @@ class HybridRetriever:
         pairs = [(query, c["content"]) for c in chunks]
 
         # Use explicit batch_size if provided, otherwise let the model decide
-        predict_kwargs: dict[str, Any] = {"batch_size": batch_size} if batch_size > 0 else {}
+        predict_kwargs: dict[str, Any] = (
+            {"batch_size": batch_size} if batch_size > 0 else {}
+        )
 
         start = time.time()
         scores = reranker.predict(pairs, **predict_kwargs)

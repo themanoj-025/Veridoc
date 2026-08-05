@@ -48,6 +48,7 @@ export interface DocumentResponse {
   file_type: string;
   file_size: number;
   status: string;
+  ocr_used?: boolean;
   page_count?: number | null;
   chunk_count?: number | null;
   error_message?: string | null;
@@ -108,6 +109,7 @@ export interface Citation {
   text: string;
   page_number?: number | null;
   score: number;
+  ocr_used?: boolean;
 }
 
 export interface MessageResponse {
@@ -140,6 +142,8 @@ export interface StreamDoneEvent {
   latency_ms: number;
   tokens_used: number;
   faithfulness_score: number;
+  model_used?: string | null;
+  fallback_used?: boolean;
 }
 
 export interface StreamErrorEvent {
