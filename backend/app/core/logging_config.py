@@ -51,19 +51,16 @@ def _add_correlation_ids(
     method_name: str,
     event_dict: dict,
 ) -> dict:
-    """Processor that pulls correlation IDs from contextvars into the event.
+    """Processor that ensures correlation ID keys exist in every log event.
 
-    Ensures that ``request_id``, ``user_id``, ``conversation_id``, and
-    ``document_id`` are present (as ``None`` when not yet set) so every
-    log line has a consistent shape in production JSON.
+    This processor runs AFTER ``merge_contextvars``, so the context vars
+    are already in *event_dict*.  We only need to ``setdefault`` the keys
+    so every log line has a consistent shape.
     """
-    from structlog.contextvars import get_merged_contextvars
-
-    ctx = get_merged_contextvars()
-    event_dict.setdefault("request_id", ctx.get("request_id"))
-    event_dict.setdefault("user_id", ctx.get("user_id"))
-    event_dict.setdefault("conversation_id", ctx.get("conversation_id"))
-    event_dict.setdefault("document_id", ctx.get("document_id"))
+    event_dict.setdefault("request_id", None)
+    event_dict.setdefault("user_id", None)
+    event_dict.setdefault("conversation_id", None)
+    event_dict.setdefault("document_id", None)
     return event_dict
 
 

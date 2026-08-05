@@ -1,22 +1,33 @@
 # ── Core Web Framework ──
-fastapi==0.115.0
+fastapi==0.141.1  # bumped: 0.115.0 breaks UploadFile param with `from __future__ import annotations` (ForwardRef error); host runs 0.139.2
 uvicorn[standard]==0.30.6
-pydantic==2.9.2
+pydantic==2.13.4
 pydantic-settings==2.5.2
 python-multipart==0.0.12
 
 # ── Database ──
+
 sqlalchemy==2.0.51
 alembic==1.13.3
 asyncpg==0.30.0
 psycopg2-binary==2.9.10
 
+sqlalchemy==2.0.51
+alembic==1.18.5
+asyncpg==0.31.0
+psycopg2-binary==2.9.11
+
+
 # ── Auth ──
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
+email-validator==2.3.0  # required by pydantic EmailStr (pydantic.networks) — missing dep broke test-backend
 
 # ── ML / Embeddings ──
+# sentence-transformers uses torch internally; torchvision is NOT required.
+# ONNX Runtime would require replacing sentence-transformers with a different
+# embedding/reranking library — evaluated and documented in DECISIONS.md.
 sentence-transformers==3.1.1
 torch==2.4.1
 --extra-index-url https://download.pytorch.org/whl/cpu
@@ -25,7 +36,7 @@ torch==2.4.1
 chromadb==0.5.5
 
 # ── Document Parsing ──
-pypdf==5.1.0
+pypdf==6.14.2
 python-docx==1.1.2
 pytesseract==0.3.13
 Pillow==11.0.0
@@ -47,11 +58,14 @@ aiofiles==24.1.0
 sse-starlette==2.1.0
 
 # ── Rate Limiting ──
-slowapi==0.1.9
+slowapi==0.1.10
 
 # ── Job Queue (ARQ + Redis) ──
 arq==0.26.1
 redis[hiredis]==5.2.0
+
+# ── Monitoring / Metrics ──
+prometheus-fastapi-instrumentator==7.0.1
 
 # ── Structured Logging ──
 structlog==24.4.0
@@ -63,7 +77,8 @@ openai==1.51.2
 # ── Testing ──
 pytest==8.3.3
 pytest-asyncio==0.24.0
-pytest-timeout==2.3.1
+pytest-timeout==2.4.0
+testcontainers==4.15.0
 
 # ── Dev ──
-python-dotenv==1.0.1
+python-dotenv==1.2.2

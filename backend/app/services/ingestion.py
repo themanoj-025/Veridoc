@@ -7,29 +7,36 @@ from pathlib import Path
 from typing import Any
 
 import structlog
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.database import async_session_factory
-from app.models.document import Document
 from app.models.chunk import Chunk
+from app.repositories import DocumentRepository, ChunkRepository
 from app.services.chunking import recursive_chunk_text
 from app.services.vector_store import get_vector_store
 
 logger = structlog.get_logger(__name__)
 
-# Global embedding model (lazy-loaded)
-_embedding_model = None
 
+def get_embedding_model() -> object:
+    """Get the sentence-transformers embedding model.
 
-def get_embedding_model():
-    """Lazy-load the sentence-transformers model."""
-    global _embedding_model
-    if _embedding_model is None:
-        from sentence_transformers import SentenceTransformer
-        logger.info("Loading embedding model: all-MiniLM-L6-v2")
-        _embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
-    return _embedding_model
+    Checks the DI container first (see :class:`app.core.di.DIContainer`).
+    Falls back to an uncached instance when no container is active.
+
+    Returns an object with ``.encode(texts, show_progress_bar)`` that
+    returns an object with ``.tolist()`` (e.g. a numpy array).
+    """
+    from app.core.di import get_di_container
+
+    container = get_di_container()
+    if container is not None:
+        return container.get_or_create_embedding_model()
+    from sentence_transformers import SentenceTransformer
+
+    logger.info("Loading embedding model (standalone): all-MiniLM-L6-v2")
+    model: object = SentenceTransformer("all-MiniLM-L6-v2")
+    return model
 
 
 async def process_document(
@@ -40,10 +47,10 @@ async def process_document(
     session_maker = session_factory or async_session_factory
 
     async with session_maker() as session:
-        result = await session.execute(
-            select(Document).where(Document.id == document_id)
-        )
-        doc = result.scalar_one_or_none()
+        doc_repo = DocumentRepository(session)
+        chunk_repo = ChunkRepository(session)
+
+        doc = await doc_repo.find_by_id(document_id)
         if not doc:
             logger.error(f"Document {document_id} not found")
             return
@@ -53,27 +60,30 @@ async def process_document(
             doc.status = "parsing"
             await session.flush()
 
-            text, pages = parse_document(doc.file_path, doc.file_type)
+            text, pages, ocr_used = parse_document(doc.file_path, doc.file_type)
+            doc.ocr_used = ocr_used
 
             # 2. Chunk
             doc.status = "chunking"
             await session.flush()
 
-            chunks = chunk_text(text, doc_id=str(doc.id), doc_title=doc.title, pages=pages)
+            chunks = chunk_text(
+                text, doc_id=str(doc.id), doc_title=doc.title, pages=pages
+            )
             doc.chunk_count = len(chunks)
 
-            # Save chunks to DB
-            db_chunks = []
-            for c in chunks:
-                chunk = Chunk(
+            # Save chunks to DB via repository
+            chunk_models = [
+                Chunk(
                     document_id=doc.id,
                     chunk_index=c["chunk_index"],
                     content=c["content"],
                     page_number=c.get("page_number"),
+                    ocr_used=ocr_used,
                 )
-                session.add(chunk)
-                db_chunks.append(chunk)
-            await session.flush()
+                for c in chunks
+            ]
+            db_chunks = await chunk_repo.create_batch(chunk_models)
 
             # 3. Embed
             doc.status = "embedding"
@@ -96,12 +106,19 @@ async def process_document(
 
             # 5. Done
             doc.status = "indexed"
-            doc.page_count = max(pages.values()) if pages else len(set(pages.values())) if pages else None
+            doc.page_count = (
+                max(pages.values())
+                if pages
+                else len(set(pages.values()))
+                if pages
+                else None
+            )
             await session.commit()
 
             # Invalidate BM25 cache so subsequent queries pick up the new content
             # (lazy import avoids circular dep: ingestion → retrieval.bm25 → retrieval.dense → ingestion)
             from app.services.retrieval.bm25 import invalidate_bm25_index as _invalidate  # type: ignore[import]
+
             _invalidate()
             logger.info(f"Document {doc.id} indexed with {len(chunks)} chunks")
 
@@ -112,23 +129,35 @@ async def process_document(
             logger.error(f"Failed to process document {doc.id}: {e}", exc_info=True)
 
 
-def parse_document(file_path: str, file_type: str) -> tuple[str, dict[int, int]]:
-    """Parse a document file into plain text."""
+def parse_document(file_path: str, file_type: str) -> tuple[str, dict[int, int], bool]:
+    """Parse a document file into plain text.
+
+    Returns
+    -------
+    tuple[str, dict[int, int], bool]
+        (full_text, page_map, ocr_used) where ocr_used indicates whether
+        OCR was required to extract text from this document.
+    """
     path = Path(file_path)
     ext = file_type.lower()
 
     if ext == "pdf":
         return _parse_pdf(path)
     elif ext == "docx":
-        return _parse_docx(path)
+        text, pages = _parse_docx(path)
+        return text, pages, False
     elif ext == "txt":
-        return _parse_txt(path)
+        text, pages = _parse_txt(path)
+        return text, pages, False
     else:
         raise ValueError(f"Unsupported file type: {ext}")
 
 
-def _parse_pdf(path: Path) -> tuple[str, dict[int, int]]:
-    """Parse a PDF file. Falls back to OCR if needed."""
+def _parse_pdf(path: Path) -> tuple[str, dict[int, int], bool]:
+    """Parse a PDF file. Falls back to OCR if needed.
+
+    Returns (text, page_map, ocr_used).
+    """
     try:
         from pypdf import PdfReader
 
@@ -148,12 +177,14 @@ def _parse_pdf(path: Path) -> tuple[str, dict[int, int]]:
         # If extracted text is too sparse, try OCR
         if len(full_text.strip()) < 50:
             logger.info("PDF text extraction yielded little text, attempting OCR...")
-            return _parse_pdf_ocr(path)
+            text, pages = _parse_pdf_ocr(path)
+            return text, pages, True
 
-        return full_text, page_map
+        return full_text, page_map, False
     except Exception as e:
         logger.warning(f"PDF parsing failed, falling back to OCR: {e}")
-        return _parse_pdf_ocr(path)
+        text, pages = _parse_pdf_ocr(path)
+        return text, pages, True
 
 
 def _parse_pdf_ocr(path: Path) -> tuple[str, dict[int, int]]:

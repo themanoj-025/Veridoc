@@ -27,14 +27,14 @@ from typing import Any
 
 # Ordered by priority: most semantic first, fallback last
 _DEFAULT_SEPARATORS = [
-    "\n\n",   # Paragraphs
-    "\n",     # Lines
-    ". ",     # Sentences (period + space)
-    "! ",     # Sentences (exclamation + space)
-    "? ",     # Sentences (question + space)
-    "; ",     # Clauses
-    " ",      # Words
-    "",       # Characters (last resort)
+    "\n\n",  # Paragraphs
+    "\n",  # Lines
+    ". ",  # Sentences (period + space)
+    "! ",  # Sentences (exclamation + space)
+    "? ",  # Sentences (question + space)
+    "; ",  # Clauses
+    " ",  # Words
+    "",  # Characters (last resort)
 ]
 
 
@@ -95,13 +95,15 @@ def recursive_chunk_text(
         if not content:
             continue
         page_number = _find_page_number(char_offset, pages)
-        chunks.append({
-            "document_id": doc_id,
-            "document_title": doc_title,
-            "chunk_index": idx,
-            "content": content,
-            "page_number": page_number,
-        })
+        chunks.append(
+            {
+                "document_id": doc_id,
+                "document_title": doc_title,
+                "chunk_index": idx,
+                "content": content,
+                "page_number": page_number,
+            }
+        )
         char_offset += len(content)
 
     return chunks
