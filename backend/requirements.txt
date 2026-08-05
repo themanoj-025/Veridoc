@@ -8,27 +8,28 @@ python-multipart==0.0.12
 # ── Database ──
 sqlalchemy==2.0.36
 alembic==1.18.5
-asyncpg==0.30.0
+asyncpg==0.31.0
 psycopg2-binary==2.9.11
 
 # ── Auth ──
-python-jose[cryptography]==3.3.0
+python-jose[cryptography]==3.4.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
+email-validator==2.3.0  # required by pydantic EmailStr (pydantic.networks) — missing dep broke test-backend
 
 # ── ML / Embeddings ──
 # sentence-transformers uses torch internally; torchvision is NOT required.
 # ONNX Runtime would require replacing sentence-transformers with a different
 # embedding/reranking library — evaluated and documented in DECISIONS.md.
 sentence-transformers==3.1.1
-torch==2.4.1
+torch==2.6.0
 --extra-index-url https://download.pytorch.org/whl/cpu
 
 # ── Vector DB ──
 chromadb==0.5.5
 
 # ── Document Parsing ──
-pypdf==5.1.0
+pypdf==6.14.2
 python-docx==1.1.2
 pytesseract==0.3.13
 Pillow==11.0.0
@@ -36,7 +37,7 @@ pdf2image==1.17.0
 
 # ── Search / NLP ──
 rank-bm25==0.2.2
-nltk==3.9.1
+nltk==3.9.3
 
 # ── MinIO (S3 client) ──
 minio==7.2.8
@@ -69,7 +70,7 @@ openai==1.51.2
 # ── Testing ──
 pytest==8.3.3
 pytest-asyncio==0.24.0
-pytest-timeout==2.3.1
+pytest-timeout==2.4.0
 testcontainers==4.15.0
 
 # ── Dev ──
