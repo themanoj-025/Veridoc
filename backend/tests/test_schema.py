@@ -31,6 +31,7 @@ from app.schemas.chat import MessageResponse, Citation
 
 # ── Fixture: real in-memory SQLite DB ────────────────────
 
+
 @pytest_asyncio.fixture
 async def real_db_session():
     """Create a real in-memory SQLite database, create all tables,
@@ -54,6 +55,7 @@ async def real_db_session():
 
 
 # ── Seed tests ───────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_conversation_document_relationship(real_db_session: AsyncSession):
@@ -121,8 +123,9 @@ async def test_conversation_document_relationship(real_db_session: AsyncSession)
 
     # ── Verify junction: conversation → document_links ───
     await session.refresh(conv)
-    assert len(conv.document_links) == 2, \
+    assert len(conv.document_links) == 2, (
         f"Expected 2 document_links, got {len(conv.document_links)}"
+    )
     linked_doc_ids = {link.document_id for link in conv.document_links}
     assert linked_doc_ids == {doc1.id, doc2.id}
 
@@ -161,8 +164,9 @@ async def test_conversation_document_relationship(real_db_session: AsyncSession)
 
     # ── Verify citation: message → citation_records ──────
     await session.refresh(msg)
-    assert len(msg.citation_records) == 2, \
+    assert len(msg.citation_records) == 2, (
         f"Expected 2 citation_records, got {len(msg.citation_records)}"
+    )
     assert {c.chunk_id for c in msg.citation_records} == {"chunk-a1", "chunk-b2"}
     assert {c.text for c in msg.citation_records} == {
         "RAG systems use retrieval-augmented generation.",
@@ -182,8 +186,7 @@ async def test_conversation_document_relationship(real_db_session: AsyncSession)
 
     # ── Verify conversation → messages (back-populates) ──
     await session.refresh(conv)
-    assert len(conv.messages) == 1, \
-        f"Expected 1 message, got {len(conv.messages)}"
+    assert len(conv.messages) == 1, f"Expected 1 message, got {len(conv.messages)}"
     assert conv.messages[0].id == msg.id
     assert conv.messages[0].role == "assistant"
 
@@ -221,8 +224,10 @@ async def test_conversation_document_relationship(real_db_session: AsyncSession)
     await session.flush()
 
     cit = CitationRecord(
-        message_id=msg2.id, chunk_id="chunk-x",
-        document_id="doc-x", text="Text",
+        message_id=msg2.id,
+        chunk_id="chunk-x",
+        document_id="doc-x",
+        text="Text",
     )
     session.add(cit)
     await session.flush()
@@ -234,8 +239,7 @@ async def test_conversation_document_relationship(real_db_session: AsyncSession)
     count_citations = await session.scalar(
         text("SELECT COUNT(*) FROM citation_records")
     )
-    assert count_citations == 0, \
-        "Cascade delete did not remove citation records"
+    assert count_citations == 0, "Cascade delete did not remove citation records"
 
 
 @pytest.mark.asyncio
@@ -249,8 +253,12 @@ async def test_conversation_document_unique_constraint(real_db_session: AsyncSes
     await session.flush()
 
     doc = Document(
-        user_id=user.id, title="Doc", filename="d.txt",
-        file_type="txt", file_size=100, file_path="/tmp/d.txt",
+        user_id=user.id,
+        title="Doc",
+        filename="d.txt",
+        file_type="txt",
+        file_size=100,
+        file_path="/tmp/d.txt",
     )
     session.add(doc)
     await session.flush()
@@ -299,5 +307,6 @@ async def test_message_citation_cascade(real_db_session: AsyncSession):
     await session.delete(msg)
     await session.flush()
 
-    assert await session.scalar(text("SELECT COUNT(*) FROM citation_records")) == 0, \
+    assert await session.scalar(text("SELECT COUNT(*) FROM citation_records")) == 0, (
         "Deleting message did not cascade to citation_records"
+    )

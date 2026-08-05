@@ -53,9 +53,7 @@ class JobQueue:
 
                 pool = await create_pool(settings.redis_url)
                 self._arq_pool = pool
-                logger.info(
-                    "ARQ Redis pool established at %s", settings.redis_url
-                )
+                logger.info("ARQ Redis pool established at %s", settings.redis_url)
             except Exception as e:
                 logger.warning(
                     "Redis unavailable at %s, falling back to sync execution: %s",
@@ -90,7 +88,9 @@ class JobQueue:
         or ``None`` if executed synchronously (fallback mode).
         """
         if self._arq_pool is not None:
-            return await self._enqueue_redis(job_func, *args, job_id=job_id, max_retries=max_retries, **kwargs)
+            return await self._enqueue_redis(
+                job_func, *args, job_id=job_id, max_retries=max_retries, **kwargs
+            )
 
         # Fallback: run synchronously in a spawned task
         import asyncio
@@ -99,7 +99,9 @@ class JobQueue:
         logger.info(
             "Running job %s synchronously (no Redis): %s", jid[:8], job_func.__name__
         )
-        asyncio.create_task(self._run_with_retry(job_func, jid, max_retries, *args, **kwargs))
+        asyncio.create_task(
+            self._run_with_retry(job_func, jid, max_retries, *args, **kwargs)
+        )
         return None
 
     async def _enqueue_redis(
@@ -186,13 +188,16 @@ class JobQueue:
         return {"mode": "sync_fallback", "connected": False}
 
 
-# Singleton
-_job_queue: JobQueue | None = None
-
-
 def get_job_queue() -> JobQueue:
-    """Get the singleton JobQueue instance."""
-    global _job_queue
-    if _job_queue is None:
-        _job_queue = JobQueue()
-    return _job_queue
+    """Get the JobQueue instance.
+
+    Checks the DI container first (see :class:`app.core.di.DIContainer`).
+    Falls back to an uncached instance when no container is active
+    (standalone scripts, some test scenarios).
+    """
+    from app.core.di import get_di_container
+
+    container = get_di_container()
+    if container is not None:
+        return container.get_or_create_job_queue()
+    return JobQueue()
