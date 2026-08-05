@@ -9,10 +9,7 @@ Fetch evaluation data for Veridoc:
 Usage: python scripts/fetch_eval_data.py
 """
 
-import json
-import sys
 from pathlib import Path
-from datetime import datetime
 
 import httpx
 
@@ -34,7 +31,10 @@ def fetch_arxiv_paper():
 
     # Parse Atom feed for PDF links
     import re
-    pdf_links = re.findall(r'<link[^>]*href="(http[^"]+\.pdf)"[^>]*title="pdf"[^>]*/>', response.text)
+
+    pdf_links = re.findall(
+        r'<link[^>]*href="(http[^"]+\.pdf)"[^>]*title="pdf"[^>]*/>', response.text
+    )
 
     if not pdf_links:
         # Fallback: use a known arXiv PDF
@@ -50,7 +50,9 @@ def fetch_arxiv_paper():
     filepath = DATA_DIR / f"arxiv_{paper_id}.pdf"
     filepath.write_bytes(pdf_response.content)
 
-    print(f"  Downloaded: {filepath.name} ({len(pdf_response.content)} bytes) from {pdf_url}")
+    print(
+        f"  Downloaded: {filepath.name} ({len(pdf_response.content)} bytes) from {pdf_url}"
+    )
 
     return {
         "id": f"arxiv_{paper_id}",
@@ -86,7 +88,6 @@ def fetch_gutenberg_book():
     try:
         # Create a simple PDF with the first page rendered to an image
         from PIL import Image, ImageDraw, ImageFont
-        import io
 
         text_preview = response.text[:2000]
 
@@ -247,16 +248,16 @@ This document records the source and license of every data file used by Veridoc.
 """
     for src in sources:
         content += f"""
-## {src['title']}
+## {src["title"]}
 
 | Field | Value |
 |-------|-------|
-| **ID** | {src['id']} |
-| **Filename** | `{src['filename']}` |
-| **URL** | {src['url']} |
-| **Source** | {src['source']} |
-| **License** | {src['license']} |
-| **Type** | {src['type']} |
+| **ID** | {src["id"]} |
+| **Filename** | `{src["filename"]}` |
+| **URL** | {src["url"]} |
+| **Source** | {src["source"]} |
+| **License** | {src["license"]} |
+| **Type** | {src["type"]} |
 
 """
 

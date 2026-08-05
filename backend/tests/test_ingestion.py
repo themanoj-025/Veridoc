@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import uuid
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -12,11 +11,11 @@ from app.services.ingestion import (
     parse_document,
     chunk_text,
     _parse_txt,
-    _parse_docx,
 )
 
 
 # ── TXT Parsing ──────────────────────────────────────────
+
 
 class TestTextParsing:
     """Tests for plain text file parsing."""
@@ -44,7 +43,7 @@ class TestTextParsing:
     def test_parse_txt_unicode(self, tmp_path):
         """Test parsing a text file with unicode characters."""
         txt_file = tmp_path / "unicode.txt"
-        txt_file.write_text("Café résumé naïve 😊")
+        txt_file.write_text("Café résumé naïve 😊", encoding="utf-8")
 
         text, pages = _parse_txt(txt_file)
         assert "Café" in text
@@ -53,19 +52,21 @@ class TestTextParsing:
 
 # ── Chunking ─────────────────────────────────────────────
 
+
 class TestChunking:
     """Tests for text chunking logic."""
 
     def test_chunk_basic(self):
         """Test basic chunking splits text into chunks of specified size."""
-        text = "word " * 1000  # 1000 words
+        text = "word " * 1000  # 1000 words → ~5000 chars
         chunks = chunk_text(text, doc_id="doc-1", doc_title="Test Doc")
 
         assert len(chunks) > 0
         assert all(c["document_id"] == "doc-1" for c in chunks)
         assert all(c["document_title"] == "Test Doc" for c in chunks)
-        # Each chunk should contain approximately chunk_size words
-        assert all(len(c["content"].split()) <= 512 for c in chunks)
+        # Each chunk should contain at most chunk_size + chunk_overlap characters
+        # (the default overlap adds up to 200 chars to chunks[1:])
+        assert all(len(c["content"]) <= 1700 for c in chunks)
 
     def test_chunk_small_text(self):
         """Test chunking text smaller than chunk size."""
@@ -82,7 +83,7 @@ class TestChunking:
 
     def test_chunk_overlap(self):
         """Test that chunks have overlapping content."""
-        text = "word " * 600  # 600 words
+        text = "word " * 600  # 600 words → ~3000 chars
         chunks = chunk_text(
             text,
             doc_id="doc-1",
@@ -91,18 +92,17 @@ class TestChunking:
             overlap=20,
         )
 
-        assert len(chunks) >= 6  # 600/80 ≈ 7-8 chunks with overlap
+        assert len(chunks) >= 6
         # Check that consecutive chunks share some content
         if len(chunks) >= 2:
             words_0 = set(chunks[0]["content"].split())
             words_1 = set(chunks[1]["content"].split())
-            # They should share some overlapping words
             assert len(words_0 & words_1) > 0, "Chunks should have overlap"
 
     def test_chunk_page_numbers(self):
         """Test that chunking assigns correct page numbers."""
         text = "page one content " * 50 + "page two content " * 50
-        pages = {0: 1, 50: 2}  # offset 50 is start of page 2
+        pages = {0: 1, 50: 2}  # char offset 50 → page 2
 
         chunks = chunk_text(
             text,
@@ -114,7 +114,9 @@ class TestChunking:
         )
 
         # Some chunks should be on page 1, some on page 2
-        page_numbers = {c["page_number"] for c in chunks if c["page_number"] is not None}
+        page_numbers = {
+            c["page_number"] for c in chunks if c["page_number"] is not None
+        }
         assert len(page_numbers) > 0
         assert 1 in page_numbers
 
@@ -129,6 +131,7 @@ class TestChunking:
 
 # ── Document Parsing Dispatch ────────────────────────────
 
+
 class TestParseDocument:
     """Tests for the parse_document dispatcher."""
 
@@ -142,11 +145,13 @@ class TestParseDocument:
         txt_file = tmp_path / "test.txt"
         txt_file.write_text("Test content")
 
-        text, pages = parse_document(str(txt_file), "txt")
+        text, pages, ocr_used = parse_document(str(txt_file), "txt")
         assert "Test content" in text
+        assert ocr_used is False  # TXT files never use OCR
 
 
 # ── Full Pipeline Mock Test ──────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_process_document_not_found():
@@ -154,7 +159,10 @@ async def test_process_document_not_found():
     from app.services.ingestion import process_document
 
     mock_session = AsyncMock()
-    mock_session.execute.return_value.scalar_one_or_none.return_value = None
+    mock_session.execute = AsyncMock()
+    mock_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=None)
+    mock_session.__aenter__.return_value = mock_session
+
     mock_factory = MagicMock()
     mock_factory.return_value = mock_session
 
@@ -168,12 +176,13 @@ async def test_process_document_success(tmp_path):
     """Test the full document processing pipeline with mocks."""
     from app.services.ingestion import process_document
     from app.models.document import Document
-    from app.models.chunk import Chunk
 
     # Create a test document model
     doc_id = uuid.uuid4()
     txt_file = tmp_path / "test_doc.txt"
-    txt_file.write_text("This is a test document with enough content to be chunked and processed " * 20)
+    txt_file.write_text(
+        "This is a test document with enough content to be chunked and processed " * 20
+    )
 
     doc = Document(
         id=doc_id,
@@ -187,16 +196,26 @@ async def test_process_document_success(tmp_path):
     )
 
     # Mock session
+    import datetime as dt
+
     mock_session = AsyncMock()
-    mock_session.execute.return_value.scalar_one_or_none.return_value = doc
+    mock_session.execute = AsyncMock()
+    mock_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=doc)
+    mock_session.__aenter__.return_value = mock_session
+
+    # Ensure doc has required fields set (as DB would via server_default)
+    if doc.created_at is None:
+        doc.created_at = dt.datetime.now(dt.timezone.utc)
 
     mock_factory = MagicMock()
     mock_factory.return_value = mock_session
 
     # Mock the heavy dependencies
     with patch("app.services.ingestion.get_embedding_model") as mock_embed:
+        import numpy as np
+
         mock_model = MagicMock()
-        mock_model.encode = MagicMock(return_value=[[0.1] * 384])
+        mock_model.encode = MagicMock(return_value=np.array([[0.1] * 384]))
         mock_embed.return_value = mock_model
 
         with patch("app.services.ingestion.get_vector_store") as mock_vs:
@@ -213,13 +232,17 @@ async def test_process_document_success(tmp_path):
 
 # ── Edge Cases ───────────────────────────────────────────
 
+
 def test_chunk_exact_size_multiple():
-    """Test chunking when text length is an exact multiple of chunk size."""
-    text = "test " * 512  # Exactly 512 words
-    chunks = chunk_text(text, doc_id="doc-1", doc_title="Test", chunk_size=512, overlap=0)
+    """Test chunking when text length is an exact multiple of chunk_size (chars)."""
+    # Exactly 1500 chars (default chunk_size), one-word text with no separators
+    text = "a" * 1500
+    chunks = chunk_text(
+        text, doc_id="doc-1", doc_title="Test", chunk_size=1500, overlap=0
+    )
 
     assert len(chunks) == 1
-    assert len(chunks[0]["content"].split()) == 512
+    assert len(chunks[0]["content"]) == 1500
 
 
 def test_chunk_single_word():

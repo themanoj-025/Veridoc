@@ -27,16 +27,38 @@ class Base(DeclarativeBase):
 
 
 async def get_session() -> AsyncSession:  # type: ignore[misc]
-    """Dependency that provides an async database session."""
-    async with async_session_factory() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
+    """Dependency that provides an async database session.
+
+    The generator yields an **open** session.  It does NOT commit, close,
+    or return the session to the pool — the caller (service method or
+    route handler) owns the full lifecycle:
+
+    * Call ``await session.commit()`` to persist changes.
+    * Call ``await session.rollback()`` on error.
+    * Call ``await session.close()`` when done.
+
+    This design is necessary for the SSE streaming endpoint
+    (``ChatService.stream_response``), which writes to the database
+    *after* the route handler has returned and the FastAPI dependency
+    graph has been torn down.  If ``get_session()`` closed the session in
+    its ``finally`` block, the SSE stream would crash with an
+    "await on a closed session" error.
+    """
+    session = async_session_factory()
+    try:
+        yield session
+    except Exception:
+        await session.rollback()
+        # Close on error so the pool doesn't accumulate orphaned sessions
+        await session.close()
+        raise
+    # Normal exit — intentionally NOT closing.  The caller is responsible.
+    #
+    # For regular request/response endpoints, the route handler calls
+    # ``await session.close()`` after committing.  For the SSE stream,
+    # the ``event_generator``'s ``finally`` block closes the session
+    # after all tokens have been streamed and the assistant message has
+    # been persisted.
 
 
 async def init_db() -> None:

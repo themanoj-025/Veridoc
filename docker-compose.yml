@@ -54,7 +54,8 @@ services:
 
   # ── Chroma (Vector DB) ───────────────────────────────
   chroma:
-    image: chromadb/chroma:latest
+    # Pinned to match client chromadb==0.5.5 in backend/requirements.txt (server :latest drifted, 410 on heartbeat)
+    image: chromadb/chroma:0.5.5
     container_name: veridoc-chroma
     restart: unless-stopped
     volumes:
@@ -65,6 +66,71 @@ services:
       ANONYMIZED_TELEMETRY: FALSE
     ports:
       - "8001:8000"
+    logging: *default-logging
+
+  # ── Redis (Job Queue + Cache) ────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: veridoc-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging: *default-logging
+
+  # ── Worker (ARQ ingestion worker) ─────────────────────
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: veridoc-worker
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      chroma:
+        condition: service_started
+    environment:
+      APP_ENV: development
+      POSTGRES_USER: veridoc
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-veridoc_local_dev}
+      POSTGRES_DB: veridoc
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: veridoc
+      MINIO_SECRET_KEY: veridoc_minio_dev
+      MINIO_BUCKET: veridoc-documents
+      MINIO_USE_SSL: "false"
+      CHROMA_HOST: chroma
+      CHROMA_PORT: 8000
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      DATA_DIR: /app/data
+      # ── Security: Secrets MUST come from .env, NOT hardcoded here ──
+      # These values are required. The backend will refuse to start
+      # if JWT_SECRET or FILE_ENCRYPTION_KEY are empty or match known
+      # placeholder patterns.  Set them in your .env file:
+      #   JWT_SECRET=<run: python -c "import secrets; print(secrets.token_hex(32))">
+      #   FILE_ENCRYPTION_KEY=<run: python -c "import base64, os; print(base64.urlsafe_b64encode(os.urandom(32)).decode())">
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required — set it in .env}
+      FILE_ENCRYPTION_KEY: ${FILE_ENCRYPTION_KEY:?FILE_ENCRYPTION_KEY is required — set it in .env}
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: llama3.1:8b
+      LOG_LEVEL: INFO
+      RATE_LIMIT_PER_MINUTE: 1000
+    volumes:
+      - upload-data:/app/data/uploads
+    command: >
+      sh -c "python -m arq app.services.worker.WorkerSettings"
     logging: *default-logging
 
   # ── Ollama (Local LLM) ───────────────────────────────
@@ -97,21 +163,37 @@ services:
         condition: service_healthy
       chroma:
         condition: service_started
-    env_file:
-      - .env
     environment:
+      APP_ENV: development
+      POSTGRES_USER: veridoc
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-veridoc_local_dev}
+      POSTGRES_DB: veridoc
       POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
       MINIO_ENDPOINT: minio:9000
-      OLLAMA_BASE_URL: http://ollama:11434
+      MINIO_ACCESS_KEY: veridoc
+      MINIO_SECRET_KEY: veridoc_minio_dev
+      MINIO_BUCKET: veridoc-documents
+      MINIO_USE_SSL: "false"
       CHROMA_HOST: chroma
       CHROMA_PORT: 8000
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      DATA_DIR: /app/data
+      # ── Security: Secrets MUST come from .env, NOT hardcoded here ──
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required — set it in .env}
+      FILE_ENCRYPTION_KEY: ${FILE_ENCRYPTION_KEY:?FILE_ENCRYPTION_KEY is required — set it in .env}
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: llama3.1:8b
+      LOG_LEVEL: INFO
+      RATE_LIMIT_PER_MINUTE: 1000
     volumes:
       - upload-data:/app/data/uploads
     ports:
       - "8000:8000"
     command: >
       sh -c "alembic upgrade head &&
-             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+             uvicorn app.main:app --host 0.0.0.0 --port 8000"
     logging: *default-logging
 
   # ── Frontend (Next.js) ────────────────────────────────
@@ -134,4 +216,5 @@ volumes:
   minio-data:
   chroma-data:
   ollama-data:
+  redis-data:
   upload-data:
