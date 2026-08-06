@@ -1,11 +1,11 @@
 # Rules — Veridoc: Coding Standards & AI-Agent Operating Rules
 
-| Field | Value |
+|Field|Value|
 |---|---|
-| Version | v0.1 |
-| Last Updated | 2026-08-06 |
-| Owner | Staff Engineer |
-| Status | Approved |
+|Version|v0.1|
+|Last Updated|2026-08-06|
+|Owner|Staff Engineer|
+|Status|Approved|
 
 ---
 
@@ -60,10 +60,10 @@ Veridoc/
 
 - Read Tracker.md and ImplementationPlan.md before starting a task.
 - Never mark a task 🟢 Done without tests passing.
-- Never invent requirements not in PRD.md/TechSpec.md — flag ambiguity instead.
-- Any schema change → same-PR update to Schema.md + Alembic migration.
-- Any API change → same-PR update to API.md.
-- Never commit secrets; env vars per SecurityAndCompliance.md.
+- Never invent requirements not in ../product/PRD.md/../technical/TechSpec.md — flag ambiguity instead.
+- Any schema change → same-PR update to ../technical/Schema.md + Alembic migration.
+- Any API change → same-PR update to ../technical/API.md.
+- Never commit secrets; env vars per ../technical/SecurityAndCompliance.md.
 - Never weaken security tests; fix the code instead.
 - Keep retrieval prompt-boundaries intact (`<retrieved_context>` markers).
 - When a rule conflicts with a request, state the conflict rather than silently picking one.
@@ -79,21 +79,21 @@ Veridoc/
 
 ## 7. Documentation Rules
 
-- Migration → Schema.md same PR.
-- API contract change → API.md same PR.
-- New security control → SecurityAndCompliance.md + docs/security-notes.md.
-- Eval numbers → update PRD.md metrics + docs (never let stale numbers linger).
+- Migration → ../technical/Schema.md same PR.
+- API contract change → ../technical/API.md same PR.
+- New security control → ../technical/SecurityAndCompliance.md + docs/../technical/security-notes.md.
+- Eval numbers → update ../product/PRD.md metrics + docs (never let stale numbers linger).
 
 ## 8. Prohibited Patterns
 
-| Pattern | Why |
+|Pattern|Why|
 |---|---|
-| Displaying unfaithful answers | Trust violation |
-| Global mutable singletons | Untestable |
-| Raw string-concat query rewriting | Weakness (fixed in audit) |
-| Committing .env / secrets | Leak — startup fail-fast guards |
-| Unbound LLM output in HTML | XSS — must sanitize |
-| Bare except / swallowed errors | Silent failures |
+|Displaying unfaithful answers|Trust violation|
+|Global mutable singletons|Untestable|
+|Raw string-concat query rewriting|Weakness (fixed in audit)|
+|Committing .env / secrets|Leak — startup fail-fast guards|
+|Unbound LLM output in HTML|XSS — must sanitize|
+|Bare except / swallowed errors|Silent failures|
 
 ## 9. Escalation Rules
 
@@ -110,9 +110,9 @@ Veridoc/
 
 ## 10. Related Documents
 
-| Document | Relationship |
+|Document|Relationship|
 |---|---|
-| Testing.md | Enforcement |
-| SecurityAndCompliance.md | Full baseline |
-| API.md | Contract triggers |
-| Schema.md | Migration triggers |
+|[Testing.md](../technical/Testing.md)|Enforcement|
+|[SecurityAndCompliance.md](../technical/SecurityAndCompliance.md)|Full baseline|
+|[API.md](../technical/API.md)|Contract triggers|
+|[Schema.md](../technical/Schema.md)|Migration triggers|

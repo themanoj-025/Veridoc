@@ -28,8 +28,8 @@
   <p>
     <a href="#-features">Features</a> ·
     <a href="#-quick-start">Quick Start</a> ·
-    <a href="docs/architecture.md">Architecture</a> ·
-    <a href="docs/security-notes.md">Security</a>
+    <a href="docs/technical/TechSpec.md">Architecture</a> ·
+    <a href="docs/technical\security-notes.md">Security</a>
   </p>
 </div>
 
@@ -312,9 +312,9 @@ Once those are done, this project is genuinely pinnable. The repo demonstrates f
 
 | Document | Description |
 |----------|-------------|
-| [Architecture](docs/architecture.md) | System design, data flow, component diagrams, and tech-stack rationale |
-| [Security Notes](docs/security-notes.md) | 8/8 red-team pass results, CSP/sanitization details, vulnerability disclosure policy |
-| [Deployment Runbook](docs/deployment-runbook.md) | Deploy to Render, Fly.io, or Railway — copy-paste commands |
+| [Architecture](docs/technical/TechSpec.md) | System design, data flow, component diagrams, and tech-stack rationale |
+| [Security Notes](docs/technical\security-notes.md) | 8/8 red-team pass results, CSP/sanitization details, vulnerability disclosure policy |
+| [Deployment Runbook](docs/reference\deployment-runbook.md) | Deploy to Render, Fly.io, or Railway — copy-paste commands |
 
 ---
 
@@ -411,10 +411,10 @@ Found a bug? Have a feature request?
   <sub>Built using FastAPI, Next.js, ChromaDB, and Ollama.</sub>
   <br>
   <sub>
-    <a href="docs/architecture.md">Architecture</a> ·
-    <a href="docs/security-notes.md">Security</a> ·
-    <a href="docs/architecture.md">Architecture</a> ·
-    <a href="docs/deployment-runbook.md">Deploy</a> ·
+    <a href="docs/technical/TechSpec.md">Architecture</a> ·
+    <a href="docs/technical\security-notes.md">Security</a> ·
+    <a href="docs/technical/TechSpec.md">Architecture</a> ·
+    <a href="docs/reference\deployment-runbook.md">Deploy</a> ·
     <a href="CONTRIBUTING.md">Contributing</a>
   </sub>
 </div>
