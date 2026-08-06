@@ -72,6 +72,7 @@
 
 ## 6. Changelog
 
+- 2026-08-06: **Documentation suite complete** — 14-file suite consolidated into `docs/`, categorized structure, cross-linked navigation, deployment/git/auth diagrams, quality gate passed (238/238), merged to `main`.
 - 2026-08-06: Documentation suite generated (14 files); R-01 blocker logged.
 - 2026-04-25: Observability + health checks shipped.
 - 2026-04-22: Prompt-injection defense 8/8 tests passing.
