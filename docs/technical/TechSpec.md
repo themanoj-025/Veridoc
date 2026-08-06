@@ -179,6 +179,24 @@ sequenceDiagram
 | LLM output XSS | CSP + rehype-sanitize on LLM output |
 | Prompt injection | `<retrieved_context>` boundary + 8/8 tests |
 
+## Deployment Topology
+
+```mermaid
+graph TD
+    USER[Browser] --> NEXT[Next.js 14 app]
+    NEXT --> API[FastAPI: ingestion + chat SSE]
+    API --> CHROMA[(ChromaDB vector store)]
+    API --> PG[(PostgreSQL: 7 tables + tsvector)]
+    API --> EMB[all-MiniLM-L6-v2 embeddings]
+    API --> LLM[Ollama default / Claude / OpenAI]
+    subgraph Deploy
+        NEXT --> NEXT_C[Frontend container]
+        API --> API_C[API container]
+        CHROMA --> CR_C[Chroma container]
+        PG --> PG_C[Postgres container]
+    end
+```
+
 ## 11. Related Documents
 
 | Document | Relationship |
