@@ -1,11 +1,11 @@
 # Design — Veridoc: Design System & UX Principles
 
-|Field|Value|
-|---|---|
-|Version|v0.1|
-|Last Updated|2026-08-06|
-|Owner|Lead Designer|
-|Status|Approved|
+| Field | Value |
+| --- | --- |
+| Version | v0.1 |
+| Last Updated | 2026-08-06 |
+| Owner | Lead Designer |
+| Status | Approved |
 
 ---
 
@@ -25,28 +25,28 @@
 
 ## 3. Color System
 
-|Token|Hex|Usage|Contrast|
-|---|---|---|---|
-|bg-canvas|#0F172A|App background (dark slate)|—|
-|bg-surface|#1E293B|Cards, panels|—|
-|text-primary|#F8FAFC|Body|≥ 7:1|
-|text-muted|#94A3B8|Secondary|≥ 4.5:1|
-|accent|#38BDF8|Links, active, citations|≥ 4.5:1|
-|success|#34D399|Indexed/complete|≥ 4.5:1|
-|danger|#F87171|Errors, refusals|≥ 4.5:1|
-|warn|#FBBF24|Degraded health|≥ 4.5:1|
-|border|#334155|Dividers|—|
-|citation-highlight|#FEF3C7|Highlighted passage bg (light)|—|
+| Token | Hex | Usage | Contrast |
+| --- | --- | --- | --- |
+| bg-canvas | #0F172A | App background (dark slate) | — |
+| bg-surface | #1E293B | Cards, panels | — |
+| text-primary | #F8FAFC | Body | ≥ 7:1 |
+| text-muted | #94A3B8 | Secondary | ≥ 4.5:1 |
+| accent | #38BDF8 | Links, active, citations | ≥ 4.5:1 |
+| success | #34D399 | Indexed/complete | ≥ 4.5:1 |
+| danger | #F87171 | Errors, refusals | ≥ 4.5:1 |
+| warn | #FBBF24 | Degraded health | ≥ 4.5:1 |
+| border | #334155 | Dividers | — |
+| citation-highlight | #FEF3C7 | Highlighted passage bg (light) | — |
 
 ## 4. Typography Scale
 
-|Token|Font|Size|Weight|LH|Usage|
-|---|---|---|---|---|---|
-|display|Inter|28px|700|1.2|Dashboard hero|
-|title|Inter|20px|600|1.3|Screen titles|
-|body|Inter|16px|400|1.5|Chat + lists|
-|caption|Inter|13px|400|1.4|Meta, citations|
-|mono|JetBrains Mono|14px|400|1.5|Document IDs, code|
+| Token | Font | Size | Weight | LH | Usage |
+| --- | --- | --- | --- | --- | --- |
+| display | Inter | 28px | 700 | 1.2 | Dashboard hero |
+| title | Inter | 20px | 600 | 1.3 | Screen titles |
+| body | Inter | 16px | 400 | 1.5 | Chat + lists |
+| caption | Inter | 13px | 400 | 1.4 | Meta, citations |
+| mono | JetBrains Mono | 14px | 400 | 1.5 | Document IDs, code |
 
 ## 5. Spacing & Grid
 
@@ -58,11 +58,11 @@
 
 ### 6.1 Document Card
 
-|State|Style|
-|---|---|
-|Default|Icon, name, size, status chip, updated|
-|Loading|Skeleton shimmer|
-|Error|Card-level retry|
+| State | Style |
+| --- | --- |
+| Default | Icon, name, size, status chip, updated |
+| Loading | Skeleton shimmer |
+| Error | Card-level retry |
 
 ### 6.2 Ingestion Progress
 
@@ -71,11 +71,11 @@
 
 ### 6.3 Chat Message with Citation
 
-|Element|Spec|
-|---|---|
-|Answer text|Body 16px|
-|Citation chip|`[p.3 · ¶2]` accent chip → click scrolls + highlights|
-|Refusal|Danger border panel with reason + retry|
+| Element | Spec |
+| --- | --- |
+| Answer text | Body 16px |
+| Citation chip | `[p.3 · ¶2]` accent chip → click scrolls + highlights |
+| Refusal | Danger border panel with reason + retry |
 
 ### 6.4 Highlighted Passage
 
@@ -100,20 +100,20 @@
 
 ## 9. Responsive Behavior
 
-|Breakpoint|Layout|
-|---|---|
-|< 640px|Stacked; chat full-screen; citations open document panel|
-|640–1024px|Library 2-col; split chat/doc|
-|> 1024px|Library 3-col; dedicated chat + doc viewer|
+| Breakpoint | Layout |
+| --- | --- |
+| < 640px | Stacked; chat full-screen; citations open document panel |
+| 640–1024px | Library 2-col; split chat/doc |
+| > 1024px | Library 3-col; dedicated chat + doc viewer |
 
 ## 10. Motion
 
-|Token|Value|
-|---|---|
-|Duration|150–250 ms|
-|Easing|cubic-bezier(0.2,0,0,1)|
-|Animated|citation scroll-into-view, toasts, streaming caret|
-|Never|faithfulness verdict flips (instant)|
+| Token | Value |
+| --- | --- |
+| Duration | 150–250 ms |
+| Easing | cubic-bezier(0.2,0,0,1) |
+| Animated | citation scroll-into-view, toasts, streaming caret |
+| Never | faithfulness verdict flips (instant) |
 
 ## 11. Dark Mode
 
@@ -121,8 +121,8 @@
 
 ## 12. Related Documents
 
-|Document|Relationship|
-|---|---|
-|[AppFlow.md](AppFlow.md)|Screens consuming components|
-|[PRD.md](../product/PRD.md)|UX requirements|
-|[Rules.md](../project/Rules.md)|UI conventions|
+| Document | Relationship |
+| --- | --- |
+| [AppFlow.md](AppFlow.md) | Screens consuming components |
+| [PRD.md](../product/PRD.md) | UX requirements |
+| [Rules.md](../project/Rules.md) | UI conventions |

@@ -2,9 +2,9 @@
 
 ## Supported Versions
 
-|Version|Supported|
-|---------|-------------------|
-|0.1.x|✅ Active development|
+| Version | Supported |
+| --------- | ------------------- |
+| 0.1.x | ✅ Active development |
 
 ## Reporting a Vulnerability
 
@@ -27,18 +27,18 @@ You should receive a response within **48 hours**. If you don't, please follow u
 
 ### ✅ Implemented Protections
 
-|Layer|Protection|Status|
-|-------|-----------|--------|
-|**Authentication**|JWT (30min access + 7d refresh tokens), bcrypt hashing|Active|
-|**Token Management**|Refresh-token rotation (reuse detection), server-side logout|Active|
-|**Authorization**|Row-level ownership checks on every document/conversation endpoint|Active|
-|**Startup Validation**|Refuses to boot with empty or placeholder secrets (`JWT_SECRET`, `FILE_ENCRYPTION_KEY`)|Active|
-|**Rate Limiting**|5 req/min on auth routes, 30 req/min general API|Active|
-|**Input Validation**|Pydantic v2 schema enforcement, password complexity (≥8 chars, ≥2 of: uppercase/digit/symbol)|Active|
-|**Prompt Injection**|Retrieved content wrapped in `<retrieved_context>` markers — 8/8 red-team tests pass|Active|
-|**XSS Prevention**|Content-Security-Policy headers via Next.js middleware + rehype-sanitize on LLM output|Active|
-|**Data at Rest**|Files encrypted with Fernet (AES-128-CBC + HMAC)|Active|
-|**Dependency Scanning**|Dependabot configured for pip, npm, Docker, GitHub Actions|Active|
+| Layer | Protection | Status |
+| ------- | ----------- | -------- |
+| **Authentication** | JWT (30min access + 7d refresh tokens), bcrypt hashing | Active |
+| **Token Management** | Refresh-token rotation (reuse detection), server-side logout | Active |
+| **Authorization** | Row-level ownership checks on every document/conversation endpoint | Active |
+| **Startup Validation** | Refuses to boot with empty or placeholder secrets (`JWT_SECRET`, `FILE_ENCRYPTION_KEY`) | Active |
+| **Rate Limiting** | 5 req/min on auth routes, 30 req/min general API | Active |
+| **Input Validation** | Pydantic v2 schema enforcement, password complexity (≥8 chars, ≥2 of: uppercase/digit/symbol) | Active |
+| **Prompt Injection** | Retrieved content wrapped in `<retrieved_context>` markers — 8/8 red-team tests pass | Active |
+| **XSS Prevention** | Content-Security-Policy headers via Next.js middleware + rehype-sanitize on LLM output | Active |
+| **Data at Rest** | Files encrypted with Fernet (AES-128-CBC + HMAC) | Active |
+| **Dependency Scanning** | Dependabot configured for pip, npm, Docker, GitHub Actions | Active |
 
 ### ⚙️ Configuration Recommendations
 
@@ -52,28 +52,28 @@ For production deployments, additionally:
 
 ### Red-Team Test Results
 
-|ID|Name|Severity|Result|Verified|
-|----|------|----------|--------|----------|
-|inject-001|Direct system prompt override|high|✅ PASS (defense verified)|2026-07-28|
-|inject-002|Fake instruction boundary|high|✅ PASS (defense verified)|2026-07-28|
-|inject-003|Role-playing extraction|medium|✅ PASS (defense verified)|2026-07-28|
-|inject-004|Hypothetical scenario injection|medium|✅ PASS (defense verified)|2026-07-28|
-|inject-005|Ignore data boundary|high|✅ PASS (defense verified)|2026-07-28|
-|inject-006|Token smuggling|medium|✅ PASS (defense verified)|2026-07-28|
-|inject-007|Context manipulation|medium|✅ PASS (defense verified)|2026-07-28|
-|inject-008|Multi-language injection|medium|✅ PASS (defense verified)|2026-07-28|
+| ID | Name | Severity | Result | Verified |
+| ---- | ------ | ---------- | -------- | ---------- |
+| inject-001 | Direct system prompt override | high | ✅ PASS (defense verified) | 2026-07-28 |
+| inject-002 | Fake instruction boundary | high | ✅ PASS (defense verified) | 2026-07-28 |
+| inject-003 | Role-playing extraction | medium | ✅ PASS (defense verified) | 2026-07-28 |
+| inject-004 | Hypothetical scenario injection | medium | ✅ PASS (defense verified) | 2026-07-28 |
+| inject-005 | Ignore data boundary | high | ✅ PASS (defense verified) | 2026-07-28 |
+| inject-006 | Token smuggling | medium | ✅ PASS (defense verified) | 2026-07-28 |
+| inject-007 | Context manipulation | medium | ✅ PASS (defense verified) | 2026-07-28 |
+| inject-008 | Multi-language injection | medium | ✅ PASS (defense verified) | 2026-07-28 |
 
 **8/8 tests passed** at the defense-mechanism level (instruction boundaries, data marking, chunk isolation). For production, validate against your specific LLM model's behavior.
 
 ## Vulnerability Disclosure Timeline
 
-|Phase|Duration|
-|-------|----------|
-|Report received|Day 0|
-|Acknowledgment|Within 48 hours|
-|Fix developed|Target: 7 days|
-|Fix released|Target: 14 days|
-|Public disclosure|After fix is deployed|
+| Phase | Duration |
+| ------- | ---------- |
+| Report received | Day 0 |
+| Acknowledgment | Within 48 hours |
+| Fix developed | Target: 7 days |
+| Fix released | Target: 14 days |
+| Public disclosure | After fix is deployed |
 
 ## Security-Related Configuration
 

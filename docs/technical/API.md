@@ -1,33 +1,33 @@
 # API — Veridoc: API Reference
 
-|Field|Value|
-|---|---|
-|Version|v0.1|
-|Last Updated|2026-08-06|
-|Owner|Backend Engineer|
-|Status|Approved|
+| Field | Value |
+| --- | --- |
+| Version | v0.1 |
+| Last Updated | 2026-08-06 |
+| Owner | Backend Engineer |
+| Status | Approved |
 
 Base URL (dev): `http://localhost:8000`. All routes prefixed `/api/v1/`. List endpoints use `limit`/`offset` and return `{items, total, limit, offset}`.
 
 ## 1. Endpoint Summary
 
-|Method|Path|Auth|Purpose|
-|---|---|---|---|
-|POST|/api/v1/auth/register|N|Create account|
-|POST|/api/v1/auth/login|N|Sign in (5/min)|
-|POST|/api/v1/auth/refresh|N|Rotate refresh token|
-|POST|/api/v1/auth/logout|JWT|Revoke refresh token|
-|GET|/api/v1/auth/me|JWT|Current user|
-|POST|/api/v1/documents/upload|JWT|Upload PDF/DOCX/TXT|
-|GET|/api/v1/documents/|JWT|List (paginated)|
-|GET|/api/v1/documents/{id}|JWT|Metadata|
-|GET|/api/v1/documents/{id}/content|JWT|Full text|
-|DELETE|/api/v1/documents/{id}|JWT|Delete + chunks|
-|POST|/api/v1/documents/{id}/reindex|JWT|Reprocess|
-|POST|/api/v1/chat/conversations|JWT|Create conversation|
-|GET|/api/v1/chat/conversations|JWT|List conversations|
-|POST|/api/v1/chat/stream|JWT|SSE chat stream|
-|GET|/api/v1/health|N|Dependency health|
+| Method | Path | Auth | Purpose |
+| --- | --- | --- | --- |
+| POST | /api/v1/auth/register | N | Create account |
+| POST | /api/v1/auth/login | N | Sign in (5/min) |
+| POST | /api/v1/auth/refresh | N | Rotate refresh token |
+| POST | /api/v1/auth/logout | JWT | Revoke refresh token |
+| GET | /api/v1/auth/me | JWT | Current user |
+| POST | /api/v1/documents/upload | JWT | Upload PDF/DOCX/TXT |
+| GET | /api/v1/documents/ | JWT | List (paginated) |
+| GET | /api/v1/documents/{id} | JWT | Metadata |
+| GET | /api/v1/documents/{id}/content | JWT | Full text |
+| DELETE | /api/v1/documents/{id} | JWT | Delete + chunks |
+| POST | /api/v1/documents/{id}/reindex | JWT | Reprocess |
+| POST | /api/v1/chat/conversations | JWT | Create conversation |
+| GET | /api/v1/chat/conversations | JWT | List conversations |
+| POST | /api/v1/chat/stream | JWT | SSE chat stream |
+| GET | /api/v1/health | N | Dependency health |
 
 ## 2. Auth
 
@@ -47,12 +47,12 @@ Base URL (dev): `http://localhost:8000`. All routes prefixed `/api/v1/`. List en
 { "id": "d1", "name": "contract-2026.pdf", "status": "uploaded", "job_id": "j1" }
 ```
 
-|Code|Meaning|
-|---|---|
-|202|Accepted for ingestion|
-|400|E400_UNSUPPORTED_TYPE|
-|401|E401_UNAUTHORIZED|
-|429|E429_RATE_LIMIT|
+| Code | Meaning |
+| --- | --- |
+| 202 | Accepted for ingestion |
+| 400 | E400_UNSUPPORTED_TYPE |
+| 401 | E401_UNAUTHORIZED |
+| 429 | E429_RATE_LIMIT |
 
 ### POST /api/v1/chat/stream
 
@@ -78,13 +78,13 @@ event: done
 data: {"message_id": "m1", "faithfulness": 0.94}
 ```
 
-|Code|Meaning|
-|---|---|
-|200|SSE stream|
-|400|E400_VALIDATION|
-|403|E403_FORBIDDEN — cross-user doc|
-|429|E429_RATE_LIMIT|
-|503|E503_PROVIDER_DOWN — LLM unavailable|
+| Code | Meaning |
+| --- | --- |
+| 200 | SSE stream |
+| 400 | E400_VALIDATION |
+| 403 | E403_FORBIDDEN — cross-user doc |
+| 429 | E429_RATE_LIMIT |
+| 503 | E503_PROVIDER_DOWN — LLM unavailable |
 
 ### GET /api/v1/health
 
@@ -118,9 +118,9 @@ sequenceDiagram
 
 ## 6. Related Documents
 
-|Document|Relationship|
-|---|---|
-|[TechSpec.md](TechSpec.md)|Implementation|
-|[Schema.md](Schema.md)|Table mapping|
-|[SecurityAndCompliance.md](SecurityAndCompliance.md)|Auth/isolation policy|
-|[Testing.md](Testing.md)|Contract + fuzz tests|
+| Document | Relationship |
+| --- | --- |
+| [TechSpec.md](TechSpec.md) | Implementation |
+| [Schema.md](Schema.md) | Table mapping |
+| [SecurityAndCompliance.md](SecurityAndCompliance.md) | Auth/isolation policy |
+| [Testing.md](Testing.md) | Contract + fuzz tests |

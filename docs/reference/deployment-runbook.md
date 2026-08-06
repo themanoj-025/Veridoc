@@ -204,11 +204,11 @@ curl -X POST https://<your-url>/api/v1/chat/stream \
 
 ## Cost Estimate (Free Tier)
 
-|Service|Render Free|Fly.io Free|Railway Free|
-|---------|-------------|-------------|--------------|
-|Backend|512MB RAM (sleeps after 15min idle)|256MB RAM (always-on limited)|512MB RAM ($5 credit/mo)|
-|Frontend|Static site (sleeps with backend)|Included in app|Included|
-|Postgres|256MB disk (free)|1GB disk (free)|$5 credit covers|
-|Total|**$0/mo** (cold-start on first request)|**$0/mo** (limited always-on hours)|**$0/mo** (if within credits)|
+| Service | Render Free | Fly.io Free | Railway Free |
+| --------- | ------------- | ------------- | -------------- |
+| Backend | 512MB RAM (sleeps after 15min idle) | 256MB RAM (always-on limited) | 512MB RAM ($5 credit/mo) |
+| Frontend | Static site (sleeps with backend) | Included in app | Included |
+| Postgres | 256MB disk (free) | 1GB disk (free) | $5 credit covers |
+| Total | **$0/mo** (cold-start on first request) | **$0/mo** (limited always-on hours) | **$0/mo** (if within credits) |
 
 **Recommendation:** Use Render free tier. The only trade-off is a ~30s cold-start on the first request after inactivity. For a demo portfolio site, this is acceptable. After proving interest, upgrade to Render's $7/mo starter plan for always-on.

@@ -1,11 +1,11 @@
 # Rules — Veridoc: Coding Standards & AI-Agent Operating Rules
 
-|Field|Value|
-|---|---|
-|Version|v0.1|
-|Last Updated|2026-08-06|
-|Owner|Staff Engineer|
-|Status|Approved|
+| Field | Value |
+| --- | --- |
+| Version | v0.1 |
+| Last Updated | 2026-08-06 |
+| Owner | Staff Engineer |
+| Status | Approved |
 
 ---
 
@@ -86,14 +86,14 @@ Veridoc/
 
 ## 8. Prohibited Patterns
 
-|Pattern|Why|
-|---|---|
-|Displaying unfaithful answers|Trust violation|
-|Global mutable singletons|Untestable|
-|Raw string-concat query rewriting|Weakness (fixed in audit)|
-|Committing .env / secrets|Leak — startup fail-fast guards|
-|Unbound LLM output in HTML|XSS — must sanitize|
-|Bare except / swallowed errors|Silent failures|
+| Pattern | Why |
+| --- | --- |
+| Displaying unfaithful answers | Trust violation |
+| Global mutable singletons | Untestable |
+| Raw string-concat query rewriting | Weakness (fixed in audit) |
+| Committing .env / secrets | Leak — startup fail-fast guards |
+| Unbound LLM output in HTML | XSS — must sanitize |
+| Bare except / swallowed errors | Silent failures |
 
 ## 9. Escalation Rules
 
@@ -110,9 +110,9 @@ Veridoc/
 
 ## 10. Related Documents
 
-|Document|Relationship|
-|---|---|
-|[Testing.md](../technical/Testing.md)|Enforcement|
-|[SecurityAndCompliance.md](../technical/SecurityAndCompliance.md)|Full baseline|
-|[API.md](../technical/API.md)|Contract triggers|
-|[Schema.md](../technical/Schema.md)|Migration triggers|
+| Document | Relationship |
+| --- | --- |
+| [Testing.md](../technical/Testing.md) | Enforcement |
+| [SecurityAndCompliance.md](../technical/SecurityAndCompliance.md) | Full baseline |
+| [API.md](../technical/API.md) | Contract triggers |
+| [Schema.md](../technical/Schema.md) | Migration triggers |

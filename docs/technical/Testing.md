@@ -1,11 +1,11 @@
 # Testing — Veridoc: Test Strategy
 
-|Field|Value|
-|---|---|
-|Version|v0.1|
-|Last Updated|2026-08-06|
-|Owner|QA Engineer|
-|Status|Approved|
+| Field | Value |
+| --- | --- |
+| Version | v0.1 |
+| Last Updated | 2026-08-06 |
+| Owner | QA Engineer |
+| Status | Approved |
 
 ---
 
@@ -24,31 +24,31 @@ graph TD
 
 ## 2. Unit Strategy
 
-|Area|Cases|
-|---|---|
-|Auth service|Register/login/refresh rotation, password policy|
-|Ingestion services|Parsing branches, chunk boundaries|
-|Retrieval|BM25/dense fusion, rerank ordering|
-|Faithfulness|Gate accept/reject logic|
+| Area | Cases |
+| --- | --- |
+| Auth service | Register/login/refresh rotation, password policy |
+| Ingestion services | Parsing branches, chunk boundaries |
+| Retrieval | BM25/dense fusion, rerank ordering |
+| Faithfulness | Gate accept/reject logic |
 
 ## 3. Integration Strategy
 
-|Area|Cases|
-|---|---|
-|Ingestion lifecycle|upload → parse → chunk → embed → indexed (real PG + Chroma)|
-|Chat|Conversation CRUD, message persistence, citations|
-|Health|All 4 dependencies reported|
-|Migrations|Alembic upgrade/downgrade round-trips|
+| Area | Cases |
+| --- | --- |
+| Ingestion lifecycle | upload → parse → chunk → embed → indexed (real PG + Chroma) |
+| Chat | Conversation CRUD, message persistence, citations |
+| Health | All 4 dependencies reported |
+| Migrations | Alembic upgrade/downgrade round-trips |
 
 ## 4. Security Test Cases (8/8)
 
-|#|Case|Expectation|
-|---|---|---|
-|1|Tampered JWT|401|
-|2|Expired JWT|401|
-|3|Cross-user document access|403|
-|4|SQL injection payload|No data leak|
-|5-8|Prompt injections (4 variants)|Context boundary holds|
+| # | Case | Expectation |
+| --- | --- | --- |
+| 1 | Tampered JWT | 401 |
+| 2 | Expired JWT | 401 |
+| 3 | Cross-user document access | 403 |
+| 4 | SQL injection payload | No data leak |
+| 5-8 | Prompt injections (4 variants) | Context boundary holds |
 
 ## 5. Test Data Strategy
 
@@ -58,15 +58,15 @@ graph TD
 
 ## 6. CI Gates (GitHub Actions)
 
-|Gate|Command/Job|Blocking|
-|---|---|---|
-|Backend tests|pytest (77)|Yes|
-|Security|8/8 red-team|Yes|
-|Frontend|Vitest components|Yes|
-|Fuzz|schemathesis|Yes|
-|Lint|ruff/ESLint|Yes|
-|Docker|compose build|Yes|
-|Dependabot|vulnerability scan|Yes|
+| Gate | Command/Job | Blocking |
+| --- | --- | --- |
+| Backend tests | pytest (77) | Yes |
+| Security | 8/8 red-team | Yes |
+| Frontend | Vitest components | Yes |
+| Fuzz | schemathesis | Yes |
+| Lint | ruff/ESLint | Yes |
+| Docker | compose build | Yes |
+| Dependabot | vulnerability scan | Yes |
 
 ## 7. Known Local Gap
 
@@ -74,9 +74,9 @@ graph TD
 
 ## 8. Related Documents
 
-|Document|Relationship|
-|---|---|
-|[Rules.md](../project/Rules.md)|Requirements (Section 4)|
-|[API.md](API.md)|Contracts under test|
-|[PRD.md](../product/PRD.md)|Eval metrics|
-|[Tracker.md](../project/Tracker.md)|Test status|
+| Document | Relationship |
+| --- | --- |
+| [Rules.md](../project/Rules.md) | Requirements (Section 4) |
+| [API.md](API.md) | Contracts under test |
+| [PRD.md](../product/PRD.md) | Eval metrics |
+| [Tracker.md](../project/Tracker.md) | Test status |

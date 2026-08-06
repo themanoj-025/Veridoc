@@ -1,11 +1,11 @@
 # Deployment — Veridoc: Deployment Guide
 
-|Field|Value|
-|---|---|
-|Version|v0.1|
-|Last Updated|2026-08-06|
-|Owner|DevOps Engineer|
-|Status|Approved|
+| Field | Value |
+| --- | --- |
+| Version | v0.1 |
+| Last Updated | 2026-08-06 |
+| Owner | DevOps Engineer |
+| Status | Approved |
 
 ---
 
@@ -22,12 +22,12 @@ graph LR
 
 ## 2. Environment Promotion
 
-|Stage|Trigger|Verification|
-|---|---|---|
-|Dev|manual|npm run dev + uvicorn|
-|CI|PR/merge|full test suite + security|
-|Prod demo|docker compose up --build|health + sample Q&A|
-|Cloud|docs/../reference/deployment-runbook.md|copy-paste runbooks|
+| Stage | Trigger | Verification |
+| --- | --- | --- |
+| Dev | manual | npm run dev + uvicorn |
+| CI | PR/merge | full test suite + security |
+| Prod demo | docker compose up --build | health + sample Q&A |
+| Cloud | docs/../reference/deployment-runbook.md | copy-paste runbooks |
 
 ## 3. Deployment Topology
 
@@ -59,11 +59,11 @@ graph TD
 
 ## 5. Feature Flag / Env Policy
 
-|Env var|Default|Purpose|
-|---|---|---|
-|LLM_PROVIDER|ollama|Provider switch|
-|FAITHFULNESS_CHECK_ENABLED|true|Gate toggle|
-|JWT_SECRET / FILE_ENCRYPTION_KEY|(unset → fail-fast)|Required secrets|
+| Env var | Default | Purpose |
+| --- | --- | --- |
+| LLM_PROVIDER | ollama | Provider switch |
+| FAITHFULNESS_CHECK_ENABLED | true | Gate toggle |
+| JWT_SECRET / FILE_ENCRYPTION_KEY | (unset → fail-fast) | Required secrets |
 
 ## 6. On-Call / Runbook — docs/../reference/deployment-runbook.md
 
@@ -84,9 +84,9 @@ graph TD
 
 ## 8. Related Documents
 
-|Document|Relationship|
-|---|---|
-|[TechSpec.md](TechSpec.md)|Environments matrix|
-|[API.md](API.md)|Health endpoint|
-|[SecurityAndCompliance.md](SecurityAndCompliance.md)|Incident response|
-|[ImplementationPlan.md](../project/ImplementationPlan.md)|TASK-5.x|
+| Document | Relationship |
+| --- | --- |
+| [TechSpec.md](TechSpec.md) | Environments matrix |
+| [API.md](API.md) | Health endpoint |
+| [SecurityAndCompliance.md](SecurityAndCompliance.md) | Incident response |
+| [ImplementationPlan.md](../project/ImplementationPlan.md) | TASK-5.x |
