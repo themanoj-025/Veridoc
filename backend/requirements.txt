@@ -48,7 +48,7 @@ httpx-sse==0.4.0
 aiofiles==24.1.0
 
 # ── SSE Streaming ──
-sse-starlette==2.1.0
+sse-starlette==3.4.6
 
 # ── Rate Limiting ──
 slowapi==0.1.10
