@@ -29,7 +29,7 @@
     <a href="#-features">Features</a> ·
     <a href="#-quick-start">Quick Start</a> ·
     <a href="docs/technical/TechSpec.md">Architecture</a> ·
-    <a href="docs/technical\security-notes.md">Security</a>
+    <a href="docs/technical/security-notes.md">Security</a>
   </p>
 </div>
 
@@ -38,6 +38,28 @@
 <div align="center">
   <p><sub><code>docker compose up --build</code> and try it yourself — no signup, no API key.</sub></p>
 </div>
+
+---
+
+## 📋 Table of Contents
+
+- [🚀 Why Veridoc?](#-why-veridoc)
+- [✨ Features](#-features)
+- [⚡ Quick Start](#-quick-start)
+- [🏗 Architecture](#-architecture)
+- [🛠 Tech Stack](#-tech-stack)
+- [📊 Evaluation Results](#-evaluation-results)
+- [📋 API Endpoints](#-api-endpoints)
+- [🔒 Security](#-security)
+- [✅ Go/No-Go Verdict](#-gono-go-verdict)
+- [📚 Documentation](#-documentation)
+- [🧱 Project Structure](#-project-structure)
+- [🔬 Reproducing the Evaluation](#-reproducing-the-evaluation)
+- [📈 What I'd Change at Scale](#-what-id-change-at-scale)
+- [📝 Portfolio / Resume](#-portfolio--resume)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
+- [⭐ Show Your Support](#-show-your-support)
 
 ---
 
@@ -313,8 +335,8 @@ Once those are done, this project is genuinely pinnable. The repo demonstrates f
 | Document | Description |
 |----------|-------------|
 | [Architecture](docs/technical/TechSpec.md) | System design, data flow, component diagrams, and tech-stack rationale |
-| [Security Notes](docs/technical\security-notes.md) | 8/8 red-team pass results, CSP/sanitization details, vulnerability disclosure policy |
-| [Deployment Runbook](docs/reference\deployment-runbook.md) | Deploy to Render, Fly.io, or Railway — copy-paste commands |
+| [Security Notes](docs/technical/security-notes.md) | 8/8 red-team pass results, CSP/sanitization details, vulnerability disclosure policy |
+| [Deployment Runbook](docs/reference/deployment-runbook.md) | Deploy to Render, Fly.io, or Railway — copy-paste commands |
 
 ---
 
@@ -392,12 +414,18 @@ cat scripts/run_eval.py  # Prints summary to stdout
 
 ## 🤝 Contributing
 
-## 🤝 Contributing
-
-Found a bug? Have a feature request? 
+Found a bug? Have a feature request?
 - Review the [Security Policy](SECURITY.md) before reporting vulnerabilities
 - See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide: code style, testing, PR process
 - Open an issue or pull request on GitHub
+
+---
+
+## ⭐ Show Your Support
+
+- ⭐ Star the repository if you found the cited-answers approach useful
+- 🐛 [Report a bug](https://github.com/themanoj-025/Veridoc/issues)
+- 💡 [Request a feature](https://github.com/themanoj-025/Veridoc/issues)
 
 ---
 
@@ -412,9 +440,8 @@ Found a bug? Have a feature request?
   <br>
   <sub>
     <a href="docs/technical/TechSpec.md">Architecture</a> ·
-    <a href="docs/technical\security-notes.md">Security</a> ·
-    <a href="docs/technical/TechSpec.md">Architecture</a> ·
-    <a href="docs/reference\deployment-runbook.md">Deploy</a> ·
+    <a href="docs/technical/security-notes.md">Security</a> ·
+    <a href="docs/reference/deployment-runbook.md">Deploy</a> ·
     <a href="CONTRIBUTING.md">Contributing</a>
   </sub>
 </div>
