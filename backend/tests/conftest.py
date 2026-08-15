@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import AsyncGenerator
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -42,7 +42,7 @@ def patch_settings():
 @pytest_asyncio.fixture
 async def mock_db_session():
     """Create a mock async database session."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     session = AsyncMock()
     session.execute = AsyncMock()

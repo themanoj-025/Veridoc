@@ -57,8 +57,9 @@ class OllamaProvider(LLMProvider):
             messages.append({"role": h["role"], "content": h["content"]})
         messages.append({"role": "user", "content": message})
 
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            async with client.stream(
+        async with (
+            httpx.AsyncClient(timeout=120.0) as client,
+            client.stream(
                 "POST",
                 f"{self.base_url}/api/chat",
                 json={
@@ -67,18 +68,19 @@ class OllamaProvider(LLMProvider):
                     "stream": True,
                     "options": {"temperature": 0.1, "num_predict": 2048},
                 },
-            ) as response:
-                response.raise_for_status()
-                async for line in response.aiter_lines():
-                    if line.strip():
-                        try:
-                            data = json.loads(line)
-                            if "message" in data and "content" in data["message"]:
-                                yield data["message"]["content"]
-                            if data.get("done"):
-                                break
-                        except json.JSONDecodeError:
-                            continue
+            ) as response,
+        ):
+            response.raise_for_status()
+            async for line in response.aiter_lines():
+                if line.strip():
+                    try:
+                        data = json.loads(line)
+                        if "message" in data and "content" in data["message"]:
+                            yield data["message"]["content"]
+                        if data.get("done"):
+                            break
+                    except json.JSONDecodeError:
+                        continue
 
 
 class ClaudeProvider(LLMProvider):

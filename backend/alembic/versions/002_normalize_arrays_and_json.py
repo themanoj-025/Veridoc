@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import json
 from collections.abc import Sequence
-from typing import Union
 
 import sqlalchemy as sa
 from alembic import op
@@ -79,11 +78,13 @@ def upgrade() -> None:
             for doc_id in doc_ids:
                 try:
                     connection.execute(
-                        text("""
+                        text(
+                            """
                             INSERT INTO conversation_documents (id, conversation_id, document_id, created_at)
                             VALUES (gen_random_uuid(), :conv_id, :doc_id, now())
                             ON CONFLICT (conversation_id, document_id) DO NOTHING
-                        """),
+                        """
+                        ),
                         {"conv_id": conv_id, "doc_id": doc_id},
                     )
                 except Exception:
@@ -140,10 +141,12 @@ def upgrade() -> None:
                 for cit in citations_data:
                     if isinstance(cit, dict):
                         connection.execute(
-                            text("""
+                            text(
+                                """
                                 INSERT INTO citation_records (id, message_id, chunk_id, document_id, text, page_number, score, created_at)
                                 VALUES (gen_random_uuid(), :msg_id, :chunk_id, :doc_id, :text, :page_num, :score, now())
-                            """),
+                            """
+                            ),
                             {
                                 "msg_id": msg_id,
                                 "chunk_id": cit.get("chunk_id"),

@@ -29,10 +29,7 @@ from app.schemas.auth import (
     UserLogin,
     UserResponse,
 )
-from app.services.email_sender import (
-    send_password_reset_email,
-    send_verification_email,
-)
+from app.services.email_sender import send_password_reset_email, send_verification_email
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
@@ -235,7 +232,7 @@ async def request_verification_email(
         return {"message": "Email is already verified"}
 
     token = secrets.token_urlsafe(32)
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
     user.verification_token = token
     user.verification_token_expiry = datetime.now(UTC) + timedelta(hours=24)
@@ -253,7 +250,7 @@ async def verify_email(
     session: AsyncSession = Depends(get_session),
 ):
     """Verify a user's email address using a verification token."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     user_repo = UserRepository(session)
     user = await user_repo.find_by_verification_token(token)
@@ -296,7 +293,7 @@ async def request_password_reset(
     if user:
         token = secrets.token_urlsafe(32)
         user.reset_token = token
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
 
         user.reset_token_expiry = datetime.now(UTC) + timedelta(hours=1)
         await user_repo.update(user)
@@ -313,7 +310,7 @@ async def reset_password(
     session: AsyncSession = Depends(get_session),
 ):
     """Reset a user's password using a reset token."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from app.core.security import validate_password_complexity
 

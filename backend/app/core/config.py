@@ -79,7 +79,9 @@ class Settings(BaseSettings):
     llm_provider: Literal["ollama", "claude", "openai"] = "ollama"
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama3.1:8b"
-    llm_timeout: int = 60  # seconds; used by chat_service, llm_provider, job_queue, worker
+    llm_timeout: int = (
+        60  # seconds; used by chat_service, llm_provider, job_queue, worker
+    )
 
     # ── Optional API Keys ──
     anthropic_api_key: str | None = None

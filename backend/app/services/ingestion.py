@@ -109,9 +109,7 @@ async def process_document(
             doc.page_count = (
                 max(pages.values())
                 if pages
-                else len(set(pages.values()))
-                if pages
-                else None
+                else len(set(pages.values())) if pages else None
             )
             await session.commit()
 

@@ -123,7 +123,7 @@ def _recursive_split(text: str, separators: list[str], chunk_size: int) -> list[
 
     if not separator:
         # Last resort — character-level split
-        return [text[i:i + chunk_size] for i in range(0, len(text), chunk_size)]
+        return [text[i : i + chunk_size] for i in range(0, len(text), chunk_size)]
 
     # Split while preserving the separator on each piece
     pieces = _split_preserving_sep(text, separator)

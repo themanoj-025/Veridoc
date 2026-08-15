@@ -13,7 +13,6 @@ Create Date: 2026-07-31
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Union
 
 import sqlalchemy as sa
 from alembic import op

@@ -454,7 +454,8 @@ def main():
     print("\n" + "=" * 60)
     print("RECOMMENDATION")
     print("=" * 60)
-    print(f"""
+    print(
+        f"""
 Current defaults:
   RRF k = {DEFAULT_RRF_K}
   BM25 weight = {DEFAULT_BM25_WEIGHT}
@@ -469,7 +470,8 @@ external services.  The relative ranking of configurations is
 informative, but absolute metric values should be validated
 end-to-end on a live Docker stack with real sentence-transformer
 embeddings and cross-encoder reranking.
-""")
+"""
+    )
 
     # Print final short table
     print("Before/After summary:")

@@ -13,7 +13,6 @@ Create Date: 2026-07-29
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Union
 
 import sqlalchemy as sa
 from alembic import op
@@ -36,22 +35,26 @@ def upgrade() -> None:
 
     # Backfill: set ocr_used = True for chunks whose document used OCR
     connection.execute(
-        text("""
+        text(
+            """
             UPDATE chunks
             SET ocr_used = TRUE
             FROM documents
             WHERE chunks.document_id = documents.id
               AND documents.ocr_used = TRUE
-        """)
+        """
+        )
     )
 
     # Set remaining to False
     connection.execute(
-        text("""
+        text(
+            """
             UPDATE chunks
             SET ocr_used = FALSE
             WHERE ocr_used IS NULL
-        """)
+        """
+        )
     )
 
     # Now make it non-nullable

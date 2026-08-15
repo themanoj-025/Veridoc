@@ -7,6 +7,20 @@ on:
     branches: [main]
 
 jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run pre-commit hooks
+        run: |
+          pip install pre-commit
+          pre-commit run --all-files
+
   # ── Check that no secret-like keys have non-empty literal defaults in Docker Compose files ──
   lint-compose-secrets:
     runs-on: ubuntu-latest

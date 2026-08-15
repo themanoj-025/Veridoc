@@ -39,7 +39,6 @@ class ConversationListResponse(PaginatedResponse[ConversationResponse]):
     """Paginated list of conversations."""
 
 
-
 class MessageResponse(BaseModel):
     id: uuid.UUID
     conversation_id: uuid.UUID

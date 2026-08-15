@@ -84,9 +84,9 @@ async def export_user_data(
                         "content": m.content,
                         "latency_ms": m.latency_ms,
                         "faithfulness_score": m.faithfulness_score,
-                        "created_at": m.created_at.isoformat()
-                        if m.created_at
-                        else None,
+                        "created_at": (
+                            m.created_at.isoformat() if m.created_at else None
+                        ),
                     }
                     for m in messages
                 ],
