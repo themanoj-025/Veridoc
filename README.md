@@ -9,8 +9,8 @@
 
   <!-- Badges -->
   <p>
-    <a href="https://github.com/themanoj-025/veridoc/actions/workflows/ci.yml">
-      <img src="https://github.com/themanoj-025/veridoc/actions/workflows/ci.yml/badge.svg" alt="CI Status" />
+    <a href="https://github.com/themanoj-025/Veridoc/actions/workflows/ci.yml">
+      <img src="https://github.com/themanoj-025/Veridoc/actions/workflows/ci.yml/badge.svg" alt="CI Status" />
     </a>
     <a href="LICENSE">
       <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" />
@@ -108,8 +108,8 @@ Knowledge workers spend **~20% of their time** searching for information across 
 
 ```bash
 # One command — zero accounts, zero config
-git clone https://github.com/themanoj-025/veridoc.git
-cd veridoc
+git clone https://github.com/themanoj-025/Veridoc.git
+cd Veridoc
 cp .env.example .env
 
 # Edit .env to set JWT_SECRET and FILE_ENCRYPTION_KEY
@@ -445,3 +445,11 @@ Found a bug? Have a feature request?
     <a href="CONTRIBUTING.md">Contributing</a>
   </sub>
 </div>
+---
+
+## ⭐ Star History
+
+[![Last Commit](https://img.shields.io/github/last-commit/themanoj-025/Veridoc?style=flat-square)](https://github.com/themanoj-025/Veridoc)
+[![Contributors](https://img.shields.io/github/contributors/themanoj-025/Veridoc?style=flat-square)](https://github.com/themanoj-025/Veridoc/graphs/contributors)
+
+[![Star History Chart](https://api.star-history.com/svg?repos=themanoj-025/Veridoc&type=Date)](https://star-history.com/#Veridoc&Date)
