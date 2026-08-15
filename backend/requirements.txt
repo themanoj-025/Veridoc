@@ -1,6 +1,6 @@
 # ── Core Web Framework ──
 fastapi==0.141.1  # bumped: 0.115.0 breaks UploadFile param with `from __future__ import annotations` (ForwardRef error); host runs 0.139.2
-uvicorn[standard]==0.30.6
+uvicorn[standard]==0.52.1
 pydantic==2.13.4
 pydantic-settings==2.5.2
 python-multipart==0.0.12
