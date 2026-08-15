@@ -1,0 +1,14 @@
+[project]
+name = "veridoc"
+version = "0.1.0"
+description = "Answers you can verify, not just believe."
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests", "scripts"]
+python_files = ["test_*.py"]
+asyncio_mode = "auto"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+]

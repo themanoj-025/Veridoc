@@ -1,0 +1,410 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── Check that no secret-like keys have non-empty literal defaults in Docker Compose files ──
+  lint-compose-secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check docker-compose for hardcoded secrets
+        run: |
+          echo "Checking docker-compose.yml for hardcoded secrets..."
+          # Fail if JWT_SECRET or FILE_ENCRYPTION_KEY have a non-env-var literal value
+          # (i.e., not starting with ${...})
+          secrets_found=0
+          for file in docker-compose.yml docker-compose.prod.yml; do
+            if [ ! -f "$file" ]; then continue; fi
+            for key in JWT_SECRET FILE_ENCRYPTION_KEY POSTGRES_PASSWORD MINIO_SECRET_KEY; do
+              # Look for lines like "  JWT_SECRET: some-literal-value" that don't start with $
+              while IFS= read -r line; do
+                echo "ERROR: $file contains a hardcoded $key literal value"
+                echo "       $line"
+                secrets_found=1
+              done < <(grep -E "^\\s+${key}:\\s+[^$]" "$file" 2>/dev/null || true)
+            done
+          done
+          if [ "$secrets_found" -ne 0 ]; then
+            echo ""
+            echo "FAILURE: Hardcoded secrets found in Docker Compose files."
+            echo "These must use \${VAR:?error} syntax so values come only from .env"
+            exit 1
+          fi
+          echo "✅ All compose files use env-var references for secrets"
+
+  lint-backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8
+      - name: Lint with flake8
+        run: flake8 app/ tests/ --max-line-length=120
+
+  lint-frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+
+  # Build-frontend — catches TypeScript compilation errors like the duplicate
+  # setShowMobileDrawer bug that ESLint alone would not catch
+  build-frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install dependencies
+        run: npm ci
+      - name: TypeScript build check
+        run: npm run build
+
+  test-backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: veridoc
+          POSTGRES_PASSWORD: veridoc_local_dev
+          POSTGRES_DB: veridoc
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      chroma:
+        image: chromadb/chroma:0.5.5
+        ports:
+          - 8001:8000
+        options: >-
+          --health-cmd "curl -f http://localhost:8000/api/v1/heartbeat || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run unit tests (no external services)
+        env:
+          POSTGRES_HOST: localhost
+          APP_ENV: test
+        # Exclude integration tests (which need testcontainers Docker-in-Docker)
+        # and health tests (which try to connect to actual Chroma/Ollama)
+        run: |
+          python -m pytest tests/ -v --timeout=30 \
+            -k "not integration and not health"
+
+  test-integration:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: veridoc
+          POSTGRES_PASSWORD: veridoc_local_dev
+          POSTGRES_DB: veridoc
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      chroma:
+        image: chromadb/chroma:0.5.5
+        ports:
+          - 8001:8000
+        options: >-
+          --health-cmd "curl -f http://localhost:8000/api/v1/heartbeat || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run integration tests (Postgres + Chroma)
+        env:
+          POSTGRES_HOST: localhost
+          CHROMA_HOST: localhost
+          APP_ENV: test
+        run: |
+          python -m pytest tests/ -v --timeout=120 \
+            -k "integration or health"
+
+  eval-regression:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: veridoc
+          POSTGRES_PASSWORD: veridoc_local_dev
+          POSTGRES_DB: veridoc
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run evaluation regression gate
+        env:
+          POSTGRES_HOST: localhost
+          APP_ENV: test
+          SKIP_LLM: "true"
+        run: python scripts/ci_eval_gate.py
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build Docker images
+        # Dummy values only for compose interpolation during CI build;
+        # real secrets are never baked into images.
+        env:
+          JWT_SECRET: ci-build-only-dummy-secret
+          FILE_ENCRYPTION_KEY: ci-build-only-dummy-key
+        run: docker compose build
+
+  # E2E smoke test (B6) — requires full Docker Compose stack
+  e2e-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: veridoc
+          POSTGRES_PASSWORD: veridoc_local_dev
+          POSTGRES_DB: veridoc
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      chroma:
+        image: chromadb/chroma:0.5.5
+        ports:
+          - 8001:8000
+        options: >-
+          --health-cmd "curl -f http://localhost:8000/api/v1/heartbeat || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Start Ollama (CPU mode)
+        run: |
+          docker run -d --rm --name ollama -p 11434:11434 ollama/ollama:latest
+          # Wait for Ollama to start
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:11434/api/tags > /dev/null 2>&1; then
+              echo "Ollama ready"
+              break
+            fi
+            sleep 2
+          done
+          # Pull the small model
+          docker exec ollama ollama pull tinyllama || echo "Model pull skipped"
+      - name: Start backend
+        env:
+          DATABASE_URL: postgresql+asyncpg://veridoc:veridoc_local_dev@localhost:5432/veridoc
+          CHROMA_HOST: localhost
+          CHROMA_PORT: 8001
+          OLLAMA_BASE_URL: http://localhost:11434
+          APP_ENV: production
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+          # Wait for backend to be ready
+          for i in $(seq 1 15); do
+            if curl -sf http://localhost:8000/api/v1/health > /dev/null 2>&1; then
+              echo "Backend ready"
+              break
+            fi
+            echo "Waiting for backend... ($i/15)"
+            sleep 2
+          done
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+      - name: Start frontend
+        run: |
+          cd frontend
+          NEXT_PUBLIC_API_URL=http://localhost:8000 npx next start &
+          sleep 3
+      - name: Run E2E smoke tests
+        run: |
+          cd frontend
+          npx playwright install chromium
+          npx playwright test
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 14
+
+  # SBOM + vulnerability scanning (D9)
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Generate SBOM (backend)
+        run: |
+          syft dir:backend -o spdx-json > sbom.backend.json || echo "Syft backend scan skipped"
+
+      - name: Generate SBOM (frontend)
+        run: |
+          syft dir:frontend -o spdx-json > sbom.frontend.json || echo "Syft frontend scan skipped"
+
+      - name: Upload SBOMs
+        uses: actions/upload-artifact@v7
+        with:
+          name: sbom
+          path: sbom*.json
+          retention-days: 30
+
+      - name: Install Trivy
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.73.0
+
+      - name: Trivy vulnerability scan — backend
+        id: trivy-backend
+        continue-on-error: false
+        run: |
+          # Scan built Docker image first; fall back to filesystem scan if image not present
+          if docker images --format '{{.Repository}}:{{.Tag}}' 2>/dev/null | grep -q 'veridoc-backend'; then
+            echo "Scanning Docker image: veridoc-backend:latest"
+            trivy image --scanners vuln --severity CRITICAL \
+              --exit-code 1 --ignore-unfixed \
+              --format sarif -o trivy-backend.sarif \
+              --ignorefile .trivyignore \
+              veridoc-backend:latest
+          else
+            echo "No Docker image found — scanning filesystem: backend/"
+            trivy fs --scanners vuln --severity CRITICAL \
+              --exit-code 1 --ignore-unfixed \
+              --format sarif -o trivy-backend.sarif \
+              --ignorefile .trivyignore \
+              backend/
+          fi
+
+      - name: Trivy vulnerability scan — frontend
+        id: trivy-frontend
+        continue-on-error: false
+        run: |
+          if docker images --format '{{.Repository}}:{{.Tag}}' 2>/dev/null | grep -q 'veridoc-frontend'; then
+            echo "Scanning Docker image: veridoc-frontend:latest"
+            trivy image --scanners vuln --severity CRITICAL \
+              --exit-code 1 --ignore-unfixed \
+              --format sarif -o trivy-frontend.sarif \
+              veridoc-frontend:latest
+          else
+            echo "No Docker image found — scanning filesystem: frontend/"
+            trivy fs --scanners vuln --severity CRITICAL \
+              --exit-code 1 --ignore-unfixed \
+              --format sarif -o trivy-frontend.sarif \
+              frontend/
+          fi
+
+      - name: Trivy summary report (all severities, non-blocking table)
+        continue-on-error: true
+        run: |
+          trivy fs --scanners vuln --severity CRITICAL,HIGH,MEDIUM,LOW \
+            --exit-code 0 \
+            --format table \
+            backend/requirements.txt || echo "Trivy summary generated with findings"
+
+      - name: Upload Trivy SARIF reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: trivy-reports
+          path: trivy-*.sarif
+          retention-days: 30
+
+      - name: Notify on CRITICAL vulnerabilities found
+        if: steps.trivy-backend.outcome == 'failure' || steps.trivy-frontend.outcome == 'failure'
+        run: |
+          echo "::error::CRITICAL severity vulnerabilities found — the CI job has failed."
+          echo "::error::Review the trivy-reports artifact for details."
+          echo "::error::If these are accepted risks, document them in docs/security-notes.md"
+          echo "::error::and add the CVE IDs to .trivyignore with rationale."

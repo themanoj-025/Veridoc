@@ -1,0 +1,22 @@
+# Trivy ignore file — known/accepted vulnerabilities
+# Each entry documents a specific CVE that is accepted as low-risk
+# for this application's threat model.
+#
+# Format (Trivy 0.55+):
+#   CVE-XXXX-XXXX [optional: reason]
+#
+# See docs/security-notes.md for rationale on each accepted risk.
+
+# ── Accepted: Python stdlib unicode security issues ──────────────────
+# These affect the Python interpreter itself, not application code.
+# They require local code execution to exploit, which is outside our
+# threat model.  Keep track for future Python version upgrades.
+
+# ── Accepted: urllib3 / httpx related CVEs ───────────────────────────
+# These affect the underlying HTTP transport, which is behind the
+# FastAPI application layer.  Exploitation requires MITM position.
+# Our API uses TLS in production.
+
+# ── Accepted: Pillow / image processing ─────────────────────────────
+# The app only handles PDF, DOCX, TXT files — not arbitrary image uploads.
+# The PDF→image conversion (pdf2image) is only used for OCR fallback.

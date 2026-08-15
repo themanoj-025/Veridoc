@@ -1,0 +1,220 @@
+# ─────────────────────────────────────────────────────────
+# Veridoc — Docker Compose (local-first, zero external accounts)
+# Start: docker compose up --build
+# ─────────────────────────────────────────────────────────
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+
+  # ── Postgres ──────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: veridoc-postgres
+    restart: unless-stopped
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-veridoc}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-veridoc_local_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-veridoc}
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-veridoc}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging: *default-logging
+
+  # ── MinIO (S3-compatible object storage) ─────────────
+  minio:
+    image: minio/minio:latest
+    container_name: veridoc-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-veridoc}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-veridoc_minio_dev}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging: *default-logging
+
+  # ── Chroma (Vector DB) ───────────────────────────────
+  chroma:
+    # Pinned to match client chromadb==0.5.5 in backend/requirements.txt (server :latest drifted, 410 on heartbeat)
+    image: chromadb/chroma:0.5.5
+    container_name: veridoc-chroma
+    restart: unless-stopped
+    volumes:
+      - chroma-data:/chroma/chroma
+    environment:
+      IS_PERSISTENT: TRUE
+      PERSIST_DIRECTORY: /chroma/chroma
+      ANONYMIZED_TELEMETRY: FALSE
+    ports:
+      - "8001:8000"
+    logging: *default-logging
+
+  # ── Redis (Job Queue + Cache) ────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: veridoc-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging: *default-logging
+
+  # ── Worker (ARQ ingestion worker) ─────────────────────
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: veridoc-worker
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      chroma:
+        condition: service_started
+    environment:
+      APP_ENV: development
+      POSTGRES_USER: veridoc
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-veridoc_local_dev}
+      POSTGRES_DB: veridoc
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: veridoc
+      MINIO_SECRET_KEY: veridoc_minio_dev
+      MINIO_BUCKET: veridoc-documents
+      MINIO_USE_SSL: "false"
+      CHROMA_HOST: chroma
+      CHROMA_PORT: 8000
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      DATA_DIR: /app/data
+      # ── Security: Secrets MUST come from .env, NOT hardcoded here ──
+      # These values are required. The backend will refuse to start
+      # if JWT_SECRET or FILE_ENCRYPTION_KEY are empty or match known
+      # placeholder patterns.  Set them in your .env file:
+      #   JWT_SECRET=<run: python -c "import secrets; print(secrets.token_hex(32))">
+      #   FILE_ENCRYPTION_KEY=<run: python -c "import base64, os; print(base64.urlsafe_b64encode(os.urandom(32)).decode())">
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required — set it in .env}
+      FILE_ENCRYPTION_KEY: ${FILE_ENCRYPTION_KEY:?FILE_ENCRYPTION_KEY is required — set it in .env}
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: llama3.1:8b
+      LOG_LEVEL: INFO
+      RATE_LIMIT_PER_MINUTE: 1000
+    volumes:
+      - upload-data:/app/data/uploads
+    command: >
+      sh -c "python -m arq app.services.worker.WorkerSettings"
+    logging: *default-logging
+
+  # ── Ollama (Local LLM) ───────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: veridoc-ollama
+    restart: unless-stopped
+    volumes:
+      - ollama-data:/root/.ollama
+    ports:
+      - "11434:11434"
+    entrypoint: >
+      sh -c "ollama serve &
+             sleep 3 &&
+             ollama pull ${OLLAMA_MODEL:-llama3.1:8b} || true &&
+             wait"
+    logging: *default-logging
+
+  # ── Backend (FastAPI) ─────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: veridoc-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      chroma:
+        condition: service_started
+    environment:
+      APP_ENV: development
+      POSTGRES_USER: veridoc
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-veridoc_local_dev}
+      POSTGRES_DB: veridoc
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: veridoc
+      MINIO_SECRET_KEY: veridoc_minio_dev
+      MINIO_BUCKET: veridoc-documents
+      MINIO_USE_SSL: "false"
+      CHROMA_HOST: chroma
+      CHROMA_PORT: 8000
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      DATA_DIR: /app/data
+      # ── Security: Secrets MUST come from .env, NOT hardcoded here ──
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required — set it in .env}
+      FILE_ENCRYPTION_KEY: ${FILE_ENCRYPTION_KEY:?FILE_ENCRYPTION_KEY is required — set it in .env}
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: llama3.1:8b
+      LOG_LEVEL: INFO
+      RATE_LIMIT_PER_MINUTE: 1000
+    volumes:
+      - upload-data:/app/data/uploads
+    ports:
+      - "8000:8000"
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    logging: *default-logging
+
+  # ── Frontend (Next.js) ────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: veridoc-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    logging: *default-logging
+
+volumes:
+  pgdata:
+  minio-data:
+  chroma-data:
+  ollama-data:
+  redis-data:
+  upload-data:

@@ -1,0 +1,185 @@
+# ─────────────────────────────────────────────────────────
+# Veridoc — Production Docker Compose Override
+# Usage:  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# This file overrides the base docker-compose.yml for production
+# deployments.  Key differences:
+#   - No bind-mount source code (production images, no live-reload)
+#   - Resource limits on every service
+#   - Restart policies tuned for production
+#   - Health check start periods aligned with cold-start times
+#   - No hard dependency on Ollama (backend & worker degrade gracefully)
+#   - Optional reverse proxy (Caddy) for TLS — requires DOMAIN + Caddyfile
+# ─────────────────────────────────────────────────────────
+
+x-production-logging: &production-logging
+  driver: "json-file"
+  options:
+    max-size: "50m"
+    max-file: "5"
+
+services:
+
+  # ── Postgres ──────────────────────────────────────────
+  postgres:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+          cpus: "1.0"
+        reservations:
+          memory: 256m
+          cpus: "0.5"
+
+  # ── MinIO (S3-compatible object storage) ─────────────
+  minio:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "0.5"
+
+  # ── Chroma (Vector DB) ───────────────────────────────
+  chroma:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+          cpus: "1.0"
+
+  # ── Redis ────────────────────────────────────────────
+  redis:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: "0.25"
+
+  # ── Ollama (Local LLM) ───────────────────────────────
+  ollama:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 8g
+          cpus: "4.0"
+    # In production, pre-pull the model into the image or a volume
+    # rather than downloading on every container start
+    entrypoint: >
+      sh -c "ollama serve &
+             sleep 5 &&
+             ollama pull ${OLLAMA_MODEL:-llama3.1:8b} || echo 'Model pull failed — check network and OLLAMA_MODEL' &&
+             wait"
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list 2>/dev/null | grep -q ${OLLAMA_MODEL:-llama3.1:8b}"]
+      interval: 30s
+      timeout: 10s
+      start_period: 120s
+      retries: 6
+
+  # ── Worker (ARQ ingestion worker) ─────────────────────
+  worker:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+          cpus: "2.0"
+        reservations:
+          memory: 1g
+          cpus: "1.0"
+    # Worker processes ingestion (parsing → chunking → embedding → indexing)
+    # which does NOT require the LLM.  Only data-layer services needed.
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      chroma:
+        condition: service_started
+    # No bind-mount source code in production
+    volumes:
+      - upload-data:/app/data/uploads
+    command: >
+      sh -c "python -m arq app.services.worker.WorkerSettings"
+    logging: *production-logging
+
+  # ── Backend (FastAPI) ─────────────────────────────────
+  backend:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+          cpus: "2.0"
+        reservations:
+          memory: 1g
+          cpus: "1.0"
+    # Backend can start without Ollama — auth, health, CRUD, and ingestion
+    # work without the LLM.  Chat endpoints degrade gracefully when Ollama
+    # is unavailable (with a user-facing error), so no hard dependency.
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      chroma:
+        condition: service_started
+    volumes:
+      - upload-data:/app/data/uploads
+    # Production: no --reload, multiple workers
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2"
+    logging: *production-logging
+
+  # ── Frontend (Next.js) ────────────────────────────────
+  frontend:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "0.5"
+    environment:
+      NEXT_PUBLIC_API_URL: https://${DOMAIN:-veridoc.example.com}/api
+    logging: *production-logging
+
+  # ── Optional: Reverse Proxy (Caddy) — requires DOMAIN env var ────
+  # Uncomment the block below and create a Caddyfile in the project root
+  # to enable TLS termination via Let's Encrypt.
+  #
+  # Example Caddyfile:
+  #   ${DOMAIN} {
+  #     reverse_proxy /api/* backend:8000
+  #     reverse_proxy frontend:3000
+  #   }
+  #
+  # caddy:
+  #   image: caddy:2-alpine
+  #   container_name: veridoc-caddy
+  #   restart: always
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./Caddyfile:/etc/caddy/Caddyfile:ro
+  #     - caddy-data:/data
+  #     - caddy-config:/config
+  #   depends_on:
+  #     - frontend
+  #     - backend
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 128m
+  #         cpus: "0.25"
+  #   logging: *production-logging
+
+# volumes:
+#   caddy-data:
+#   caddy-config:

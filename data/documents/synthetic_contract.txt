@@ -1,0 +1,55 @@
+SYNTHETIC — For evaluation only
+
+SOFTWARE LICENSE AGREEMENT
+
+This Software License Agreement (the "Agreement") is entered into as of January 1, 2026
+(the "Effective Date"), by and between Veridoc Technologies, Inc., a Delaware corporation
+("Licensor"), and the party accepting this Agreement ("Licensee").
+
+1. DEFINITIONS
+
+1.1 "Software" means the Veridoc document Q&A platform, including all updates provided.
+1.2 "Documentation" means the user manuals and technical documentation provided with the Software.
+1.3 "Confidential Information" means all non-public information disclosed by either party.
+
+2. LICENSE GRANT
+
+2.1 Licensor grants Licensee a non-exclusive, non-transferable, worldwide license to use the
+Software for internal business purposes during the Term.
+2.2 Licensee may install the Software on up to 10 servers.
+2.3 Licensee shall not: (a) reverse engineer the Software; (b) distribute the Software to
+third parties; (c) use the Software to process more than 100,000 documents per month.
+
+3. FEES AND PAYMENT
+
+3.1 Licensee shall pay Licensor the annual subscription fee of $50,000.
+3.2 Fees are due within 30 days of invoice.
+3.3 Late payments accrue interest at 1.5% per month.
+
+4. DATA PROTECTION
+
+4.1 Licensor shall implement appropriate technical and organizational measures to protect
+Licensee's data.
+4.2 Licensor may process data in accordance with its Privacy Policy.
+4.3 Upon termination, Licensor shall delete all Licensee data within 60 days.
+
+5. WARRANTY AND DISCLAIMER
+
+5.1 Licensor warrants the Software will materially conform to the Documentation.
+5.2 EXCEPT AS PROVIDED IN SECTION 5.1, THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY.
+
+6. LIMITATION OF LIABILITY
+
+6.1 Neither party's total liability shall exceed the fees paid by Licensee in the
+12 months preceding the claim.
+
+7. TERM AND TERMINATION
+
+7.1 This Agreement commences on the Effective Date and continues for one year.
+7.2 Either party may terminate for material breach not cured within 30 days.
+
+8. GOVERNING LAW
+
+8.1 This Agreement is governed by the laws of the State of Delaware.
+
+[END OF SYNTHETIC CONTRACT]

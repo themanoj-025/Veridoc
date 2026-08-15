@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# Node
+node_modules/
+.next/
+out/
+
+# TypeScript build artifacts
+*.tsbuildinfo
+next-env.d.ts
+
+# Environment
+.env
+.env.local
+*.pem
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker volumes
+data/pgdata/
+data/chroma/
+data/minio/
+data/ollama/
+backend/data/
+
+# Large data files
+eval/squad_dev_v2.0.json
+
+# Logs
+*.log
+
+# Cache
+.mypy_cache/
