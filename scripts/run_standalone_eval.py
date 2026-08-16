@@ -123,15 +123,15 @@ def test_metrics_computation():
             print(f"  {key}: {value}")
 
     # Verify results
-    assert metrics["total_questions"] == 5, (
-        f"Expected 5, got {metrics['total_questions']}"
-    )
-    assert metrics["refusal_accuracy"] == 1.0, (
-        f"Expected 1.0, got {metrics['refusal_accuracy']}"
-    )
-    assert metrics["mean_faithfulness"] > 0.8, (
-        f"Expected >0.8, got {metrics['mean_faithfulness']}"
-    )
+    assert (
+        metrics["total_questions"] == 5
+    ), f"Expected 5, got {metrics['total_questions']}"
+    assert (
+        metrics["refusal_accuracy"] == 1.0
+    ), f"Expected 1.0, got {metrics['refusal_accuracy']}"
+    assert (
+        metrics["mean_faithfulness"] > 0.8
+    ), f"Expected >0.8, got {metrics['mean_faithfulness']}"
     print("  [OK] Metrics computation verified")
     return metrics
 

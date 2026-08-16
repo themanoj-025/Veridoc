@@ -6,11 +6,7 @@ import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from app.services.ingestion import (
-    _parse_txt,
-    chunk_text,
-    parse_document,
-)
+from app.services.ingestion import _parse_txt, chunk_text, parse_document
 
 # ── TXT Parsing ──────────────────────────────────────────
 
