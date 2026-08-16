@@ -51,4 +51,3 @@ This document records the source and license of every data file used by Veridoc.
 | **Source** | GitHub (expressjs/express) |
 | **License** | MIT License |
 | **Type** | readme |
-
