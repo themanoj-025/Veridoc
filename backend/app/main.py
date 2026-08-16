@@ -111,7 +111,7 @@ def _check_secret_rotation_age(logger) -> None:
     - recent → info
     - malformed date → warning
     """
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from app.core.config import settings
 
