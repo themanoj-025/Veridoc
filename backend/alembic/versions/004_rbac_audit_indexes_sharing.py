@@ -19,7 +19,6 @@ Create Date: 2026-07-31
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Union
 
 import sqlalchemy as sa
 from alembic import op
@@ -42,13 +41,15 @@ def upgrade() -> None:
     )
     # Backfill first registered user as admin
     connection.execute(
-        text("""
+        text(
+            """
             UPDATE users
             SET role = 'admin'
             WHERE id = (
                 SELECT id FROM users ORDER BY created_at ASC LIMIT 1
             )
-        """)
+        """
+        )
     )
     # Make role non-nullable
     with op.batch_alter_table("users") as batch_op:
