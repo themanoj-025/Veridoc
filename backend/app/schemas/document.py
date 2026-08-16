@@ -52,7 +52,6 @@ class DocumentListResponse(PaginatedResponse[DocumentResponse]):
     """
 
 
-
 class IngestionStatus(BaseModel):
     document_id: uuid.UUID
     status: str
