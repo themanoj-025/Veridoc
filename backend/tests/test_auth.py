@@ -224,7 +224,7 @@ async def test_refresh_invalid_token(test_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_refresh_expired_token(test_client: AsyncClient):
     """Test refresh with expired token returns 401."""
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
     from app.core.config import settings
     from jose import jwt
@@ -506,7 +506,7 @@ class TestNegativeSecurity:
     @pytest.mark.asyncio
     async def test_expired_jwt_rejected(self, test_client: AsyncClient):
         """An expired JWT must be rejected with 401."""
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
 
         from app.core.config import settings
         from jose import jwt
@@ -655,12 +655,10 @@ async def test_verify_email_success(
     test_client: AsyncClient, mock_db_session, sample_user
 ):
     """A valid, unexpired verification token marks the user verified."""
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
     sample_user.verification_token = "valid-verify-token"
-    sample_user.verification_token_expiry = datetime.now(UTC) + timedelta(
-        hours=1
-    )
+    sample_user.verification_token_expiry = datetime.now(UTC) + timedelta(hours=1)
     sample_user.is_verified = False  # prove the endpoint flips it
     mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
         return_value=sample_user
@@ -681,12 +679,10 @@ async def test_verify_email_expired_token_rejected(
     test_client: AsyncClient, mock_db_session, sample_user
 ):
     """An expired verification token must be rejected (never replay old links)."""
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
     sample_user.verification_token = "expired-verify-token"
-    sample_user.verification_token_expiry = datetime.now(UTC) - timedelta(
-        minutes=5
-    )
+    sample_user.verification_token_expiry = datetime.now(UTC) - timedelta(minutes=5)
     sample_user.is_verified = False
     mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
         return_value=sample_user
@@ -721,7 +717,7 @@ async def test_reset_password_success(
     test_client: AsyncClient, mock_db_session, sample_user
 ):
     """A valid, unexpired reset token resets the password."""
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
     sample_user.reset_token = "valid-reset-token"
     sample_user.reset_token_expiry = datetime.now(UTC) + timedelta(minutes=30)
@@ -743,7 +739,7 @@ async def test_reset_password_expired_token_rejected(
     test_client: AsyncClient, mock_db_session, sample_user
 ):
     """An expired reset token must be rejected."""
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
     sample_user.reset_token = "expired-reset-token"
     sample_user.reset_token_expiry = datetime.now(UTC) - timedelta(minutes=5)
