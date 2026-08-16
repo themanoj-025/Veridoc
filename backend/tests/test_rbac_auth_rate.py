@@ -167,7 +167,7 @@ class TestF4_EmailVerification:
     def test_password_reset_token_generation(self):
         """A reset token with expiry should be generated on request."""
         import secrets
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
 
         token = secrets.token_urlsafe(32)
         expires = datetime.now(UTC) + timedelta(hours=1)
@@ -186,7 +186,7 @@ class TestF4_EmailVerification:
     def test_password_reset_success(self):
         """A valid reset token within expiry should allow password reset."""
         import secrets
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
 
         from app.core.security import hash_password, verify_password
 
@@ -218,7 +218,7 @@ class TestF4_EmailVerification:
     def test_password_reset_expired_token(self):
         """An expired reset token should not allow password reset."""
         import secrets
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
 
         from app.core.security import hash_password
 
@@ -643,7 +643,7 @@ class TestG4_SecretRotation:
 
     def test_warns_when_stale(self):
         """Rotation older than the window → warning (status=stale)."""
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
 
         old = (datetime.now(UTC) - timedelta(days=200)).date().isoformat()
         logger = self._call_with(old, window_days=90)
@@ -658,7 +658,7 @@ class TestG4_SecretRotation:
 
     def test_no_warning_when_fresh(self):
         """Recent rotation → info (status=fresh), no warning."""
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         fresh = datetime.now(UTC).date().isoformat()
         logger = self._call_with(fresh, window_days=90)
