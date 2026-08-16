@@ -32,9 +32,9 @@ logger = structlog.get_logger(__name__)
 
 # ── In-memory fallback store ─────────────────────────────
 
-_in_memory: dict[
-    str, dict[str, Any]
-] = {}  # jti -> {"user_id": str, "expires_at": float}
+_in_memory: dict[str, dict[str, Any]] = (
+    {}
+)  # jti -> {"user_id": str, "expires_at": float}
 
 
 def _cleanup_expired() -> None:
