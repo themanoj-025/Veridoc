@@ -18,7 +18,7 @@ SQUAD_PATH = EVAL_DIR / "squad_dev_v2.0.json"
 METRICS_PATH = EVAL_DIR / "squad_metrics.json"
 
 
-def download_squad():
+def download_squad() -> None:
     """Download SQuAD 2.0 dev split and compute summary metrics."""
     print(f"Downloading SQuAD 2.0 dev from {SQUAD_URL}...")
 
@@ -63,7 +63,7 @@ def download_squad():
     print(f"Metrics saved to: {METRICS_PATH}")
 
 
-def main():
+def main() -> None:
     print("=" * 60)
     print("Veridoc — Download SQuAD 2.0")
     print("=" * 60)

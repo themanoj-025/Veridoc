@@ -65,7 +65,7 @@ class VeridocUser(HttpUser):
 
     wait_time = between(1, 3)
 
-    def on_start(self):
+    def on_start(self) -> None:
         """Register and log in once per user."""
         self.email = _random_email()
         self.password = _random_password()
@@ -75,7 +75,7 @@ class VeridocUser(HttpUser):
 
     # ── Auth helpers ─────────────────────────────────────────────
 
-    def _login(self):
+    def _login(self) -> None:
         """Register a new user, then log in to get tokens."""
         payload = {
             "email": self.email,
@@ -98,7 +98,7 @@ class VeridocUser(HttpUser):
             else:
                 resp.failure(f"Register failed: {resp.status_code}")
 
-    def _login_existing(self):
+    def _login_existing(self) -> None:
         """Log in with existing credentials (when register returns 409)."""
         payload = {"email": self.email, "password": self.password}
         with self.client.post(
@@ -160,7 +160,7 @@ class VeridocUser(HttpUser):
 
     @task(5)
     @tag("health")
-    def health_check(self):
+    def health_check(self) -> None:
         """Check the health endpoint (no auth required)."""
         with self.client.get(
             "/api/v1/health",
@@ -179,7 +179,7 @@ class VeridocUser(HttpUser):
 
     @task(3)
     @tag("auth")
-    def get_me(self):
+    def get_me(self) -> None:
         """Get the current user's profile (authenticated)."""
         if not self._ensure_token():
             return
@@ -204,7 +204,7 @@ class VeridocUser(HttpUser):
 
     @task(3)
     @tag("documents")
-    def list_documents(self):
+    def list_documents(self) -> None:
         """List documents with pagination (authenticated)."""
         if not self._ensure_token():
             return
@@ -232,7 +232,7 @@ class VeridocUser(HttpUser):
 
     @task(2)
     @tag("conversations")
-    def list_conversations(self):
+    def list_conversations(self) -> None:
         """List conversations with pagination (authenticated)."""
         if not self._ensure_token():
             return
@@ -258,7 +258,7 @@ class VeridocUser(HttpUser):
 
     @task(1)
     @tag("documents")
-    def get_single_document(self):
+    def get_single_document(self) -> None:
         """Get a single document's details (requires a valid document ID)."""
         if not self._ensure_token():
             return

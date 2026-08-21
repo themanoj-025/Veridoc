@@ -300,7 +300,7 @@ async def check_ollama_health(model: str) -> bool:
         return False
 
 
-async def main():
+async def main() -> None:
     parser = argparse.ArgumentParser(
         description="Run live red-team tests against Ollama"
     )

@@ -351,7 +351,7 @@ def save_tuning_results(best_config: dict) -> None:
     print(f"\n→ Saved tuning results to {TUNING_RESULTS_PATH}")
 
 
-def main():
+def main() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(description="Tune hybrid retrieval weights")

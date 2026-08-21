@@ -277,7 +277,7 @@ async def verify_stack_healthy() -> bool:
         return False
 
 
-async def main():
+async def main() -> None:
     parser = argparse.ArgumentParser(
         description="Live chaos/resilience tests (D4 Tier 2)"
     )

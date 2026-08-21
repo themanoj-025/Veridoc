@@ -21,7 +21,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
 
 
-def main():
+def main() -> None:
     print("=" * 60)
     print("  Cross-Encoder Reranker Batching Benchmark")
     print("=" * 60)

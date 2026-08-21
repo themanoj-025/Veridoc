@@ -116,7 +116,7 @@ def get_user_identifier(request) -> str:
 # behavior does not depend on slowapi's fragile response-object injection.
 
 
-def _resolve_strategy(request: Request):
+def _resolve_strategy(request: Request) -> None:
     """Return the slowapi RateLimiter strategy for the request's app.
 
     Prefers ``request.app.state.limiter`` (a real slowapi Limiter in the
@@ -185,7 +185,7 @@ async def rate_limit_exceeded_handler(request: Request, exc) -> JSONResponse:
     )
 
 
-async def rate_limit_headers_middleware(request: Request, call_next):
+async def rate_limit_headers_middleware(request: Request, call_next) -> None:
     """ASGI middleware: inject rate-limit headers on every limited response.
 
     Registers as ``app.middleware("http")`` so success responses AND the
