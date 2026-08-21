@@ -32,4 +32,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD ["python", "-c", "import urllib.request, urllib.error\ntry:\n    urllib.request.urlopen('http://localhost:8000/api/v1/health', timeout=5)\nexcept urllib.error.HTTPError as e:\n    # 503 = degraded deps (e.g. LLM model not pulled yet) — server is alive\n    exit(0 if e.code == 503 else 1)\nexcept Exception:\n    exit(1)"]
 
+STOPSIGNAL SIGTERM
 CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
