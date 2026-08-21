@@ -213,7 +213,7 @@ class ChatService:
         # F10: Async usage log write — fire-and-forget to remove latency from critical path
         import asyncio
 
-        async def _log_usage():
+        async def _log_usage() -> None:
             """Write usage log asynchronously without blocking the response."""
             try:
                 from app.core.database import async_session_factory

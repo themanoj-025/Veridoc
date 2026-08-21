@@ -43,7 +43,7 @@ logger = structlog.get_logger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> None:
     """Application lifespan — startup and shutdown."""
     # Configure structured logging before anything else
     configure_logging(env=settings.app_env, log_level=settings.log_level)
@@ -232,7 +232,7 @@ app.include_router(api_keys.router)
 
 # ── Correlation ID Middleware ───────────────────────────
 @app.middleware("http")
-async def correlation_id_middleware(request: Request, call_next):
+async def correlation_id_middleware(request: Request, call_next) -> None:
     """Bind ``request_id`` and basic request metadata before each request."""
     request_id = generate_request_id()
     bind_log_context(
@@ -251,7 +251,7 @@ async def correlation_id_middleware(request: Request, call_next):
 
 # ── Health ───────────────────────────────────────────────
 @app.get("/api/v1/health")
-async def health_check():
+async def health_check() -> None:
     """Health check endpoint — pings Postgres, ChromaDB, MinIO, and the LLM provider.
 
     Returns ``200`` only when all dependencies are reachable.
@@ -268,7 +268,7 @@ async def health_check():
         "redis": {"status": "unknown"},
     }
 
-    async def _check_postgres():
+    async def _check_postgres() -> None:
         try:
             from app.core.database import async_session_factory
 
@@ -281,7 +281,7 @@ async def health_check():
         except Exception as e:
             deps["postgres"] = {"status": "error", "error": str(e)}
 
-    async def _check_chroma():
+    async def _check_chroma() -> None:
         try:
             import httpx
 
@@ -297,7 +297,7 @@ async def health_check():
         except Exception as e:
             deps["chroma"] = {"status": "error", "error": str(e)}
 
-    async def _check_minio():
+    async def _check_minio() -> None:
         try:
             from minio import Minio
 
@@ -312,7 +312,7 @@ async def health_check():
         except Exception as e:
             deps["minio"] = {"status": "error", "error": str(e)}
 
-    async def _check_llm():
+    async def _check_llm() -> None:
         try:
             from app.services.llm_provider import get_llm
 
@@ -345,7 +345,7 @@ async def health_check():
         except Exception as e:
             deps["llm"] = {"status": "error", "error": str(e)}
 
-    async def _check_redis():
+    async def _check_redis() -> None:
         try:
             from app.services.job_queue import JobQueue
 
@@ -386,7 +386,7 @@ async def health_check():
 
 # ── Global Exception Handler (non-HTTP exceptions only) ──
 @app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
+async def global_exception_handler(request: Request, exc: Exception) -> None:
     """Structured error response for unhandled exceptions.
 
     Only handles non-HTTPException errors — FastAPI already catches

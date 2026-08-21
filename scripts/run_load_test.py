@@ -170,7 +170,7 @@ def run_locust(
 # ══════════════════════════════════════════════════════════════════
 
 
-def write_report(results: list[dict], host: str, run_time: str):
+def write_report(results: list[dict], host: str, run_time: str) -> None:
     """Write a load test summary report to ``docs/load-test-report.md``."""
     now = time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
     docs_dir = Path(__file__).resolve().parent.parent / "docs"
@@ -238,7 +238,7 @@ def write_report(results: list[dict], host: str, run_time: str):
 # ══════════════════════════════════════════════════════════════════
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Run Veridoc load tests at multiple concurrency levels"
     )

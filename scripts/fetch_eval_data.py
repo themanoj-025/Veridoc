@@ -19,7 +19,7 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 SOURCES_FILE = Path(__file__).resolve().parent.parent / "docs" / "data-sources.md"
 
 
-def fetch_arxiv_paper():
+def fetch_arxiv_paper() -> None:
     """Fetch a recent AI/ML paper from arXiv."""
     print("[1/4] Fetching arXiv paper...")
 
@@ -65,7 +65,7 @@ def fetch_arxiv_paper():
     }
 
 
-def fetch_gutenberg_book():
+def fetch_gutenberg_book() -> None:
     """Fetch a public-domain book from Project Gutenberg."""
     print("[2/4] Fetching Project Gutenberg book...")
 
@@ -127,7 +127,7 @@ def fetch_gutenberg_book():
     }
 
 
-def generate_synthetic_contract():
+def generate_synthetic_contract() -> None:
     """Generate a realistic synthetic contract document."""
     print("[3/4] Generating synthetic contract...")
 
@@ -204,7 +204,7 @@ Licensee's data.
     }
 
 
-def fetch_github_readme():
+def fetch_github_readme() -> None:
     """Fetch a README from a well-known open-source project on GitHub."""
     print("[4/4] Fetching open-source README from GitHub...")
 
@@ -235,7 +235,7 @@ def fetch_github_readme():
     }
 
 
-def write_sources_file(sources: list[dict]):
+def write_sources_file(sources: list[dict]) -> None:
     """Write the data sources documentation."""
     from datetime import datetime
 
@@ -266,7 +266,7 @@ This document records the source and license of every data file used by Veridoc.
     print(f"\n  Written: {SOURCES_FILE}")
 
 
-def main():
+def main() -> None:
     print("=" * 60)
     print("Veridoc — Fetch Evaluation Data")
     print("=" * 60)

@@ -11,7 +11,7 @@ from app.core.config import settings
 class VectorStore:
     """Wrapper around ChromaDB for document embeddings."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         import chromadb
         from chromadb.config import Settings as ChromaSettings
 
@@ -39,7 +39,7 @@ class VectorStore:
         self._collection = None
 
     @property
-    def collection(self):
+    def collection(self) -> None:
         if self._collection is None:
             try:
                 self._collection = self.client.get_collection(self.collection_name)

@@ -165,7 +165,7 @@ def interactive_promote() -> int:
     return promoted
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Promote feedback entries into the gold Q&A set."
     )

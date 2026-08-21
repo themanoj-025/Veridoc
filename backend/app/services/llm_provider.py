@@ -35,7 +35,7 @@ class LLMProvider(ABC):
 class OllamaProvider(LLMProvider):
     """Default provider — local Ollama, no API key needed."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.base_url = settings.ollama_base_url.rstrip("/")
         self.model = settings.ollama_model
 
@@ -86,7 +86,7 @@ class OllamaProvider(LLMProvider):
 class ClaudeProvider(LLMProvider):
     """Optional Claude API provider — only works if ANTHROPIC_API_KEY is set."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         import anthropic
 
         self.client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
@@ -129,7 +129,7 @@ class ClaudeProvider(LLMProvider):
 class OpenAIProvider(LLMProvider):
     """Optional OpenAI API provider — only works if OPENAI_API_KEY is set."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         from openai import AsyncOpenAI
 
         self.client = AsyncOpenAI(api_key=settings.openai_api_key)
@@ -210,7 +210,7 @@ def _with_fallback_to_ollama(primary: LLMProvider, name: str, logger) -> LLMProv
     import asyncio
 
     class FallbackWrapper(LLMProvider):
-        def __init__(self):
+        def __init__(self) -> None:
             self._fallback_activated = False
             self._active_model_name = primary.model_name
 
@@ -224,7 +224,7 @@ def _with_fallback_to_ollama(primary: LLMProvider, name: str, logger) -> LLMProv
             """Whether fallback to Ollama was activated on the last call."""
             return self._fallback_activated
 
-        async def _fallback_to_ollama(self, system_prompt, history, message):
+        async def _fallback_to_ollama(self, system_prompt, history, message) -> None:
             """Execute fallback to Ollama and update model tracking."""
             self._fallback_activated = True
             fallback = OllamaProvider()

@@ -29,7 +29,7 @@ from app.services.evaluation import compute_metrics, faithfulness_check
 from app.services.retrieval import rewrite_query
 
 
-async def test_faithfulness_check():
+async def test_faithfulness_check() -> None:
     """Test the faithfulness check logic with known inputs."""
     print("\n[1/5] Testing faithfulness check...")
     results = []
@@ -64,7 +64,7 @@ async def test_faithfulness_check():
     return results
 
 
-def test_metrics_computation():
+def test_metrics_computation() -> None:
     """Test the metrics computation with sample results."""
     print("\n[2/5] Testing metrics computation...")
 
@@ -136,7 +136,7 @@ def test_metrics_computation():
     return metrics
 
 
-async def test_query_rewrite():
+async def test_query_rewrite() -> None:
     """Test the query rewrite logic."""
     print("\n[3/5] Testing query rewrite logic...")
     results = []
@@ -185,7 +185,7 @@ async def test_query_rewrite():
     return results
 
 
-def test_prompt_injection_defense():
+def test_prompt_injection_defense() -> None:
     """Test the prompt injection defense mechanism."""
     print("\n[4/5] Testing prompt injection defense...")
 
@@ -254,7 +254,7 @@ def test_prompt_injection_defense():
     return True
 
 
-def test_retrieval_integrity():
+def test_retrieval_integrity() -> None:
     """Test retrieval module imports and functions."""
     print("\n[5/5] Testing retrieval module integrity...")
 
@@ -302,7 +302,7 @@ def test_retrieval_integrity():
     return True
 
 
-async def write_reports(eval_results, metrics, rewrite_results, defense_ok):
+async def write_reports(eval_results, metrics, rewrite_results, defense_ok) -> None:
     """Write evaluation report and security notes."""
     now = time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
     eval_dir = Path(__file__).resolve().parent.parent / "eval"
@@ -502,7 +502,7 @@ async def write_reports(eval_results, metrics, rewrite_results, defense_ok):
     print(f"[OK] Security notes: {eval_dir / 'security-notes.md'}")
 
 
-async def main():
+async def main() -> None:
     print("=" * 60)
     print("Veridoc -- Standalone Evaluation & Security Tests")
     print("=" * 60)

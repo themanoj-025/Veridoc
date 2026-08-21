@@ -50,7 +50,7 @@ def _get_base_url() -> str:
     return os.environ.get("FRONTEND_URL", "http://localhost:3000")
 
 
-def get_dev_email_sender():
+def get_dev_email_sender() -> None:
     """Return the current email sender implementation.
 
     Currently returns the dev-mode console logger. When SMTP is configured,

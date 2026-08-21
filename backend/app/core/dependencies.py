@@ -56,7 +56,7 @@ async def get_current_user(
     return user
 
 
-def get_di_container_dep(request: Request):
+def get_di_container_dep(request: Request) -> None:
     """FastAPI ``Depends`` that yields the DI container from ``app.state``.
 
     Usage::

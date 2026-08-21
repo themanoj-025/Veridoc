@@ -14,7 +14,7 @@ EVAL_DIR.mkdir(parents=True, exist_ok=True)
 GOLD_QA_PATH = EVAL_DIR / "gold_qa.json"
 
 
-def build_gold_qa():
+def build_gold_qa() -> None:
     """Build gold Q&A pairs covering factual, multi-hop, and unanswerable questions."""
     gold_qa = [
         # ── ArXiv Paper Questions ──
@@ -234,7 +234,7 @@ def build_gold_qa():
     return gold_qa
 
 
-def main():
+def main() -> None:
     print("=" * 60)
     print("Veridoc — Build Gold Q&A Pairs")
     print("=" * 60)

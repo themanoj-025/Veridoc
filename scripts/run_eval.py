@@ -224,7 +224,7 @@ def write_report(
     print(f"\nReport written to: {REPORT_PATH}")
 
 
-async def main():
+async def main() -> None:
     parser = argparse.ArgumentParser(description="Run Veridoc evaluation")
     parser.add_argument(
         "--compare", action="store_true", help="Run naive vs hybrid comparison"
