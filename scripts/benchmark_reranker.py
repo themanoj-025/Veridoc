@@ -147,7 +147,7 @@ def main() -> None:
     ranks_batch = sorted(
         range(len(scores_batch)), key=lambda i: scores_batch[i], reverse=True
     )
-    rank_diff = sum(abs(r1 - r2) for r1, r2 in zip(ranks_1, ranks_batch))
+    rank_diff = sum(abs(r1 - r2) for r1, r2 in zip(ranks_1, ranks_batch, strict=False))
     print(
         f"  Ranking consistency (1 vs default): {rank_diff} position differences across {len(scores_1)} items"
     )

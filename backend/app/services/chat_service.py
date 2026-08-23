@@ -25,6 +25,7 @@ from app.services.evaluation import faithfulness_check
 from app.services.llm_provider import get_llm
 from app.services.response_cache import get_response_cache
 from app.services.retrieval import HybridRetriever, rewrite_query
+import contextlib
 
 logger = logging.getLogger(__name__)
 
@@ -326,10 +327,8 @@ class ChatService:
                     }
                 finally:
                     if session is not None:
-                        try:
+                        with contextlib.suppress(OSError, ValueError):
                             await session.close()
-                        except (OSError, ValueError):
-                            pass
 
             return EventSourceResponse(cached_generator())
 
@@ -441,9 +440,7 @@ class ChatService:
                 }
             finally:
                 if session is not None:
-                    try:
+                    with contextlib.suppress(OSError, ValueError):
                         await session.close()
-                    except (OSError, ValueError):
-                        pass
 
         return EventSourceResponse(event_generator())

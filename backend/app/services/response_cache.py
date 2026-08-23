@@ -20,6 +20,7 @@ import time
 from typing import Any
 
 from app.core import config as _config
+import contextlib
 
 logger = logging.getLogger("veridoc.cache")
 settings = _config.settings
@@ -112,10 +113,8 @@ class ResponseCache:
     async def close(self) -> None:
         """Close the Redis connection if open."""
         if self._redis is not None:
-            try:
+            with contextlib.suppress(OSError, ValueError):
                 await self._redis.close()
-            except (OSError, ValueError):
-                pass
             self._redis = None
             self._redis_available = False
 
@@ -182,10 +181,8 @@ class ResponseCache:
         if query is not None:
             key = _make_cache_key(conversation_id, query)
             if self._redis_available and self._redis is not None:
-                try:
+                with contextlib.suppress(OSError, ValueError):
                     await self._redis.delete(key)
-                except (OSError, ValueError):
-                    pass
             _memory_cache.pop(key, None)
         else:
             # Invalidate all entries for this conversation using key prefix
@@ -238,7 +235,7 @@ def get_response_cache() -> ResponseCache:
 
 def reset_cache_for_testing() -> None:
     """Reset the cache singleton and counters — used in tests only."""
-    global _cache_instance, _hits, _misses, _memory_cache  # noqa: F824
+    global _cache_instance, _hits, _misses, _memory_cache
     _cache_instance = None
     _hits = 0
     _misses = 0
