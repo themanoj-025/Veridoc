@@ -247,7 +247,7 @@ class TestF4_EmailVerification:
         with patch("app.services.email_sender.logger.info") as mock_log:
             await send_verification_email("test@example.com", "test-token-123")
             mock_log.assert_called_once()
-            args, kwargs = mock_log.call_args
+            _args, kwargs = mock_log.call_args
             assert kwargs.get("token_prefix") == "test-tok"
             assert kwargs.get("to") == "test@example.com"
 

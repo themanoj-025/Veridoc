@@ -21,7 +21,7 @@ To see the current queue size without processing:
 
 import argparse
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 
@@ -80,7 +80,7 @@ def auto_promote(threshold: float = 0.8) -> int:
                 "question": entry.get("question", ""),
                 "answer": entry.get("answer", ""),
                 "source": "continuous_feedback",
-                "added_at": datetime.utcnow().isoformat(),
+                "added_at": datetime.now(UTC).isoformat(),
                 "faithfulness_score": score,
                 "unanswerable": False,
             }
@@ -129,7 +129,7 @@ def interactive_promote() -> int:
                     "question": entry.get("question", ""),
                     "answer": entry.get("answer", ""),
                     "source": "continuous_feedback",
-                    "added_at": datetime.utcnow().isoformat(),
+                    "added_at": datetime.now(UTC).isoformat(),
                     "faithfulness_score": entry.get("faithfulness_score"),
                     "unanswerable": False,
                 }

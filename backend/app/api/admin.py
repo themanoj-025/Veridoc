@@ -89,7 +89,9 @@ async def get_analytics(
 
     logger.info("admin.analytics_accessed", user_id=str(user.id)[:8])
 
-    now = datetime.utcnow()
+    from datetime import UTC
+
+    now = datetime.now(UTC)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     week_start = today_start - timedelta(days=7)
 

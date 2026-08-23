@@ -66,7 +66,7 @@ DEPENDENCY_INFO = {
 
 def run_cmd(cmd: list[str], timeout: int = 30) -> tuple[int, str]:
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, check=False)
         return result.returncode, result.stdout + result.stderr
     except subprocess.TimeoutExpired as e:
         return -1, f"Command timed out: {e}"

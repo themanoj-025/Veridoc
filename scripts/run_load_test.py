@@ -96,7 +96,7 @@ def run_locust(
     print(f"{'=' * 60}")
 
     start = time.time()
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=180, check=False)
     elapsed = time.time() - start
 
     # ── Parse the CSV stats file (most reliable) ────────────────
@@ -158,9 +158,8 @@ def run_locust(
     print(f"    P95 latency:   {stats['p95_ms']:.0f} ms")
     print(f"    Error rate:    {stats['fail_percent']:.1f}%")
 
-    if result.returncode != 0 and result.stderr:
-        if "ConnectionError" not in result.stderr:
-            sys.stderr.write(f"  Stderr: {result.stderr[:300]}\n")
+    if result.returncode != 0 and result.stderr and "ConnectionError" not in result.stderr:
+        sys.stderr.write(f"  Stderr: {result.stderr[:300]}\n")
 
     return stats
 
