@@ -276,7 +276,7 @@ class VeridocUser(HttpUser):
             try:
                 data = resp.json()
                 items = data.get("items", [])
-            except Exception:
+            except (ValueError, KeyError):
                 return
             if not items:
                 return

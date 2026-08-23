@@ -66,7 +66,7 @@ async def lifespan(app: FastAPI) -> None:
         nltk.download("punkt", quiet=True)
         nltk.download("punkt_tab", quiet=True)
         logger.info("nltk.downloaded")
-    except Exception as e:
+    except (OSError, ValueError, ImportError) as e:
         logger.warning("nltk.download_failed", error=str(e))
 
     # Initialize DI container (stores all services in app.state + ContextVar)
@@ -278,7 +278,7 @@ async def health_check() -> None:
                     timeout=5.0,
                 )
             deps["postgres"] = {"status": "ok"}
-        except Exception as e:
+        except (OSError, ValueError) as e:
             deps["postgres"] = {"status": "error", "error": str(e)}
 
     async def _check_chroma() -> None:
@@ -294,7 +294,7 @@ async def health_check() -> None:
                         "status": "error",
                         "error": f"HTTP {resp.status_code}",
                     }
-        except Exception as e:
+        except (OSError, ValueError) as e:
             deps["chroma"] = {"status": "error", "error": str(e)}
 
     async def _check_minio() -> None:
@@ -309,7 +309,7 @@ async def health_check() -> None:
             )
             client.bucket_exists(settings.minio_bucket)
             deps["minio"] = {"status": "ok"}
-        except Exception as e:
+        except (OSError, ValueError) as e:
             deps["minio"] = {"status": "error", "error": str(e)}
 
     async def _check_llm() -> None:
@@ -342,7 +342,7 @@ async def health_check() -> None:
                     "status": "ok",
                     "note": f"Provider health not checked: {llm.model_name}",
                 }
-        except Exception as e:
+        except (OSError, ValueError, ImportError) as e:
             deps["llm"] = {"status": "error", "error": str(e)}
 
     async def _check_redis() -> None:
@@ -355,7 +355,7 @@ async def health_check() -> None:
                 "status": "ok" if status.get("connected", False) else "unavailable",
                 "mode": status.get("mode", "unknown"),
             }
-        except Exception as e:
+        except (OSError, ValueError) as e:
             deps["redis"] = {"status": "error", "error": str(e)}
 
     await asyncio.gather(
@@ -396,7 +396,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> None:
         # Let FastAPI handle HTTPExceptions natively
         return await request.app.exception_handlers[HTTPException](request, exc)  # type: ignore
     log = structlog.get_logger(__name__)
-    log.error("unhandled_exception", error=str(exc), exc_info=True)
+    log.error("unhandled_exception", error=str(exc))
     return JSONResponse(
         status_code=500,
         content={

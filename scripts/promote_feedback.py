@@ -38,7 +38,7 @@ def load_json(path: Path) -> list[dict]:
     try:
         data = json.loads(path.read_text())
         return data if isinstance(data, list) else []
-    except (json.JSONDecodeError, Exception):
+    except (json.JSONDecodeError, OSError):
         return []
 
 

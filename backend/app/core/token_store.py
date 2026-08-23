@@ -56,7 +56,7 @@ async def _try_redis_set(jti: str, user_id: str, ttl_seconds: int) -> bool:
         if q._arq_pool is not None:
             await q._arq_pool.set(f"token:consumed:{jti}", user_id, ex=ttl_seconds)
             return True
-    except Exception as e:
+    except (OSError, ValueError) as e:
         logger.warning("Redis token-store set failed", error=str(e))
     return False
 
@@ -70,7 +70,7 @@ async def _try_redis_get(jti: str) -> bool:
         if q._arq_pool is not None:
             result = await q._arq_pool.get(f"token:consumed:{jti}")
             return result is not None
-    except Exception:
+    except (OSError, ValueError):
         pass
     return False
 

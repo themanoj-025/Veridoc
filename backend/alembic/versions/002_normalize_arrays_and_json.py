@@ -87,7 +87,7 @@ def upgrade() -> None:
                         ),
                         {"conv_id": conv_id, "doc_id": doc_id},
                     )
-                except Exception:
+                except (ValueError, OSError):
                     pass  # Skip invalid document IDs silently
 
     # ── 2. Create citation_records table ──

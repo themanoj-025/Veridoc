@@ -254,7 +254,7 @@ class TestLLMFailure:
                         self._primary.chat(system_prompt, history, message),
                         timeout=5,
                     )
-                except (TimeoutError, Exception):
+                except (TimeoutError, OSError, ValueError):
                     self._fallback_activated = True
                     self._active_model_name = self._fallback.model_name
                     return await self._fallback.chat(system_prompt, history, message)

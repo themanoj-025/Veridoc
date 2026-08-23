@@ -181,7 +181,7 @@ def _parse_pdf(path: Path) -> tuple[str, dict[int, int], bool]:
             return text, pages, True
 
         return full_text, page_map, False
-    except Exception as e:
+    except (OSError, ValueError) as e:
         logger.warning(f"PDF parsing failed, falling back to OCR: {e}")
         text, pages = _parse_pdf_ocr(path)
         return text, pages, True
@@ -227,7 +227,7 @@ def _parse_docx(path: Path) -> tuple[str, dict[int, int]]:
                 offset += len(para.text)
 
         return "\n".join(text_parts), page_map
-    except Exception as e:
+    except (OSError, ValueError) as e:
         raise ValueError(f"Failed to parse DOCX: {e}")
 
 

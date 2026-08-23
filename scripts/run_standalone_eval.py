@@ -57,7 +57,7 @@ async def test_faithfulness_check() -> None:
             score = await faithfulness_check(tc["query"], tc["answer"], tc["context"])
             results.append({"query": tc["query"][:40], "score": score})
             print(f"  Query: {tc['query'][:40]}... -> Faithfulness: {score:.2f}")
-        except Exception as e:
+        except (RuntimeError, ValueError) as e:
             print(f"  Query: {tc['query'][:40]}... -> ERROR: {e}")
             results.append({"query": tc["query"][:40], "score": 0.50, "error": str(e)})
 

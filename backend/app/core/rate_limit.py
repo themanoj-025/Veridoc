@@ -105,7 +105,7 @@ def get_user_identifier(request) -> str:
                     return f"user:{sub}"
     try:
         return f"ip:{request.client.host}" if request.client else "ip:unknown"
-    except Exception:
+    except (AttributeError, TypeError):
         return "ip:unknown"
 
 
@@ -128,7 +128,7 @@ def _resolve_strategy(request: Request) -> None:
         strategy = getattr(limiter_obj, "limiter", None)
         if strategy is not None:
             return strategy
-    except Exception:
+    except (AttributeError, TypeError):
         pass
     return getattr(_real_limiter, "limiter", None)
 
@@ -157,7 +157,7 @@ def build_rate_limit_headers(request: Request) -> dict[str, str]:
             "X-RateLimit-Reset": str(reset_in),
             "Retry-After": str(retry_after),
         }
-    except Exception as exc:  # pragma: no cover - defensive
+    except (AttributeError, TypeError) as exc:  # pragma: no cover - defensive
         import structlog
 
         structlog.get_logger(__name__).debug(

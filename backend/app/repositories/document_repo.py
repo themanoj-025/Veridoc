@@ -138,7 +138,7 @@ class DocumentRepository(BaseRepository[Document]):
 
             vs = get_vector_store()
             await vs.delete_document(str(doc.id))
-        except Exception:
+        except (OSError, ValueError):
             structlog.get_logger(__name__).warning(
                 "Chroma deletion failed (non-critical)", document_id=str(doc.id)
             )

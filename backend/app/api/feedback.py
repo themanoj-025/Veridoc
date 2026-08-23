@@ -71,7 +71,7 @@ async def submit_feedback(
             if feedback_file.exists():
                 try:
                     queue = json.loads(feedback_file.read_text())
-                except (json.JSONDecodeError, Exception):
+                except (json.JSONDecodeError, OSError):
                     queue = []
 
             queue.append(feedback_entry)
@@ -81,7 +81,7 @@ async def submit_feedback(
                 queue_size=len(queue),
                 user_id=str(user.id)[:8],
             )
-        except Exception as e:
+        except (OSError, ValueError) as e:
             logger.warning("feedback.queue_write_failed", error=str(e))
 
     return {

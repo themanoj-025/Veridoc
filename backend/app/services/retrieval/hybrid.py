@@ -34,7 +34,7 @@ def get_reranker() -> object | None:
         logger.info("Loading cross-encoder (standalone): ms-marco-MiniLM-L-6-v2")
         model: object = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
         return model
-    except Exception as e:
+    except (OSError, ValueError, ImportError) as e:
         logger.warning(f"Failed to load cross-encoder: {e}")
         return None
 
@@ -74,7 +74,7 @@ class HybridRetriever:
 
             vs = _get_vs()
             full_corpus = vs.get_all_chunks(document_ids=document_ids)
-        except Exception as exc:
+        except (OSError, ValueError, KeyError) as exc:
             logger.warning(
                 "Full corpus load failed — falling back to dense-only: %s", exc
             )

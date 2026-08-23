@@ -102,7 +102,7 @@ class ResponseCache:
                 settings.redis_port,
                 self._ttl,
             )
-        except Exception as e:
+        except (OSError, ValueError) as e:
             logger.warning(
                 "Redis unavailable for response cache, using memory fallback: %s", e
             )
@@ -114,7 +114,7 @@ class ResponseCache:
         if self._redis is not None:
             try:
                 await self._redis.close()
-            except Exception:
+            except (OSError, ValueError):
                 pass
             self._redis = None
             self._redis_available = False
@@ -136,7 +136,7 @@ class ResponseCache:
                         conversation_id,
                     )
                     return data
-            except Exception as e:
+            except (OSError, ValueError) as e:
                 logger.debug("Cache read error (falling through): %s", e)
                 # Fall through to memory cache
 
@@ -170,7 +170,7 @@ class ResponseCache:
                 await self._redis.setex(key, self._ttl, serialized)
                 logger.debug("Cache SET (Redis) key=%s TTL=%ds", key[:40], self._ttl)
                 return
-            except Exception as e:
+            except (OSError, ValueError) as e:
                 logger.debug("Cache set error (falling through): %s", e)
 
         # Memory fallback
@@ -184,7 +184,7 @@ class ResponseCache:
             if self._redis_available and self._redis is not None:
                 try:
                     await self._redis.delete(key)
-                except Exception:
+                except (OSError, ValueError):
                     pass
             _memory_cache.pop(key, None)
         else:
@@ -201,7 +201,7 @@ class ResponseCache:
                             await self._redis.delete(k)
                         if cursor == 0:
                             break
-                except Exception:
+                except (OSError, ValueError):
                     pass
             # Clear all memory entries for this conversation
             to_delete = [k for k in _memory_cache if k.startswith(prefix)]

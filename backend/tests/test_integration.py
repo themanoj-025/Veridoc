@@ -64,7 +64,7 @@ def _docker_available() -> bool:
         client = docker.from_env()
         client.ping()
         return True
-    except Exception:
+    except (OSError, ImportError):
         return False
 
 
@@ -214,7 +214,7 @@ def postgres_container():
     try:
         with PostgresContainer("postgres:16-alpine") as pg:
             yield pg
-    except Exception as exc:
+    except (OSError, RuntimeError) as exc:
         pytest.skip(f"Docker container failed to start: {exc}")
 
 
