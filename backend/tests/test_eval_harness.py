@@ -287,7 +287,7 @@ class TestUseHybrid:
             async def chat(self, system_prompt, history, message):
                 return "Sun Tzu wrote the Art of War."
 
-        monkeypatch.setattr(eval_mod, "get_llm", lambda: FakeLLM())
+        monkeypatch.setattr(eval_mod, "get_llm", FakeLLM)
 
         result = await eval_mod.run_single_eval(
             question="Who wrote the Art of War?",

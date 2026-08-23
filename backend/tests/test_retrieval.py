@@ -11,6 +11,7 @@ from app.services.retrieval import (
     reciprocal_rank_fusion,
     rewrite_query,
 )
+import contextlib
 
 # ── Sample test data ─────────────────────────────────────
 
@@ -344,10 +345,8 @@ async def test_session_no_auto_commit_on_yield():
         mock_session.close.assert_called_once()
 
         # 4. Finish the generator (mimics FastAPI dependency cleanup)
-        try:
+        with contextlib.suppress(StopAsyncIteration):
             await gen.__anext__()
-        except StopAsyncIteration:
-            pass
 
         # 5. close() should NOT be called BY THE GENERATOR — the caller
         #    already closed, and the generator does NOT close on exit

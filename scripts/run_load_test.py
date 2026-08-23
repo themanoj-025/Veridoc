@@ -30,6 +30,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+import contextlib
 
 # ══════════════════════════════════════════════════════════════════
 # Pre-flight check
@@ -145,10 +146,8 @@ def run_locust(
                         stats["p50_ms"] = float(val)
                         if i + 1 < len(parts):
                             nxt = parts[i + 1].rstrip("ms,")
-                            try:
+                            with contextlib.suppress(ValueError):
                                 stats["p95_ms"] = float(nxt)
-                            except ValueError:
-                                pass
 
     print(f"\n  Results for {users} users ({elapsed:.1f}s):")
     print(f"    Total requests: {stats['total_requests']}")

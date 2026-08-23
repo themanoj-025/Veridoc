@@ -91,7 +91,7 @@ async def run_evaluation(
 def format_table_row(cells: list[str], widths: list[int]) -> str:
     """Format a markdown table row."""
     parts = []
-    for cell, width in zip(cells, widths):
+    for cell, width in zip(cells, widths, strict=False):
         parts.append(cell.ljust(width))
     return "| " + " | ".join(parts) + " |"
 

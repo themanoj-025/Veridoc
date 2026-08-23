@@ -68,10 +68,7 @@ def load_document_texts() -> dict[str, str]:
         elif fpath.suffix == ".txt":
             # Strip leading numbers like "132_" from "132_gutenberg ..."
             parts = fpath.stem.split("_", 1)
-            if len(parts) > 1 and parts[0].isdigit():
-                doc_id = parts[1]
-            else:
-                doc_id = fpath.stem
+            doc_id = parts[1] if len(parts) > 1 and parts[0].isdigit() else fpath.stem
         else:
             continue  # skip .pdf (would need OCR)
         docs[doc_id] = fpath.read_text(encoding="utf-8", errors="replace")

@@ -101,7 +101,7 @@ async def process_document(
             chroma_ids = await vs.add_chunks(chunks, embeddings)
 
             # Update chunks with chroma IDs
-            for chunk, chroma_id in zip(db_chunks, chroma_ids):
+            for chunk, chroma_id in zip(db_chunks, chroma_ids, strict=False):
                 chunk.chroma_id = chroma_id
 
             # 5. Done
