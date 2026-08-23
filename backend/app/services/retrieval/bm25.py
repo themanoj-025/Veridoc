@@ -63,7 +63,7 @@ def _save_to_disk(cache_key: str, index: Any, chunks: list[dict]) -> None:
         with open(path, "wb") as f:
             pickle.dump(data, f)
         logger.debug("BM25 index persisted to disk: %s", path.name)
-    except Exception as e:
+    except (OSError, pickle.PicklingError) as e:
         logger.warning("BM25 disk persistence failed: %s", e)
 
 
@@ -81,7 +81,7 @@ def _load_from_disk(cache_key: str) -> tuple[Any, list[dict]] | None:
             len(data.get("chunks", [])),
         )
         return data["index"], data["chunks"]
-    except (pickle.UnpicklingError, EOFError, Exception) as e:
+    except (pickle.UnpicklingError, EOFError, OSError, ValueError) as e:
         logger.warning("BM25 disk load failed, will rebuild: %s", e)
         path.unlink(missing_ok=True)
         return None
@@ -97,7 +97,7 @@ def _ensure_nltk_data() -> None:
         try:
             nltk.download("punkt", quiet=True)
             nltk.download("punkt_tab", quiet=True)
-        except Exception:
+        except (OSError, ImportError):
             logger.warning("NLTK punkt download failed, BM25 may degrade")
         _NLTK_ATTEMPTED = True
 
@@ -185,7 +185,7 @@ def invalidate_bm25_index() -> None:
         for f in pkl_files:
             f.unlink()
         logger.debug("BM25 disk cache cleared: %d files", count)
-    except Exception as e:
+    except (OSError, ValueError) as e:
         logger.warning("BM25 disk cache clear failed: %s", e)
     logger.debug("BM25 indexes invalidated (memory + disk)")
 

@@ -87,7 +87,7 @@ async def rewrite_query(query: str, history: list[dict]) -> str | None:
             return result
     except TimeoutError:
         logger.warning("Query rewrite timed out, using original query")
-    except Exception as e:
+    except (RuntimeError, ValueError) as e:
         logger.warning("Query rewrite failed, using original query", error=str(e))
 
     return None

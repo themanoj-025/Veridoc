@@ -69,7 +69,7 @@ async def run_evaluation(
             result["id"] = qa["id"]
             result["type"] = qa["type"]
             results.append(result)
-        except Exception as e:
+        except (RuntimeError, ValueError, OSError) as e:
             print(f"    ERROR: {e}")
             results.append(
                 {

@@ -45,7 +45,7 @@ def _check_api(host: str) -> bool:
     try:
         resp = urllib.request.urlopen(url, timeout=5)
         return resp.status == 200
-    except (urllib.error.URLError, OSError, Exception):
+    except (urllib.error.URLError, OSError):
         return False
 
 
@@ -111,7 +111,7 @@ def run_locust(
         "elapsed_s": round(elapsed, 1),
     }
 
-    stats_path = csv_prefix.with_suffix("_stats.csv")
+    stats_path = csv_prefix.with_suffix("._stats.csv")
     if stats_path.exists():
         try:
             with stats_path.open(newline="") as f:

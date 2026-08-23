@@ -235,7 +235,7 @@ class ChatService:
                     )
                     log_session.add(log)
                     await log_session.commit()
-            except Exception as e:
+            except (OSError, ValueError) as e:
                 logger.warning("Async usage log write failed", error=str(e))
 
         asyncio.ensure_future(_log_usage())
@@ -328,14 +328,14 @@ class ChatService:
                     if session is not None:
                         try:
                             await session.close()
-                        except Exception:
+                        except (OSError, ValueError):
                             pass
 
             return EventSourceResponse(cached_generator())
 
         # Cache miss — proceed with full pipeline
         (
-            top_chunks,
+            _top_chunks,
             citations_data,
             context,
             retrieval_time,
@@ -434,7 +434,7 @@ class ChatService:
                         {"error": "Request timed out during LLM generation"}
                     ),
                 }
-            except Exception as e:
+            except (RuntimeError, ValueError) as e:
                 yield {
                     "event": "error",
                     "data": json.dumps({"error": str(e)}),
@@ -443,7 +443,7 @@ class ChatService:
                 if session is not None:
                     try:
                         await session.close()
-                    except Exception:
+                    except (OSError, ValueError):
                         pass
 
         return EventSourceResponse(event_generator())

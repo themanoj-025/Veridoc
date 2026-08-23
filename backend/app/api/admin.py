@@ -252,7 +252,7 @@ async def get_feedback_queue(
     if feedback_file.exists():
         try:
             queue = json.loads(feedback_file.read_text())
-        except (json.JSONDecodeError, Exception):
+        except (json.JSONDecodeError, OSError):
             queue = []
 
     total = len(queue)

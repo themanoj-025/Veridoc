@@ -167,7 +167,7 @@ class DIContainer:
                     self.reranker = model
                 else:
                     return model  # type: ignore[return-value]
-            except Exception as exc:
+            except (OSError, ValueError, ImportError) as exc:
                 import structlog
 
                 structlog.get_logger(__name__).warning(

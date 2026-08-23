@@ -80,7 +80,7 @@ async def resolve_document_ids(doc_id: str) -> list[str] | None:
             for row in rows
             if _slug_matches(needle, row[1]) or _slug_matches(needle, row[2])
         ]
-    except Exception as exc:
+    except (OSError, ValueError) as exc:
         print(
             f"    WARNING: could not resolve slug '{doc_id}' ({exc}) — "
             "searching all documents"
@@ -142,7 +142,7 @@ async def faithfulness_check(
             except ValueError:
                 continue
         return 0.5  # Default if parsing fails
-    except Exception as e:
+    except (RuntimeError, ValueError, TimeoutError) as e:
         logger.warning(f"Faithfulness check failed: {e}")
         return 0.5
 

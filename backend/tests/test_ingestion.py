@@ -39,7 +39,7 @@ class TestTextParsing:
         txt_file = tmp_path / "unicode.txt"
         txt_file.write_text("Café résumé naïve 😊", encoding="utf-8")
 
-        text, pages = _parse_txt(txt_file)
+        text, _pages = _parse_txt(txt_file)
         assert "Café" in text
         assert "😊" in text
 
@@ -139,7 +139,7 @@ class TestParseDocument:
         txt_file = tmp_path / "test.txt"
         txt_file.write_text("Test content")
 
-        text, pages, ocr_used = parse_document(str(txt_file), "txt")
+        text, _pages, ocr_used = parse_document(str(txt_file), "txt")
         assert "Test content" in text
         assert ocr_used is False  # TXT files never use OCR
 
@@ -251,7 +251,7 @@ def test_parse_txt_special_chars(tmp_path):
     txt_file = tmp_path / "special.txt"
     txt_file.write_text("Tab\tseparated\nNewline\r\nCRLF")
 
-    text, pages = _parse_txt(txt_file)
+    text, _pages = _parse_txt(txt_file)
     assert "Tab\tseparated" in text
     assert "Newline" in text
     assert "CRLF" in text

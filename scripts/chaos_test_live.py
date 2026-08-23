@@ -79,19 +79,19 @@ async def check_health() -> dict:
         async with httpx.AsyncClient(timeout=5) as client:
             resp = await client.get(f"{BACKEND_URL}/api/v1/health")
             return {"status_code": resp.status_code, "body": resp.json()}
-    except Exception as e:
+    except (httpx.HTTPError, OSError) as e:
         return {"status_code": 0, "body": {"error": str(e)}}
 
 
 def docker_compose_stop(service: str) -> bool:
-    code, output = run_cmd(
+    code, _output = run_cmd(
         ["docker", "compose", "-f", str(COMPOSE_FILE), "stop", service]
     )
     return code == 0
 
 
 def docker_compose_start(service: str) -> bool:
-    code, output = run_cmd(
+    code, _output = run_cmd(
         ["docker", "compose", "-f", str(COMPOSE_FILE), "start", service]
     )
     return code == 0

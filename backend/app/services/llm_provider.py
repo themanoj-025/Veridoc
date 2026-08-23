@@ -244,7 +244,7 @@ def _with_fallback_to_ollama(primary: LLMProvider, name: str, logger) -> LLMProv
                     primary.chat(system_prompt, history, message),
                     timeout=settings.llm_timeout,
                 )
-            except (TimeoutError, Exception) as e:
+            except (TimeoutError, OSError, ValueError) as e:
                 logger.warning(
                     "llm.fallback",
                     primary=name,
@@ -265,7 +265,7 @@ def _with_fallback_to_ollama(primary: LLMProvider, name: str, logger) -> LLMProv
                     timeout=settings.llm_timeout,
                 ):
                     yield token
-            except (TimeoutError, Exception) as e:
+            except (TimeoutError, OSError, ValueError) as e:
                 logger.warning(
                     "llm.fallback.stream",
                     primary=name,

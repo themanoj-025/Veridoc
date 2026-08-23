@@ -54,7 +54,7 @@ class JobQueue:
                 pool = await create_pool(settings.redis_url)
                 self._arq_pool = pool
                 logger.info("ARQ Redis pool established at %s", settings.redis_url)
-            except Exception as e:
+            except (OSError, ValueError, ImportError) as e:
                 logger.warning(
                     "Redis unavailable at %s, falling back to sync execution: %s",
                     settings.redis_url,
@@ -69,7 +69,7 @@ class JobQueue:
         if self._arq_pool is not None:
             try:
                 await self._arq_pool.close()
-            except Exception as e:
+            except (OSError, ValueError) as e:
                 logger.warning("Error closing ARQ pool: %s", e)
             self._arq_pool = None
         self._initialized = False
@@ -152,7 +152,7 @@ class JobQueue:
                     job_func(*args, **kwargs)
                 logger.info("Job %s completed on attempt %d", job_id[:8], attempt + 1)
                 return
-            except Exception as e:
+            except (RuntimeError, OSError, ValueError) as e:
                 last_exc = e
                 logger.warning(
                     "Job %s attempt %d failed: %s",
@@ -183,7 +183,7 @@ class JobQueue:
                     "connected": True,
                     "redis_version": info.get("redis_version", "unknown"),
                 }
-            except Exception as e:
+            except (OSError, ValueError) as e:
                 return {"mode": "redis", "connected": False, "error": str(e)}
         return {"mode": "sync_fallback", "connected": False}
 

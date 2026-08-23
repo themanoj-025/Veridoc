@@ -254,7 +254,7 @@ class TestF4_EmailVerification:
             mock_log.reset_mock()
             await send_password_reset_email("test@example.com", "reset-token-456")
             mock_log.assert_called_once()
-            args, kwargs = mock_log.call_args
+            _args, kwargs = mock_log.call_args
             assert kwargs.get("token_prefix") == "reset-to"
 
 

@@ -275,22 +275,22 @@ def main() -> None:
 
     try:
         sources.append(fetch_arxiv_paper())
-    except Exception as e:
+    except (OSError, ValueError) as e:
         print(f"  ERROR fetching arXiv paper: {e}")
 
     try:
         sources.append(fetch_gutenberg_book())
-    except Exception as e:
+    except (OSError, ValueError) as e:
         print(f"  ERROR fetching Gutenberg book: {e}")
 
     try:
         sources.append(generate_synthetic_contract())
-    except Exception as e:
+    except (OSError, ValueError) as e:
         print(f"  ERROR generating contract: {e}")
 
     try:
         sources.append(fetch_github_readme())
-    except Exception as e:
+    except (OSError, ValueError) as e:
         print(f"  ERROR fetching GitHub README: {e}")
 
     write_sources_file(sources)

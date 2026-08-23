@@ -295,7 +295,7 @@ async def check_ollama_health(model: str) -> bool:
                 )
                 print(f"  Run: docker exec veridoc-ollama ollama pull {model}")
                 return False
-    except Exception as e:
+    except (OSError, ValueError) as e:
         print(f"  Cannot reach Ollama at {OLLAMA_BASE_URL}: {e}")
         return False
 
@@ -390,7 +390,7 @@ async def main() -> None:
             if verdict != "PASS":
                 print(f"    Excerpt: {excerpt[:120]}...")
 
-        except Exception as e:
+        except (RuntimeError, ValueError) as e:
             print(f"❌ ERROR: {e}")
             results.append(
                 {
