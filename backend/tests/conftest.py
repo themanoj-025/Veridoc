@@ -33,6 +33,16 @@ def patch_settings():
         mock_settings.rate_limit_per_minute = 1000
         mock_settings.redis_cache_enabled = True
         mock_settings.redis_cache_ttl_seconds = 3600
+        # External service URLs (avoid real connections in tests)
+        mock_settings.chroma_url = "http://localhost:8000"
+        mock_settings.ollama_base_url = "http://localhost:11434"
+        mock_settings.ollama_model = "test-model"
+        mock_settings.minio_endpoint = "localhost:9000"
+        mock_settings.minio_access_key = "test"
+        mock_settings.minio_secret_key = "test"
+        mock_settings.minio_use_ssl = False
+        mock_settings.minio_bucket = "test-bucket"
+        mock_settings.llm_provider = "ollama"
         yield mock_settings
 
 
@@ -192,7 +202,7 @@ def temp_upload_dir(tmp_path):
 
 
 @pytest_asyncio.fixture
-async def test_client(mock_db_session) -> AsyncGenerator[AsyncClient, None]:
+async def test_client(mock_db_session, mock_httpx) -> AsyncGenerator[AsyncClient, None]:
     """Create a FastAPI test client with mocked dependencies."""
     from app.main import app
 
@@ -211,6 +221,29 @@ async def test_client(mock_db_session) -> AsyncGenerator[AsyncClient, None]:
 
     # Clean up overrides
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def mock_httpx():
+    """Mock httpx.AsyncClient and health check internals for tests."""
+    mock_response = MagicMock()
+    mock_response.status_code = 503  # Simulate unavailable
+
+    mock_client = AsyncMock()
+    mock_client.get = AsyncMock(return_value=mock_response)
+    mock_client.post = AsyncMock(return_value=mock_response)
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+
+    # Patch httpx and JobQueue to prevent real connections
+    patches = [
+        patch("httpx.AsyncClient", return_value=mock_client),
+    ]
+    for p in patches:
+        p.start()
+    yield mock_client
+    for p in patches:
+        p.stop()
 
 
 @pytest.fixture
