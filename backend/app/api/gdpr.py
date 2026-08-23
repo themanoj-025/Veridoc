@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
@@ -116,7 +116,7 @@ async def export_user_data(
     await session.close()
 
     export = {
-        "exported_at": datetime.utcnow().isoformat(),
+        "exported_at": datetime.now(UTC).isoformat(),
         "user": user_data,
         "documents": documents_data,
         "conversations": conversations_data,

@@ -4,6 +4,14 @@ version = "0.1.0"
 description = "Answers you can verify, not just believe."
 requires-python = ">=3.11"
 
+[tool.ruff.lint]
+select = ["B", "BLE", "DTZ", "E", "F", "G", "PLW", "RUF", "SIM", "ASYNC"]
+
+[tool.ruff.lint.per-file-ignores]
+# B008: FastAPI Depends() in route signatures is idiomatic (lazy evaluation)
+"backend/app/api/*.py" = ["B008"]
+"backend/app/core/dependencies.py" = ["B008"]
+
 [tool.pytest.ini_options]
 testpaths = ["backend/tests", "scripts"]
 python_files = ["test_*.py"]

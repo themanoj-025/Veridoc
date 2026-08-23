@@ -126,7 +126,7 @@ async def process_document(
             doc.status = "failed"
             doc.error_message = str(e)
             await session.commit()
-            logger.error(f"Failed to process document {doc.id}: {e}", exc_info=True)
+            logger.exception(f"Failed to process document {doc.id}: {e}")
 
 
 def parse_document(file_path: str, file_type: str) -> tuple[str, dict[int, int], bool]:

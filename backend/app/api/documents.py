@@ -84,8 +84,9 @@ async def upload_document(
     file_id = uuid.uuid4()
     safe_filename = f"{file_id}_{file.filename}"
     file_path = settings.upload_dir / safe_filename
-    with open(file_path, "wb") as f:
-        f.write(content)
+    import asyncio
+
+    await asyncio.to_thread(file_path.write_bytes, content)
 
     # F7: Virus-scan hook — reject the upload if the configured scanner flags it.
     # Default NoopVirusScanner reports clean; swap in ClamAV via get_virus_scanner().

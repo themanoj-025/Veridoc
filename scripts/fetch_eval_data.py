@@ -237,11 +237,11 @@ def fetch_github_readme() -> None:
 
 def write_sources_file(sources: list[dict]) -> None:
     """Write the data sources documentation."""
-    from datetime import datetime
+    from datetime import UTC, datetime
 
     content = f"""# Data Sources
 
-*Generated: {datetime.now().isoformat()}*
+*Generated: {datetime.now(UTC).isoformat()}*
 
 This document records the source and license of every data file used by Veridoc.
 

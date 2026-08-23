@@ -378,7 +378,7 @@ async def health_check() -> None:
             "status": overall_status,
             "version": "0.1.0",
             "environment": settings.app_env,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "dependencies": deps,
         },
     )
