@@ -66,7 +66,7 @@ class AdminAnalyticsResponse(BaseModel):
 async def get_analytics(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> dict[str, Any]:
     """Get admin analytics from the usage_logs table."""  # F3: RBAC admin check — explicit role column
     if user.role != "admin":
         raise HTTPException(
@@ -176,7 +176,7 @@ class CacheStatsResponse(BaseModel):
 async def get_cache_stats(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> dict[str, Any]:
     """Get response cache hit/miss statistics (C2)."""
     # F3: RBAC admin check
     if user.role != "admin":
@@ -228,7 +228,7 @@ class FeedbackQueueResponse(BaseModel):
 async def get_feedback_queue(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> dict[str, Any]:
     """Get continuous feedback queue stats and recent entries (D1)."""
     # F3: RBAC admin check
     if user.role != "admin":

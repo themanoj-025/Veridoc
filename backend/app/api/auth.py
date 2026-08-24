@@ -43,7 +43,7 @@ router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 @limiter.limit("5/minute")
 async def register(
     request: Request, body: UserCreate, session: AsyncSession = Depends(get_session)
-):
+) -> dict[str, str]:
     """Register a new user with email and password."""
     user_repo = UserRepository(session)
 
@@ -77,7 +77,7 @@ async def register(
 @limiter.limit("5/minute")
 async def login(
     request: Request, body: UserLogin, session: AsyncSession = Depends(get_session)
-):
+) -> TokenResponse:
     """Authenticate a user and return JWT tokens."""
     user_repo = UserRepository(session)
     user = await user_repo.find_by_email(body.email)
@@ -113,7 +113,7 @@ async def login(
 async def refresh(
     body: TokenRefresh,
     session: AsyncSession = Depends(get_session),
-):
+) -> TokenResponse:
     """Refresh an expired access token using a refresh token (rotation mode)."""
     payload = decode_token(body.refresh_token)
     if payload is None or payload.get("type") != "refresh":
@@ -165,7 +165,7 @@ async def refresh(
 async def get_me(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> UserResponse:
     """Get the currently authenticated user's profile."""
     result = UserResponse.model_validate(user)
     await session.close()
@@ -176,7 +176,7 @@ async def get_me(
 async def logout(
     body: TokenRefresh,
     user: User = Depends(get_current_user),
-):
+) -> dict[str, str]:
     """Logout by revoking the current refresh token."""
     payload = decode_token(body.refresh_token)
     if payload is None or payload.get("type") != "refresh":
@@ -200,7 +200,7 @@ async def change_password(
     body: PasswordChange,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> dict[str, str]:
     """Change the current user's password."""
     if not user.hashed_password or not verify_password(
         body.current_password, user.hashed_password
@@ -226,7 +226,7 @@ async def change_password(
 async def request_verification_email(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> dict[str, str]:
     """Send a verification email to the current user."""
     if user.is_verified:
         return {"message": "Email is already verified"}
@@ -248,7 +248,7 @@ async def request_verification_email(
 async def verify_email(
     token: str,
     session: AsyncSession = Depends(get_session),
-):
+) -> dict[str, str]:
     """Verify a user's email address using a verification token."""
     from datetime import datetime
 
@@ -285,7 +285,7 @@ async def verify_email(
 async def request_password_reset(
     email: str,
     session: AsyncSession = Depends(get_session),
-):
+) -> dict[str, str]:
     """Request a password reset email. Always returns success to avoid email enumeration."""
     user_repo = UserRepository(session)
     user = await user_repo.find_by_email(email)
@@ -308,7 +308,7 @@ async def reset_password(
     token: str,
     new_password: str,
     session: AsyncSession = Depends(get_session),
-):
+) -> dict[str, str]:
     """Reset a user's password using a reset token."""
     from datetime import datetime
 

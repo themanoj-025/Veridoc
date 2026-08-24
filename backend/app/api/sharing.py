@@ -33,7 +33,7 @@ async def list_shares(
     document_id: uuid.UUID,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> list[ShareResponse]:
     """List all users this document is shared with.
 
     Only the document owner can view shares.
@@ -78,7 +78,7 @@ async def create_share(
     body: ShareCreate,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> ShareResponse:
     """Share a document with another user by email.
 
     Only the document owner can share. The recipient must have an account.
@@ -149,7 +149,7 @@ async def update_share(
     body: ShareUpdate,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> ShareResponse:
     """Update a share's permission level. Only the document owner can update."""
     share = await session.get(DocumentShare, share_id)
     if not share:
@@ -187,7 +187,7 @@ async def delete_share(
     share_id: uuid.UUID,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> dict[str, str]:
     """Remove a share. Only the document owner can unshare."""
     share = await session.get(DocumentShare, share_id)
     if not share:
