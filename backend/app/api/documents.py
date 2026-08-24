@@ -54,7 +54,7 @@ async def upload_document(
     title: str | None = Form(None),
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> DocumentUploadResponse:
     """Upload a document for processing.
 
     Rate-limited: 10 uploads per minute per user (F6).
@@ -133,7 +133,7 @@ async def list_documents(
     session: AsyncSession = Depends(get_session),
     limit: int = 50,
     offset: int = 0,
-):
+) -> DocumentListResponse:
     """List documents for the current user with pagination."""
     doc_repo = DocumentRepository(session)
     docs, total = await doc_repo.list_by_user(user.id, limit=limit, offset=offset)
@@ -153,7 +153,7 @@ async def get_document(
     document_id: uuid.UUID,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> DocumentResponse:
     """Get a specific document's details."""
     bind_log_context(document_id=str(document_id))
     doc_repo = DocumentRepository(session)
@@ -175,7 +175,7 @@ async def update_document(
     body: DocumentUpdate,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> DocumentResponse:
     """Update document metadata (e.g., title)."""
     bind_log_context(document_id=str(document_id))
     doc_repo = DocumentRepository(session)
@@ -197,7 +197,7 @@ async def get_document_content(
     document_id: uuid.UUID,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> dict[str, Any]:
     """Get a document's text content and chunks for the frontend viewer."""
     bind_log_context(document_id=str(document_id))
     doc_repo = DocumentRepository(session)
@@ -241,7 +241,7 @@ async def delete_document(
     document_id: uuid.UUID,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> dict[str, str]:
     """Delete a document and its chunks."""
     bind_log_context(document_id=str(document_id))
     doc_repo = DocumentRepository(session)
@@ -268,7 +268,7 @@ async def reindex_document(
     document_id: uuid.UUID,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> dict[str, str]:
     """Re-index a document (re-chunk and re-embed)."""
     bind_log_context(document_id=str(document_id))
     doc_repo = DocumentRepository(session)

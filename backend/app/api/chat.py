@@ -65,7 +65,7 @@ async def create_conversation(
     body: ConversationCreate,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> ConversationResponse:
     """Create a new conversation. Rate-limited: 30 per minute (F6)."""
     doc_repo = DocumentRepository(session)
     conv_repo = ConversationRepository(session)
@@ -105,7 +105,7 @@ async def list_conversations(
     session: AsyncSession = Depends(get_session),
     limit: int = 50,
     offset: int = 0,
-):
+) -> ConversationListResponse:
     """List conversations for the current user with pagination."""
     conv_repo = ConversationRepository(session)
     rows, total = await conv_repo.list_by_user(user.id, limit=limit, offset=offset)
@@ -144,7 +144,7 @@ async def get_conversation(
     conversation_id: uuid.UUID,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> ConversationResponse:
     """Get a specific conversation."""
     bind_log_context(conversation_id=str(conversation_id))
     conv_repo = ConversationRepository(session)
@@ -168,7 +168,7 @@ async def delete_conversation(
     conversation_id: uuid.UUID,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> dict[str, str]:
     """Delete a conversation."""
     bind_log_context(conversation_id=str(conversation_id))
     conv_repo = ConversationRepository(session)
@@ -192,7 +192,7 @@ async def get_messages(
     conversation_id: uuid.UUID,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> list[MessageResponse]:
     """Get all messages in a conversation."""
     bind_log_context(conversation_id=str(conversation_id))
     conv_repo = ConversationRepository(session)
