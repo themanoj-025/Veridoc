@@ -452,3 +452,12 @@ jobs:
           echo "::error::Review the trivy-reports artifact for details."
           echo "::error::If these are accepted risks, document them in docs/security-notes.md"
           echo "::error::and add the CVE IDs to .trivyignore with rationale."
+
+  hadolint:
+    name: Container lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
