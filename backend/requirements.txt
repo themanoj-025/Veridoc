@@ -21,7 +21,7 @@ email-validator==2.3.0  # required by pydantic EmailStr (pydantic.networks) — 
 # sentence-transformers uses torch internally; torchvision is NOT required.
 # ONNX Runtime would require replacing sentence-transformers with a different
 # embedding/reranking library — evaluated and documented in DECISIONS.md.
-sentence-transformers==3.1.1
+sentence-transformers==6.0.0
 torch==2.13.0+cpu
 --extra-index-url https://download.pytorch.org/whl/cpu
 
