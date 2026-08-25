@@ -166,9 +166,47 @@ def _check_secret_rotation_age(logger) -> None:
 
 app = FastAPI(
     title="Veridoc API",
-    description="Answers you can verify, not just believe.",
+    description="Answers you can verify, not just believe.\n\n"
+    "Document verification and knowledge management platform with AI-powered\n"
+    "search, chat, and sharing capabilities.",
     version="0.1.0",
     lifespan=lifespan,
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_tags=[
+        {
+            "name": "health",
+            "description": "Service health check endpoints",
+        },
+        {
+            "name": "auth",
+            "description": "Authentication and user management",
+        },
+        {
+            "name": "documents",
+            "description": "Document upload, processing, and management",
+        },
+        {
+            "name": "chat",
+            "description": "AI-powered document chat and Q&A",
+        },
+        {
+            "name": "search",
+            "description": "Document search and retrieval",
+        },
+        {
+            "name": "sharing",
+            "description": "Document sharing and collaboration",
+        },
+        {
+            "name": "admin",
+            "description": "Administrative operations",
+        },
+        {
+            "name": "gdpr",
+            "description": "GDPR compliance and data management",
+        },
+    ],
 )
 
 # ── F12: Response Compression (gzip) ─────────────────────
