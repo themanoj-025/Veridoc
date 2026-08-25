@@ -55,7 +55,7 @@ slowapi==0.1.10
 
 # ── Job Queue (ARQ + Redis) ──
 arq==0.26.1
-redis[hiredis]==5.2.0
+redis[hiredis]==8.1.0
 
 # ── Monitoring / Metrics ──
 prometheus-fastapi-instrumentator==8.1.0  # 8.1 required for fastapi>=0.116 router handling (was ==7.0.1); exact pin per repo convention
