@@ -14,7 +14,7 @@ psycopg2-binary==2.9.12
 # ── Auth ──
 python-jose[cryptography]==3.5.0
 passlib[bcrypt]==1.7.4
-bcrypt==4.0.1
+bcrypt==5.0.0
 email-validator==2.3.0  # required by pydantic EmailStr (pydantic.networks) — missing dep broke test-backend
 
 # ── ML / Embeddings ──
