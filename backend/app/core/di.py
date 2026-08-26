@@ -54,7 +54,7 @@ Usage from test fixtures::
 from __future__ import annotations
 
 from contextvars import ContextVar
-from typing import Protocol, runtime_checkable
+from typing import Protocol, cast, runtime_checkable
 
 from fastapi import FastAPI
 
@@ -148,7 +148,7 @@ class DIContainer:
             model = SentenceTransformer("all-MiniLM-L6-v2")
             if not isinstance(model, EmbeddingModel):
                 # Runtime safety: wrap non-conforming instance
-                return model  # type: ignore[return-value]
+                return cast(EmbeddingModel, model)
             self.embedding_model = model
         return self.embedding_model
 
@@ -166,7 +166,7 @@ class DIContainer:
                 if isinstance(model, Reranker):
                     self.reranker = model
                 else:
-                    return model  # type: ignore[return-value]
+                    return cast(Reranker, model)
             except (OSError, ValueError, ImportError) as exc:
                 import structlog
 

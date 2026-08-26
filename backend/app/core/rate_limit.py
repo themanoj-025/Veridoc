@@ -69,7 +69,8 @@ class _RateLimiter:
 
     def limit(self, *args: Any, **kwargs: Any) -> Callable[[Callable], Callable]:
         if _should_rate_limit():
-            return _real_limiter.limit(*args, **kwargs)  # type: ignore[union-attr]
+            assert _real_limiter is not None
+            return _real_limiter.limit(*args, **kwargs)
 
         def noop(func: Callable) -> Callable:
             return func

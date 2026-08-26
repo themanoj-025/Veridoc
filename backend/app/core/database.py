@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncGenerator
+
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -26,7 +28,7 @@ class Base(DeclarativeBase):
     """Declarative base for all SQLAlchemy models."""
 
 
-async def get_session() -> AsyncSession:  # type: ignore[misc]
+async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """Dependency that provides an async database session.
 
     The generator yields an **open** session.  It does NOT commit, close,

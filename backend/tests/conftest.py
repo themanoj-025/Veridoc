@@ -13,6 +13,8 @@ from app.core.config import settings
 from app.core.database import get_session as db_get_session
 from app.core.security import create_access_token, create_refresh_token, hash_password
 from app.models.user import User
+from typing import cast
+
 from httpx import ASGITransport, AsyncClient
 
 # ── Test Settings ────────────────────────────────────────
@@ -215,7 +217,7 @@ async def test_client(mock_db_session, mock_httpx) -> AsyncGenerator[AsyncClient
 
     app.dependency_overrides[db_get_session] = override_get_session
 
-    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    transport = cast(ASGITransport, ASGITransport(app=app))
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
 

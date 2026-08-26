@@ -26,6 +26,8 @@ NOTE ON TIER 2 VALIDATION:
 
 from __future__ import annotations
 
+from typing import cast
+
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -64,7 +66,7 @@ async def test_client():
 
     from httpx import ASGITransport, AsyncClient
 
-    transport = ASGITransport(app=_app)  # type: ignore[arg-type]
+    transport = cast(ASGITransport, ASGITransport(app=_app))
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
 
