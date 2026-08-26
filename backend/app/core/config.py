@@ -162,7 +162,7 @@ def validate_config() -> None:
         )
 
 
-settings = Settings()  # type: ignore[misc]
+settings = Settings()  # pydantic-settings validates at init
 
 # ── Directory creation ──────────────────────────────────
 # NOTE: Directories are created lazily when needed, not at import time.

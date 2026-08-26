@@ -432,7 +432,9 @@ async def global_exception_handler(request: Request, exc: Exception) -> None:
     """
     if isinstance(exc, HTTPException):
         # Let FastAPI handle HTTPExceptions natively
-        return await request.app.exception_handlers[HTTPException](request, exc)  # type: ignore
+        handler = request.app.exception_handlers.get(HTTPException)
+        if handler is not None:
+            return await handler(request, exc)
     log = structlog.get_logger(__name__)
     log.error("unhandled_exception", error=str(exc))
     return JSONResponse(

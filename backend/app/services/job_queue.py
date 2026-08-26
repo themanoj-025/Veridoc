@@ -117,7 +117,8 @@ class JobQueue:
         ARQ's ``enqueue_job`` accepts the function object directly
         and introspects ``__module__`` + ``__name__`` internally.
         """
-        jid = await self._arq_pool.enqueue_job(  # type: ignore[union-attr]
+        assert self._arq_pool is not None
+        jid = await self._arq_pool.enqueue_job(
             job_func,  # ARQ expects the actual function object
             *args,
             _job_id=job_id,
