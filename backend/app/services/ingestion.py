@@ -122,7 +122,7 @@ async def process_document(
             _invalidate()
             logger.info(f"Document {doc.id} indexed with {len(chunks)} chunks")
 
-        except Exception as e:
+        except (OSError, ValueError) as e:
             doc.status = "failed"
             doc.error_message = str(e)
             await session.commit()
