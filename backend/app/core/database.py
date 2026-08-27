@@ -49,7 +49,7 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
     session = async_session_factory()
     try:
         yield session
-    except Exception:
+    except (OSError, ConnectionError):
         await session.rollback()
         # Close on error so the pool doesn't accumulate orphaned sessions
         await session.close()
