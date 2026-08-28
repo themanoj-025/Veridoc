@@ -13,8 +13,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
 if TYPE_CHECKING:
-    from app.models.conversation_document import ConversationDocument  # noqa: F401
-    from app.models.document import Document  # noqa: F401
+    from app.models.conversation_document import ConversationDocument
+    from app.models.document import Document
 
 
 class Conversation(Base):
