@@ -331,18 +331,19 @@ async def health_check() -> None:
             return
         try:
             import httpx
+            from tenacity import AsyncRetrying, stop_after_attempt, wait_exponential
 
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                resp = await client.get(f"{settings.chroma_url}/api/v1/heartbeat")
-                if resp.status_code == 200:
-                    _chroma_cb.record_success()
-                    deps["chroma"] = {"status": "ok"}
-                else:
-                    _chroma_cb.record_failure()
-                    deps["chroma"] = {
-                        "status": "error",
-                        "error": f"HTTP {resp.status_code}",
-                    }
+            async for attempt in AsyncRetrying(
+                stop=stop_after_attempt(2),
+                wait=wait_exponential(multiplier=0.3, min=0.3, max=1.0),
+                reraise=True,
+            ):
+                with attempt:
+                    async with httpx.AsyncClient(timeout=5.0) as client:
+                        resp = await client.get(f"{settings.chroma_url}/api/v1/heartbeat")
+                        resp.raise_for_status()
+            _chroma_cb.record_success()
+            deps["chroma"] = {"status": "ok"}
         except (OSError, ValueError) as e:
             _chroma_cb.record_failure()
             deps["chroma"] = {"status": "error", "error": str(e)}
@@ -373,30 +374,31 @@ async def health_check() -> None:
             return
         try:
             from app.services.llm_provider import get_llm
+            from tenacity import AsyncRetrying, stop_after_attempt, wait_exponential
 
             llm = get_llm()
             # Provider-specific ping
             if llm.model_name.startswith("ollama/"):
                 import httpx
 
-                async with httpx.AsyncClient(timeout=5.0) as client:
-                    resp = await client.post(
-                        f"{settings.ollama_base_url}/api/generate",
-                        json={
-                            "model": settings.ollama_model,
-                            "prompt": "hi",
-                            "stream": False,
-                        },
-                    )
-                    if resp.status_code == 200:
-                        _llm_cb.record_success()
-                        deps["llm"] = {"status": "ok"}
-                    else:
-                        _llm_cb.record_failure()
-                        deps["llm"] = {
-                            "status": "error",
-                            "error": f"HTTP {resp.status_code}",
-                        }
+                async for attempt in AsyncRetrying(
+                    stop=stop_after_attempt(2),
+                    wait=wait_exponential(multiplier=0.3, min=0.3, max=1.0),
+                    reraise=True,
+                ):
+                    with attempt:
+                        async with httpx.AsyncClient(timeout=5.0) as client:
+                            resp = await client.post(
+                                f"{settings.ollama_base_url}/api/generate",
+                                json={
+                                    "model": settings.ollama_model,
+                                    "prompt": "hi",
+                                    "stream": False,
+                                },
+                            )
+                            resp.raise_for_status()
+                _llm_cb.record_success()
+                deps["llm"] = {"status": "ok"}
             else:
                 _llm_cb.record_success()
                 deps["llm"] = {
