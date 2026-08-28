@@ -27,7 +27,7 @@ router = APIRouter(prefix="/api/v1/user", tags=["user"])
 async def export_user_data(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> Any:
     """Export all user data in JSON format (GDPR Article 20)."""
     doc_repo = DocumentRepository(session)
     conv_repo = ConversationRepository(session)
@@ -135,7 +135,7 @@ async def export_user_data(
 async def delete_account(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> Any:
     """Delete the user account and all associated data (GDPR Article 17)."""
     import structlog
 

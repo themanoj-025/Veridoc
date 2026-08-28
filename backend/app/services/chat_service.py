@@ -47,7 +47,7 @@ class ChatService:
         user: User,
         llm: Any | None = None,
         retriever: Any | None = None,
-    ):
+    ) -> Any:
         self.session = session
         self.user = user
         self.llm = llm or get_llm()

@@ -35,7 +35,7 @@ Usage from route handler Depends()::
     from app.core.di import get_di_container_dep
 
     @router.get(...)
-    async def handler(container: DIContainer = Depends(get_di_container_dep)):
+    async def handler(container: DIContainer = Depends(get_di_container_dep)) -> Any:
         vs = container.vector_store
         ...
 
@@ -44,7 +44,7 @@ Usage from test fixtures::
     from app.core.di import DIContainer, set_di_container
 
     @pytest.fixture
-    def di_container():
+    def di_container() -> Any:
         c = DIContainer()
         c.vector_store = MagicMock()
         set_di_container(c)

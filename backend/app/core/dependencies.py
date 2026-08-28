@@ -64,7 +64,7 @@ def get_di_container_dep(request: Request) -> None:
         from app.core.dependencies import get_di_container_dep
 
         @router.get(...)
-        async def handler(container=Depends(get_di_container_dep)):
+        async def handler(container=Depends(get_di_container_dep)) -> Any:
             vs = container.vector_store if container else None
     """
     return getattr(request.app.state, "container", None)
