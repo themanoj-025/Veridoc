@@ -68,11 +68,10 @@ class HybridRetriever:
         # get_all_chunks is sync (ChromaDB get() is synchronous)
         full_corpus = []
         try:
-            from app.services.vector_store import (
-                get_vector_store as _get_vs,  # type: ignore[import]
-            )
+            import importlib
 
-            vs = _get_vs()
+            vs_mod = importlib.import_module("app.services.vector_store")
+            vs = vs_mod.get_vector_store()
             full_corpus = vs.get_all_chunks(document_ids=document_ids)
         except (OSError, ValueError, KeyError) as exc:
             logger.warning(

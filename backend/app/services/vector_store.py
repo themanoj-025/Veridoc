@@ -161,11 +161,10 @@ class VectorStore:
 
         # Invalidate BM25 cache when documents are deleted
         # (lazy import avoids circular dep: vector_store → retrieval.bm25 → retrieval.dense → vector_store)
-        from app.services.retrieval.bm25 import (
-            invalidate_bm25_index as _invalidate,  # type: ignore[import]
-        )
+        import importlib
 
-        _invalidate()
+        bm25 = importlib.import_module("app.services.retrieval.bm25")
+        bm25.invalidate_bm25_index()
 
     async def count_documents(self) -> int:
         """Get the total number of chunks in the collection."""

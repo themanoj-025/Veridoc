@@ -115,11 +115,10 @@ async def process_document(
 
             # Invalidate BM25 cache so subsequent queries pick up the new content
             # (lazy import avoids circular dep: ingestion → retrieval.bm25 → retrieval.dense → ingestion)
-            from app.services.retrieval.bm25 import (
-                invalidate_bm25_index as _invalidate,  # type: ignore[import]
-            )
+            import importlib
 
-            _invalidate()
+            bm25 = importlib.import_module("app.services.retrieval.bm25")
+            bm25.invalidate_bm25_index()
             logger.info(f"Document {doc.id} indexed with {len(chunks)} chunks")
 
         except (OSError, ValueError) as e:
