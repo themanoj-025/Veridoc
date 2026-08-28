@@ -213,7 +213,7 @@ async def stream_chat(
     body: ChatRequest,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> Any:
     """Stream a chat response via SSE with citations.
 
     Delegates to ChatService for the full pipeline.

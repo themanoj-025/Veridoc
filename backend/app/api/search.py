@@ -40,7 +40,7 @@ async def fulltext_search(
     offset: int = 0,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> Any:
     """Full-text search across document chunks using the Postgres tsvector GIN index.
 
     Queries the ``chunks.content_tsv`` GIN index for fast full-text search

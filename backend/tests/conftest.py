@@ -21,7 +21,7 @@ from httpx import ASGITransport, AsyncClient
 
 
 @pytest.fixture(autouse=True)
-def patch_settings():
+def patch_settings() -> Any:
     """Override settings for testing."""
     with patch("app.core.config.settings") as mock_settings:
         mock_settings.app_env = "test"
@@ -52,14 +52,14 @@ def patch_settings():
 
 
 @pytest_asyncio.fixture
-async def mock_db_session():
+async def mock_db_session() -> Any:
     """Create a mock async database session."""
     from datetime import datetime
 
     session = AsyncMock()
     session.execute = AsyncMock()
 
-    async def _refresh_side_effect(obj):
+    async def _refresh_side_effect(obj) -> Any:
         """Simulate DB refresh by setting server-default fields."""
         import uuid as _uuid
 
@@ -116,7 +116,7 @@ def sample_refresh_token(sample_user: User) -> str:
 
 
 @pytest.fixture
-def mock_vector_store():
+def mock_vector_store() -> Any:
     """Mock the ChromaDB vector store."""
     vs = MagicMock()
     vs.search = AsyncMock(return_value=[])
@@ -130,7 +130,7 @@ def mock_vector_store():
 
 
 @pytest.fixture
-def mock_embedding_model():
+def mock_embedding_model() -> Any:
     """Mock the sentence-transformers embedding model."""
     model = MagicMock()
     model.encode = MagicMock(return_value=[[0.1] * 384])  # 384-dim embedding
@@ -141,14 +141,14 @@ def mock_embedding_model():
 
 
 @pytest.fixture
-def mock_llm():
+def mock_llm() -> Any:
     """Mock the LLM provider."""
     llm = MagicMock()
     llm.model_name = "test-model"
     llm.chat = AsyncMock(return_value="This is a test response.")
     llm.stream_chat = MagicMock()
 
-    async def async_gen():
+    async def async_gen() -> Any:
         yield "This "
         yield "is "
         yield "a "
@@ -162,7 +162,7 @@ def mock_llm():
 
 
 @pytest.fixture(autouse=True)
-def mock_nltk():
+def mock_nltk() -> Any:
     """Mock NLTK to avoid punkt download during tests."""
     with patch("nltk.word_tokenize") as mock_tokenize:
         mock_tokenize.side_effect = lambda text: text.lower().split()
@@ -173,7 +173,7 @@ def mock_nltk():
 
 
 @pytest.fixture
-def mock_bm25():
+def mock_bm25() -> Any:
     """Mock the BM25 index."""
     bm25 = MagicMock()
     bm25.get_scores = MagicMock(return_value=[0.5, 0.3, 0.1])
@@ -181,7 +181,7 @@ def mock_bm25():
 
 
 @pytest.fixture
-def mock_bm25_builder(mock_bm25):
+def mock_bm25_builder(mock_bm25) -> Any:
     """Patch the BM25 index builder in the retrieval package."""
     with patch("app.services.retrieval.bm25.get_bm25_index") as mock_build:
         mock_build.return_value = (mock_bm25, [])  # Returns (index, chunks) tuple
@@ -192,7 +192,7 @@ def mock_bm25_builder(mock_bm25):
 
 
 @pytest.fixture
-def temp_upload_dir(tmp_path):
+def temp_upload_dir(tmp_path) -> Any:
     """Create a temporary upload directory."""
     upload_dir = tmp_path / "uploads"
     upload_dir.mkdir(parents=True, exist_ok=True)
@@ -212,7 +212,7 @@ async def test_client(mock_db_session, mock_httpx) -> AsyncGenerator[AsyncClient
     app.router.lifespan = None
 
     # Override DB session dependency
-    async def override_get_session():
+    async def override_get_session() -> Any:
         yield mock_db_session
 
     app.dependency_overrides[db_get_session] = override_get_session
@@ -226,7 +226,7 @@ async def test_client(mock_db_session, mock_httpx) -> AsyncGenerator[AsyncClient
 
 
 @pytest.fixture
-def mock_httpx():
+def mock_httpx() -> Any:
     """Mock httpx.AsyncClient and health check internals for tests."""
     mock_response = MagicMock()
     mock_response.status_code = 503  # Simulate unavailable
@@ -249,7 +249,7 @@ def mock_httpx():
 
 
 @pytest.fixture
-def app():
+def app() -> Any:
     """Provide the FastAPI app instance for dependency overrides."""
     from app.main import app as _app
 

@@ -101,7 +101,7 @@ def write_report(
     hybrid_metrics: dict,
     naive_results: list[dict] | None = None,
     naive_metrics: dict | None = None,
-):
+) -> Any:
     """Write evaluation report to eval/evaluation-report.md."""
     EVAL_DIR.mkdir(parents=True, exist_ok=True)
 

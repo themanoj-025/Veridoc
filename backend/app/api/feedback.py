@@ -29,7 +29,7 @@ class FeedbackRequest(BaseModel):
 async def submit_feedback(
     body: FeedbackRequest,
     user: User = Depends(get_current_user),
-):
+) -> Any:
     """Submit thumbs up/down feedback for a chat response.
 
     Thumbs-down responses are automatically appended to the continuous

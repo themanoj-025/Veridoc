@@ -6,7 +6,7 @@ Usage in route handlers::
 
     @router.post("/login")
     @limiter.limit("5/minute", key_func=get_user_identifier)
-    async def login(request: Request, ...):
+    async def login(request: Request, ...) -> Any:
         ...
 
 When ``slowapi`` is not installed, or ``settings.app_env == \"test\"``,

@@ -41,7 +41,7 @@ def _generate_key() -> tuple[str, str, str]:
 async def list_api_keys(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> Any:
     """List all active API keys for the current user.
 
     Never returns the full key — only the prefix and metadata.
@@ -77,7 +77,7 @@ async def create_api_key(
     body: ApiKeyCreate,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> Any:
     """Create a new API key.
 
     The full plaintext key is returned **only once** in the response.
@@ -114,7 +114,7 @@ async def revoke_api_key(
     key_id: uuid.UUID,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> Any:
     """Revoke (delete) an API key. Irreversible."""
     key = await session.get(ApiKey, key_id)
     if not key or key.user_id != user.id:
