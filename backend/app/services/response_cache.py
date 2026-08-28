@@ -87,7 +87,7 @@ class ResponseCache:
             )
             return
         try:
-            import redis.asyncio as aioredis  # type: ignore[import-untyped]
+            import redis.asyncio as aioredis  # type: ignore[import-untyped] — no stubs available
 
             self._redis = aioredis.from_url(
                 settings.redis_url,
