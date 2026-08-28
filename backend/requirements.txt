@@ -75,3 +75,6 @@ testcontainers==4.15.0
 
 # ── Dev ──
 python-dotenv==1.2.3
+
+# Retry with exponential backoff
+tenacity>=8.0,<10.0
