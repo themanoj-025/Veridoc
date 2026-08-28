@@ -26,6 +26,7 @@ from app.api import (
 from app.core.config import settings, validate_config
 from app.core.database import close_db, init_db
 from app.core.di import init_container
+from circuit_breaker import CircuitBreaker
 from app.core.logging_config import (
     bind_log_context,
     clear_log_context,
@@ -298,6 +299,11 @@ async def health_check() -> None:
     import asyncio
     from datetime import datetime
 
+    # Circuit breakers for external service health checks
+    _chroma_cb = CircuitBreaker(failure_threshold=3, recovery_timeout=30.0, name="chroma")
+    _minio_cb = CircuitBreaker(failure_threshold=3, recovery_timeout=30.0, name="minio")
+    _llm_cb = CircuitBreaker(failure_threshold=3, recovery_timeout=30.0, name="llm")
+
     deps = {
         "postgres": {"status": "unknown"},
         "chroma": {"status": "unknown"},
@@ -320,22 +326,31 @@ async def health_check() -> None:
             deps["postgres"] = {"status": "error", "error": str(e)}
 
     async def _check_chroma() -> None:
+        if _chroma_cb.is_open():
+            deps["chroma"] = {"status": "degraded", "error": "circuit breaker open"}
+            return
         try:
             import httpx
 
             async with httpx.AsyncClient(timeout=5.0) as client:
                 resp = await client.get(f"{settings.chroma_url}/api/v1/heartbeat")
                 if resp.status_code == 200:
+                    _chroma_cb.record_success()
                     deps["chroma"] = {"status": "ok"}
                 else:
+                    _chroma_cb.record_failure()
                     deps["chroma"] = {
                         "status": "error",
                         "error": f"HTTP {resp.status_code}",
                     }
         except (OSError, ValueError) as e:
+            _chroma_cb.record_failure()
             deps["chroma"] = {"status": "error", "error": str(e)}
 
     async def _check_minio() -> None:
+        if _minio_cb.is_open():
+            deps["minio"] = {"status": "degraded", "error": "circuit breaker open"}
+            return
         try:
             from minio import Minio
 
@@ -346,11 +361,16 @@ async def health_check() -> None:
                 secure=settings.minio_use_ssl,
             )
             client.bucket_exists(settings.minio_bucket)
+            _minio_cb.record_success()
             deps["minio"] = {"status": "ok"}
         except (OSError, ValueError) as e:
+            _minio_cb.record_failure()
             deps["minio"] = {"status": "error", "error": str(e)}
 
     async def _check_llm() -> None:
+        if _llm_cb.is_open():
+            deps["llm"] = {"status": "degraded", "error": "circuit breaker open"}
+            return
         try:
             from app.services.llm_provider import get_llm
 
@@ -369,18 +389,22 @@ async def health_check() -> None:
                         },
                     )
                     if resp.status_code == 200:
+                        _llm_cb.record_success()
                         deps["llm"] = {"status": "ok"}
                     else:
+                        _llm_cb.record_failure()
                         deps["llm"] = {
                             "status": "error",
                             "error": f"HTTP {resp.status_code}",
                         }
             else:
+                _llm_cb.record_success()
                 deps["llm"] = {
                     "status": "ok",
                     "note": f"Provider health not checked: {llm.model_name}",
                 }
         except (OSError, ValueError, ImportError) as e:
+            _llm_cb.record_failure()
             deps["llm"] = {"status": "error", "error": str(e)}
 
     async def _check_redis() -> None:
