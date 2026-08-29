@@ -208,7 +208,7 @@ jobs:
         # Exclude integration tests (which need testcontainers Docker-in-Docker)
         # and health tests (which try to connect to actual Chroma/Ollama)
         run: |
-          python -m pytest tests/ -v --timeout=30 \
+          python -m pip install pytest-cov && python -m pytest tests/ -v --timeout=30 --cov=. --cov-report=term-missing --cov-fail-under=60 \
             -k "not integration and not health"
 
   test-integration:
