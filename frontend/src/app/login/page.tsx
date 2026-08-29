@@ -25,8 +25,10 @@ export default function LoginPage() {
       const res = await auth.login(email, password);
       login(res.data.access_token, res.data.refresh_token, res.data.user);
       router.push("/dashboard");
-    } catch (err: any) {
-      setError(err.response?.data?.detail || t("auth.login.error"));
+    } catch (err: unknown) {
+      interface AxiosLikeError { response?: { data?: { detail?: string } } }
+      const detail = (err as AxiosLikeError)?.response?.data?.detail
+      setError(detail || t("auth.login.error"));
     } finally {
       setLoading(false);
     }

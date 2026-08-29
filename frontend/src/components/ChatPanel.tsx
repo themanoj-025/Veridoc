@@ -151,7 +151,7 @@ export function ChatPanel({ conversationId, onNewConversation }: ChatPanelProps)
     }
   };
 
-  const handleCitationClick = (citation: any) => {
+  const handleCitationClick = (citation: { document_id: string; chunk_id: string }) => {
     // Dispatch navigation event: dashboard listens to switch to viewer tab
     window.dispatchEvent(
       new CustomEvent("citation-navigate", {

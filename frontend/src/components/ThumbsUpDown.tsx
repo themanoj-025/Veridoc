@@ -11,7 +11,7 @@ interface ThumbsUpDownProps {
   conversationId: string;
   question: string;
   answer: string;
-  citations?: any[];
+  citations?: Array<{ document_id: string; chunk_id: string; text?: string; page?: number }>
   faithfulnessScore?: number | null;
 }
 

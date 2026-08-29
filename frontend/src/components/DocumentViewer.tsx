@@ -24,9 +24,9 @@ export function DocumentViewer({ documentId }: DocumentViewerProps) {
     const handler = (e: CustomEvent) => {
       setPendingChunkId(e.detail?.chunkId || null);
     };
-    window.addEventListener("citation-highlight" as any, handler as any);
+    window.addEventListener("citation-highlight" as EventListener, handler);
     return () =>
-      window.removeEventListener("citation-highlight" as any, handler as any);
+      window.removeEventListener("citation-highlight" as EventListener, handler);
   }, []);
 
   // Scroll to chunk once both pendingChunkId AND content are available

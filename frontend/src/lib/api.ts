@@ -123,7 +123,7 @@ interface StreamChatOptions {
   conversationId: string;
   message: string;
   onToken: (token: string) => void;
-  onDone: (data: any) => void;
+  onDone: (data: { conversation_id: string; answer: string; citations?: Array<{ document_id: string; chunk_id: string }> }) => void;
   onError: (error: string) => void;
   /** Called before each automatic reconnect attempt (F11) so the UI can show a "Reconnecting..." state. */
   onReconnecting?: () => void;
@@ -230,8 +230,9 @@ export function streamChat({
         onReconnecting?.();
         setTimeout(() => startStream(retryCount + 1), delay);
       }
-    } catch (err: any) {
-      if (err.name === "AbortError" || controller.aborted) return;
+    } catch (err: unknown) {
+      const name = err instanceof Error ? err.name : undefined
+      if (name === "AbortError" || controller.aborted) return;
 
       // Network error — retry with backoff
       if (retryCount < maxRetries) {
