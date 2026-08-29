@@ -93,9 +93,9 @@ export default function Dashboard() {
         setMobileView("viewer");
       }
     };
-    window.addEventListener("citation-navigate" as any, handler as any);
+    window.addEventListener("citation-navigate" as EventListener, handler);
     return () =>
-      window.removeEventListener("citation-navigate" as any, handler as any);
+      window.removeEventListener("citation-navigate" as EventListener, handler);
   }, []);
 
   useEffect(() => {
@@ -172,8 +172,9 @@ export default function Dashboard() {
         const data = await res.json();
         toast.error(t("dashboard.deleteFailed"), data.detail || "Something went wrong");
       }
-    } catch (err: any) {
-      toast.error(t("dashboard.deleteFailed"), err.message || "Network error");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Network error"
+      toast.error(t("dashboard.deleteFailed"), message);
     } finally {
       setDeletingAccount(false);
       setShowDeleteConfirm(false);
