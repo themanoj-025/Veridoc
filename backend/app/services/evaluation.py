@@ -81,15 +81,18 @@ async def resolve_document_ids(doc_id: str) -> list[str] | None:
             if _slug_matches(needle, row[1]) or _slug_matches(needle, row[2])
         ]
     except (OSError, ValueError) as exc:
-        print(
-            f"    WARNING: could not resolve slug '{doc_id}' ({exc}) — "
-            "searching all documents"
+        logger.warning(
+            "could_not_resolve_slug",
+            slug=doc_id,
+            error=str(exc),
+            fallback="searching all documents",
         )
 
     if not matched:
-        print(
-            f"    WARNING: no document matched slug '{doc_id}' — "
-            "searching all documents"
+        logger.warning(
+            "no_document_matched_slug",
+            slug=doc_id,
+            fallback="searching all documents",
         )
         _SLUG_CACHE[doc_id] = None
         return None
