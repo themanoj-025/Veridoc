@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
+from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -13,8 +14,6 @@ from app.core.config import settings
 from app.core.database import get_session as db_get_session
 from app.core.security import create_access_token, create_refresh_token, hash_password
 from app.models.user import User
-from typing import cast
-
 from httpx import ASGITransport, AsyncClient
 
 # ── Test Settings ────────────────────────────────────────

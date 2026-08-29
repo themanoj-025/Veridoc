@@ -25,12 +25,12 @@ Requires: Veridoc API stack running at HOST.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import csv
 import subprocess
 import sys
 import time
 from pathlib import Path
-import contextlib
 
 # ══════════════════════════════════════════════════════════════════
 # Pre-flight check

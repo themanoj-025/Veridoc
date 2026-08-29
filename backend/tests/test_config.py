@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from unittest.mock import patch
 
@@ -150,9 +149,8 @@ class TestValidateConfig:
         with patch("app.core.config.settings", Settings(
             jwt_secret="",
             file_encryption_key="real-key",
-        )):
-            with pytest.raises(RuntimeError, match="JWT_SECRET"):
-                validate_config()
+        )), pytest.raises(RuntimeError, match="JWT_SECRET"):
+            validate_config()
 
     def test_missing_encryption_key_raises(self) -> None:
         from app.core.config import Settings, validate_config
@@ -160,9 +158,8 @@ class TestValidateConfig:
         with patch("app.core.config.settings", Settings(
             jwt_secret="real-key",
             file_encryption_key="",
-        )):
-            with pytest.raises(RuntimeError, match="FILE_ENCRYPTION_KEY"):
-                validate_config()
+        )), pytest.raises(RuntimeError, match="FILE_ENCRYPTION_KEY"):
+            validate_config()
 
     def test_both_missing_shows_both_errors(self) -> None:
         from app.core.config import Settings, validate_config

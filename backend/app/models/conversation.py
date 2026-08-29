@@ -13,8 +13,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
 if TYPE_CHECKING:
-    from app.models.conversation_document import ConversationDocument
-    from app.models.document import Document
+    pass
 
 
 class Conversation(Base):

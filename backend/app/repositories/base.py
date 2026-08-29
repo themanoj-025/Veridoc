@@ -7,7 +7,7 @@ and provide a consistent, testable interface for database access.
 from __future__ import annotations
 
 import uuid
-from typing import Any, Generic, TypeVar, cast
+from typing import Any, Generic, TypeVar
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,7 +35,7 @@ class BaseRepository(Generic[ModelT]):
     async def find_by_id(self, id: uuid.UUID) -> ModelT | None:
         """Find a single entity by primary key."""
         result = await self.session.execute(
-            select(self.model_cls).where(getattr(self.model_cls, "id") == id)
+            select(self.model_cls).where(self.model_cls.id == id)
         )
         return result.scalar_one_or_none()
 
@@ -62,7 +62,7 @@ class BaseRepository(Generic[ModelT]):
 
     async def count(self, **filters: Any) -> int:
         """Count entities matching optional filters."""
-        stmt = select(func.count(getattr(self.model_cls, "id")))
+        stmt = select(func.count(self.model_cls.id))
         for field_name, value in filters.items():
             column = getattr(self.model_cls, field_name, None)
             if column is not None:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -11,7 +12,6 @@ from app.services.retrieval import (
     reciprocal_rank_fusion,
     rewrite_query,
 )
-import contextlib
 
 # ── Sample test data ─────────────────────────────────────
 
