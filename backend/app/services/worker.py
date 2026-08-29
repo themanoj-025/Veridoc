@@ -68,7 +68,7 @@ class WorkerSettings:
     when running ``arq run`` or programmatically creating a worker.
     """
 
-    functions = [process_document_task]  # noqa: RUF012 — ARQ expects a class-level list
+    functions = [process_document_task]
     redis_settings = _build_redis_settings()
     max_tries = 3  # Total attempts (1 initial + 2 retries)
     max_retries = 2  # Retries after the initial attempt
