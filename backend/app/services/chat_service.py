@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 import time
@@ -25,7 +26,6 @@ from app.services.evaluation import faithfulness_check
 from app.services.llm_provider import get_llm
 from app.services.response_cache import get_response_cache
 from app.services.retrieval import HybridRetriever, rewrite_query
-import contextlib
 
 logger = logging.getLogger(__name__)
 

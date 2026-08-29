@@ -13,6 +13,7 @@ Design
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import logging
@@ -20,7 +21,6 @@ import time
 from typing import Any
 
 from app.core import config as _config
-import contextlib
 
 logger = logging.getLogger("veridoc.cache")
 settings = _config.settings

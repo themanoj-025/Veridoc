@@ -26,7 +26,6 @@ from app.api import (
 from app.core.config import settings, validate_config
 from app.core.database import close_db, init_db
 from app.core.di import init_container
-from circuit_breaker import CircuitBreaker
 from app.core.logging_config import (
     bind_log_context,
     clear_log_context,
@@ -39,6 +38,7 @@ from app.core.rate_limit import (
     rate_limit_exceeded_handler,
     rate_limit_headers_middleware,
 )
+from circuit_breaker import CircuitBreaker
 
 logger = structlog.get_logger(__name__)
 
@@ -373,8 +373,9 @@ async def health_check() -> None:
             deps["llm"] = {"status": "degraded", "error": "circuit breaker open"}
             return
         try:
-            from app.services.llm_provider import get_llm
             from tenacity import AsyncRetrying, stop_after_attempt, wait_exponential
+
+            from app.services.llm_provider import get_llm
 
             llm = get_llm()
             # Provider-specific ping
