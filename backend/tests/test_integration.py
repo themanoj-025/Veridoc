@@ -41,13 +41,13 @@ import pytest_asyncio
 try:
     from testcontainers.postgres import PostgresContainer
 except ImportError:
-    PostgresContainer = None  # noqa: F811 — fallback when testcontainers not installed
+    PostgresContainer = None
 
 # Skip if chromadb not installed
 try:
     import chromadb
 except ImportError:
-    chromadb = None  # noqa: F811 — fallback when chromadb not installed
+    chromadb = None
 
 pytestmark = [
     pytest.mark.timeout(120),  # containers need time to pull/boot
