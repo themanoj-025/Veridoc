@@ -15,6 +15,8 @@ import pytest
 import pytest_asyncio
 from app.core.database import Base
 from app.models import (
+
+pytestmark = pytest.mark.slow
     CitationRecord,
     Conversation,
     ConversationDocument,
@@ -26,6 +28,7 @@ from app.schemas.chat import Citation, MessageResponse
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
 
 # ── Fixture: real in-memory SQLite DB ────────────────────
 

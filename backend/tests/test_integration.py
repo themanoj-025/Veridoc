@@ -36,6 +36,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 import pytest_asyncio
 
+
+pytestmark = pytest.mark.slow
 # ── Module-level skips ────────────────────────────────────────────
 # Skip if testcontainers not installed
 try:
@@ -551,6 +553,7 @@ async def test_postgres_user_scoped_queries(pg_session):
 
     from app.models.document import Document
     from sqlalchemy import func, select
+
 
     user_id = uuid.uuid4()
     now = datetime.now(UTC)
