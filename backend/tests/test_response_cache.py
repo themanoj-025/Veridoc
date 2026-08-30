@@ -8,12 +8,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from app.core import config as _test_config
 from app.services.response_cache import (
-
-pytestmark = pytest.mark.slow
     ResponseCache,
     get_response_cache,
     reset_cache_for_testing,
 )
+
+pytestmark = pytest.mark.slow
 
 settings = _test_config.settings
 
