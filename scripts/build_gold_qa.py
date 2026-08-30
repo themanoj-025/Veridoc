@@ -235,9 +235,9 @@ def build_gold_qa() -> None:
 
 
 def main() -> None:
-    print("=" * 60)
-    print("Veridoc — Build Gold Q&A Pairs")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("Veridoc — Build Gold Q&A Pairs")
+    logger.info("=" * 60)
 
     gold_qa = build_gold_qa()
     GOLD_QA_PATH.write_text(json.dumps(gold_qa, indent=2))
@@ -247,12 +247,12 @@ def main() -> None:
     multi_hop = sum(1 for q in gold_qa if q["type"] == "multi-hop")
     unanswerable = sum(1 for q in gold_qa if q["type"] == "unanswerable")
 
-    print(f"\nGenerated {len(gold_qa)} Q&A pairs:")
-    print(f"  Factual: {factual}")
-    print(f"  Multi-hop: {multi_hop}")
-    print(f"  Unanswerable: {unanswerable}")
-    print(f"\nWritten to: {GOLD_QA_PATH}")
-    print("=" * 60)
+    logger.info(f"\nGenerated {len(gold_qa)} Q&A pairs:")
+    logger.info(f"  Factual: {factual}")
+    logger.info(f"  Multi-hop: {multi_hop}")
+    logger.info(f"  Unanswerable: {unanswerable}")
+    logger.info(f"\nWritten to: {GOLD_QA_PATH}")
+    logger.info("=" * 60)
 
 
 if __name__ == "__main__":

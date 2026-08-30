@@ -29,7 +29,7 @@ REPORT_PATH = EVAL_DIR / "evaluation-report.md"
 def load_gold_qa() -> list[dict]:
     """Load gold Q&A pairs."""
     if not GOLD_QA_PATH.exists():
-        print(f"ERROR: {GOLD_QA_PATH} not found. Run scripts/build_gold_qa.py first.")
+        logger.error(f"ERROR: {GOLD_QA_PATH} not found. Run scripts/build_gold_qa.py first.")
         sys.exit(1)
     return json.loads(GOLD_QA_PATH.read_text())
 
@@ -39,17 +39,15 @@ async def run_evaluation(
     use_hybrid: bool = True,
 ) -> tuple[list[dict], dict]:
     """Run evaluation on all gold Q&A pairs."""
-    print(
-        f"\nRunning evaluation with {'hybrid+rerank' if use_hybrid else 'naive dense'} retrieval..."
-    )
-    print(f"  Total questions: {len(gold_qa)}")
+    logger.info(f"\nRunning evaluation with {'hybrid+rerank' if use_hybrid else 'naive dense'} retrieval...")
+    logger.info(f"  Total questions: {len(gold_qa)}")
     print()
 
     results = []
     unanswerable_indices = set()
 
     for i, qa in enumerate(gold_qa):
-        print(f"  [{i + 1}/{len(gold_qa)}] {qa['question'][:60]}...")
+        logger.info(f"  [{i + 1}/{len(gold_qa)}] {qa['question'][:60]}...")
 
         if qa["type"] == "unanswerable":
             unanswerable_indices.add(i)
@@ -70,7 +68,7 @@ async def run_evaluation(
             result["type"] = qa["type"]
             results.append(result)
         except (RuntimeError, ValueError, OSError) as e:
-            print(f"    ERROR: {e}")
+            logger.error(f"    ERROR: {e}")
             results.append(
                 {
                     "id": qa["id"],
@@ -221,7 +219,7 @@ def write_report(
     )
 
     REPORT_PATH.write_text("\n".join(lines) + "\n")
-    print(f"\nReport written to: {REPORT_PATH}")
+    logger.info(f"\nReport written to: {REPORT_PATH}")
 
 
 async def main() -> None:
@@ -234,36 +232,28 @@ async def main() -> None:
     gold_qa = load_gold_qa()
 
     # Run hybrid+rerank evaluation
-    print("=" * 60)
+    logger.info("=" * 60)
     hybrid_results, hybrid_metrics = await run_evaluation(gold_qa, use_hybrid=True)
-    print("\nHybrid+Re-rank Results:")
-    print(f"  Answer Accuracy: {hybrid_metrics.get('answer_accuracy', 0) * 100:.1f}%")
-    print(f"  Refusal Accuracy: {hybrid_metrics.get('refusal_accuracy', 0) * 100:.1f}%")
-    print(
-        f"  Mean Faithfulness: {hybrid_metrics.get('mean_faithfulness', 0) * 100:.1f}%"
-    )
-    print(f"  P50 Latency: {hybrid_metrics.get('p50_latency_ms', 0):.0f}ms")
+    logger.info("\nHybrid+Re-rank Results:")
+    logger.info(f"  Answer Accuracy: {hybrid_metrics.get('answer_accuracy', 0) * 100:.1f}%")
+    logger.info(f"  Refusal Accuracy: {hybrid_metrics.get('refusal_accuracy', 0) * 100:.1f}%")
+    logger.info(f"  Mean Faithfulness: {hybrid_metrics.get('mean_faithfulness', 0) * 100:.1f}%")
+    logger.info(f"  P50 Latency: {hybrid_metrics.get('p50_latency_ms', 0):.0f}ms")
 
     naive_results = None
     naive_metrics = None
 
     if args.compare:
-        print("\n" + "=" * 60)
+        logger.info("\n" + "=" * 60)
         naive_results, naive_metrics = await run_evaluation(gold_qa, use_hybrid=False)
-        print("\nNaive Dense Results:")
-        print(
-            f"  Answer Accuracy: {naive_metrics.get('answer_accuracy', 0) * 100:.1f}%"
-        )
-        print(
-            f"  Refusal Accuracy: {naive_metrics.get('refusal_accuracy', 0) * 100:.1f}%"
-        )
-        print(
-            f"  Mean Faithfulness: {naive_metrics.get('mean_faithfulness', 0) * 100:.1f}%"
-        )
-        print(f"  P50 Latency: {naive_metrics.get('p50_latency_ms', 0):.0f}ms")
+        logger.info("\nNaive Dense Results:")
+        logger.info(f"  Answer Accuracy: {naive_metrics.get('answer_accuracy', 0) * 100:.1f}%")
+        logger.info(f"  Refusal Accuracy: {naive_metrics.get('refusal_accuracy', 0) * 100:.1f}%")
+        logger.info(f"  Mean Faithfulness: {naive_metrics.get('mean_faithfulness', 0) * 100:.1f}%")
+        logger.info(f"  P50 Latency: {naive_metrics.get('p50_latency_ms', 0):.0f}ms")
 
     write_report(hybrid_results, hybrid_metrics, naive_results, naive_metrics)
-    print("=" * 60)
+    logger.info("=" * 60)
 
 
 if __name__ == "__main__":

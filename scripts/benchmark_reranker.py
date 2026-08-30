@@ -22,29 +22,27 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
 
 
 def main() -> None:
-    print("=" * 60)
-    print("  Cross-Encoder Reranker Batching Benchmark")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("  Cross-Encoder Reranker Batching Benchmark")
+    logger.info("=" * 60)
 
     # Load the model
-    print("\n[1/4] Loading cross-encoder model...")
+    logger.info("\n[1/4] Loading cross-encoder model...")
     start = time.time()
     try:
         from sentence_transformers import CrossEncoder
 
         reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
         load_time = time.time() - start
-        print(f"      Model loaded in {load_time:.1f}s")
+        logger.info(f"      Model loaded in {load_time:.1f}s")
     except (OSError, ValueError, ImportError) as e:
-        print(f"      FAILED: {e}")
-        print(
-            "\n      Cannot load the cross-encoder model. Ensure sentence-transformers"
-        )
-        print("      and torch are installed:  pip install -r backend/requirements.txt")
+        logger.error(f"      FAILED: {e}")
+        logger.info("\n      Cannot load the cross-encoder model. Ensure sentence-transformers")
+        logger.info("      and torch are installed:  pip install -r backend/requirements.txt")
         sys.exit(1)
 
     # Create synthetic query and 20 candidate chunks
-    print("\n[2/4] Preparing 20 synthetic candidate pairs...")
+    logger.info("\n[2/4] Preparing 20 synthetic candidate pairs...")
     query = "What is the capital of France and what is its population?"
     chunks = [
         ("Paris is the capital of France, located on the Seine River. It has a population of approximately 2.1 million in the city proper."
@@ -89,56 +87,50 @@ def main() -> None:
         " called Lutetia on the Ile de la Cite in the Seine River before becoming the capital of France."),
     ]
     pairs = [(query, c) for c in chunks]
-    print(f"      {len(pairs)} candidate pairs prepared")
+    logger.info(f"      {len(pairs)} candidate pairs prepared")
 
     # Warm up the model
-    print("\n[3/4] Warming up model...")
+    logger.info("\n[3/4] Warming up model...")
     _ = reranker.predict(pairs[:2])
 
     # Benchmark: batch_size=1 (simulating one-by-one scoring)
-    print("\n[4/4] Benchmarking...")
-    print("      Running batch_size=1 (one-by-one)...")
+    logger.info("\n[4/4] Benchmarking...")
+    logger.info("      Running batch_size=1 (one-by-one)...")
     start = time.time()
     scores_1 = reranker.predict(pairs, batch_size=1)
     elapsed_1 = (time.time() - start) * 1000
-    print(f"        {elapsed_1:.1f} ms  ({elapsed_1 / len(pairs):.1f} ms per pair)")
+    logger.info(f"        {elapsed_1:.1f} ms  ({elapsed_1 / len(pairs):.1f} ms per pair)")
 
     # Benchmark: default batch_size (let model decide, typically 32)
-    print("      Running default batch_size (model decides)...")
+    logger.info("      Running default batch_size (model decides)...")
     start = time.time()
     scores_batch = reranker.predict(pairs)
     elapsed_batch = (time.time() - start) * 1000
-    print(
-        f"        {elapsed_batch:.1f} ms  ({elapsed_batch / len(pairs):.1f} ms per pair)"
-    )
+    logger.info(f"        {elapsed_batch:.1f} ms  ({elapsed_batch / len(pairs):.1f} ms per pair)")
 
     # Benchmark: batch_size=20 (single batch for 20 candidates)
-    print("      Running batch_size=20 (single batch)...")
+    logger.info("      Running batch_size=20 (single batch)...")
     start = time.time()
     reranker.predict(pairs, batch_size=20)
     elapsed_20 = (time.time() - start) * 1000
-    print(f"        {elapsed_20:.1f} ms  ({elapsed_20 / len(pairs):.1f} ms per pair)")
+    logger.info(f"        {elapsed_20:.1f} ms  ({elapsed_20 / len(pairs):.1f} ms per pair)")
 
     # Results
-    print(f"\n{'=' * 60}")
-    print("  RESULTS")
-    print(f"{'=' * 60}")
-    print(f"  {'Method':<25} {'Total (ms)':<15} {'Per-pair (ms)':<15}")
-    print(f"  {'-' * 25} {'-' * 15} {'-' * 15}")
-    print(f"  {'batch_size=1':<25} {elapsed_1:<15.0f} {elapsed_1 / len(pairs):<15.1f}")
-    print(
-        f"  {'default (model decides)':<25} {elapsed_batch:<15.0f} {elapsed_batch / len(pairs):<15.1f}"
-    )
-    print(
-        f"  {'batch_size=20 (single)':<25} {elapsed_20:<15.0f} {elapsed_20 / len(pairs):<15.1f}"
-    )
-    print(f"{'=' * 60}")
+    logger.info(f"\n{'=' * 60}")
+    logger.info("  RESULTS")
+    logger.info(f"{'=' * 60}")
+    logger.info(f"  {'Method':<25} {'Total (ms)':<15} {'Per-pair (ms)':<15}")
+    logger.info(f"  {'-' * 25} {'-' * 15} {'-' * 15}")
+    logger.info(f"  {'batch_size=1':<25} {elapsed_1:<15.0f} {elapsed_1 / len(pairs):<15.1f}")
+    logger.info(f"  {'default (model decides)':<25} {elapsed_batch:<15.0f} {elapsed_batch / len(pairs):<15.1f}")
+    logger.info(f"  {'batch_size=20 (single)':<25} {elapsed_20:<15.0f} {elapsed_20 / len(pairs):<15.1f}")
+    logger.info(f"{'=' * 60}")
 
     # Compute speedup
     speedup_vs_1 = elapsed_1 / elapsed_batch
     speedup_vs_20 = elapsed_1 / elapsed_20
-    print(f"\n  Speedup (default vs batch_size=1): {speedup_vs_1:.1f}x")
-    print(f"  Speedup (batch_size=20 vs 1):     {speedup_vs_20:.1f}x")
+    logger.info(f"\n  Speedup (default vs batch_size=1): {speedup_vs_1:.1f}x")
+    logger.info(f"  Speedup (batch_size=20 vs 1):     {speedup_vs_20:.1f}x")
     print()
 
     # Verify consistency
@@ -148,19 +140,13 @@ def main() -> None:
         range(len(scores_batch)), key=lambda i: scores_batch[i], reverse=True
     )
     rank_diff = sum(abs(r1 - r2) for r1, r2 in zip(ranks_1, ranks_batch, strict=False))
-    print(
-        f"  Ranking consistency (1 vs default): {rank_diff} position differences across {len(scores_1)} items"
-    )
+    logger.info(f"  Ranking consistency (1 vs default): {rank_diff} position differences across {len(scores_1)} items")
     if rank_diff == 0:
-        print("  [OK] Rankings are identical -- batching preserves ranking quality")
+        logger.info("  [OK] Rankings are identical -- batching preserves ranking quality")
     else:
-        print(
-            f"  ⚠ Rankings differ by {rank_diff} positions (may be due to floating-point precision)"
-        )
+        logger.info(f"  ⚠ Rankings differ by {rank_diff} positions (may be due to floating-point precision)")
 
-    print(
-        "\n  Done. Log these numbers in BUILD_LOG.md under 'B10 — Cross-encoder batching'."
-    )
+    logger.info("\n  Done. Log these numbers in BUILD_LOG.md under 'B10 — Cross-encoder batching'.")
 
 
 if __name__ == "__main__":
