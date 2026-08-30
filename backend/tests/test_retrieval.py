@@ -63,14 +63,14 @@ SAMPLE_CHUNKS = [
 
 
 @pytest.mark.asyncio
-async def test_bm25_search_empty_chunks():
+async def test_bm25_search_empty_chunks() -> None:
     """Test BM25 search with empty chunk list returns empty results."""
     results = await bm25_search("test query", [])
     assert results == []
 
 
 @pytest.mark.asyncio
-async def test_bm25_search_basic(mock_bm25_builder):
+async def test_bm25_search_basic(mock_bm25_builder) -> None:
     """Test BM25 search returns scored results sorted by relevance."""
     results = await bm25_search("lazy dog", SAMPLE_CHUNKS)
 
@@ -84,14 +84,14 @@ async def test_bm25_search_basic(mock_bm25_builder):
 
 
 @pytest.mark.asyncio
-async def test_bm25_search_top_k(mock_bm25_builder):
+async def test_bm25_search_top_k(mock_bm25_builder) -> None:
     """Test BM25 search respects top_k parameter."""
     results = await bm25_search("test query", SAMPLE_CHUNKS, top_k=3)
     assert len(results) <= 3
 
 
 @pytest.mark.asyncio
-async def test_bm25_search_preserves_fields(mock_bm25_builder):
+async def test_bm25_search_preserves_fields(mock_bm25_builder) -> None:
     """Test BM25 search preserves original chunk fields."""
     results = await bm25_search("lazy dog", SAMPLE_CHUNKS)
 
@@ -109,7 +109,7 @@ async def test_bm25_search_preserves_fields(mock_bm25_builder):
 class TestReciprocalRankFusion:
     """Tests for Reciprocal Rank Fusion algorithm."""
 
-    def test_rrf_merges_results(self):
+    def test_rrf_merges_results(self) -> None:
         """Test RRF merges two result sets correctly."""
         bm25_results = [
             {"chunk_id": "chunk-1", "content": "fox", "score": 0.9, "source": "bm25"},
@@ -133,7 +133,7 @@ class TestReciprocalRankFusion:
         assert "chunk-2" in chunk_ids
         assert "chunk-3" in chunk_ids
 
-    def test_rrf_has_scores(self):
+    def test_rrf_has_scores(self) -> None:
         """Test RRF results have rrf_score field."""
         bm25_results = [
             {"chunk_id": "chunk-1", "content": "test", "score": 0.9},
@@ -145,23 +145,23 @@ class TestReciprocalRankFusion:
         merged = reciprocal_rank_fusion(bm25_results, dense_results)
         assert all("rrf_score" in r for r in merged)
 
-    def test_rrf_empty_bm25(self):
+    def test_rrf_empty_bm25(self) -> None:
         """Test RRF with empty BM25 results still returns dense results."""
         merged = reciprocal_rank_fusion([], SAMPLE_CHUNKS)
         assert len(merged) > 0
         assert len(merged) <= 20
 
-    def test_rrf_empty_dense(self):
+    def test_rrf_empty_dense(self) -> None:
         """Test RRF with empty dense results still returns BM25 results."""
         merged = reciprocal_rank_fusion(SAMPLE_CHUNKS, [])
         assert len(merged) > 0
 
-    def test_rrf_both_empty(self):
+    def test_rrf_both_empty(self) -> None:
         """Test RRF with both empty returns empty."""
         merged = reciprocal_rank_fusion([], [])
         assert merged == []
 
-    def test_rrf_respects_top_k(self):
+    def test_rrf_respects_top_k(self) -> None:
         """Test RRF respects the top_k parameter."""
         chunks = [{"chunk_id": f"chunk-{i}", "content": f"test {i}"} for i in range(10)]
         merged = reciprocal_rank_fusion(chunks, chunks, top_k=3)
@@ -175,7 +175,7 @@ class TestQueryRewrite:
     """Tests for query rewriting logic."""
 
     @pytest.mark.asyncio
-    async def test_rewrite_long_query_no_rewrite(self):
+    async def test_rewrite_long_query_no_rewrite(self) -> None:
         """Test that long queries without demonstratives are not rewritten."""
         history = [{"role": "user", "content": "What is machine learning?"}]
         result = await rewrite_query(
@@ -184,7 +184,7 @@ class TestQueryRewrite:
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_rewrite_short_follow_up_no_llm(self):
+    async def test_rewrite_short_follow_up_no_llm(self) -> None:
         """Test short query rewrite returns None when no LLM available."""
         history = [
             {"role": "user", "content": "What is machine learning?"},
@@ -194,13 +194,13 @@ class TestQueryRewrite:
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_rewrite_no_history(self):
+    async def test_rewrite_no_history(self) -> None:
         """Test that no history means no rewriting."""
         result = await rewrite_query("explain more", [])
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_rewrite_with_mock_llm(self):
+    async def test_rewrite_with_mock_llm(self) -> None:
         """Test LLM-based rewrite with a mocked LLM provider."""
         from unittest.mock import AsyncMock, patch
 
@@ -228,7 +228,7 @@ class TestQueryRewrite:
 
 
 @pytest.mark.asyncio
-async def test_hybrid_retriever_retrieve():
+async def test_hybrid_retriever_retrieve() -> None:
     """Test HybridRetriever.retrieve returns results."""
     retriever = HybridRetriever()
 
@@ -250,7 +250,7 @@ async def test_hybrid_retriever_retrieve():
 
 
 @pytest.mark.asyncio
-async def test_hybrid_retriever_retrieve_no_docs():
+async def test_hybrid_retriever_retrieve_no_docs() -> None:
     """Test HybridRetriever.retrieve with no document IDs."""
     retriever = HybridRetriever()
 
@@ -270,7 +270,7 @@ async def test_hybrid_retriever_retrieve_no_docs():
 
 
 @pytest.mark.asyncio
-async def test_hybrid_retriever_rerank_fallback():
+async def test_hybrid_retriever_rerank_fallback() -> None:
     """Test rerank falls back to score-based sort when reranker is None."""
     retriever = HybridRetriever()
 
@@ -286,7 +286,7 @@ async def test_hybrid_retriever_rerank_fallback():
 
 
 @pytest.mark.asyncio
-async def test_hybrid_retriever_rerank_empty():
+async def test_hybrid_retriever_rerank_empty() -> None:
     """Test rerank with empty chunks returns empty."""
     retriever = HybridRetriever()
     results = await retriever.rerank("test query", [])
@@ -297,7 +297,7 @@ async def test_hybrid_retriever_rerank_empty():
 
 
 @pytest.mark.asyncio
-async def test_session_no_auto_commit_on_yield():
+async def test_session_no_auto_commit_on_yield() -> None:
     """Regression test for A1: verify get_session() does NOT auto-commit
     or auto-close around the caller's business logic.
 
@@ -364,7 +364,7 @@ class TestBM25DiskPersistence:
     and that corrupt/missing files are handled gracefully.
     """
 
-    def test_bm25_save_and_load_from_disk(self, tmp_path, monkeypatch):
+    def test_bm25_save_and_load_from_disk(self, tmp_path, monkeypatch) -> None:
         """Test BM25 index can be saved and reloaded from disk."""
         from app.services.retrieval.bm25 import (
             _bm25_indexes,
@@ -415,7 +415,7 @@ class TestBM25DiskPersistence:
         scores2 = index2.get_scores(tokenized_query)
         assert np.array_equal(scores1, scores2)
 
-    def test_bm25_disk_cache_missing_returns_none(self, tmp_path, monkeypatch):
+    def test_bm25_disk_cache_missing_returns_none(self, tmp_path, monkeypatch) -> None:
         """Test loading a nonexistent disk cache returns None."""
         from app.services.retrieval.bm25 import _load_from_disk
 
@@ -427,7 +427,7 @@ class TestBM25DiskPersistence:
         result = _load_from_disk("nonexistent-key")
         assert result is None
 
-    def test_bm25_corrupt_cache_falls_back_to_rebuild(self, tmp_path, monkeypatch):
+    def test_bm25_corrupt_cache_falls_back_to_rebuild(self, tmp_path, monkeypatch) -> None:
         """Test that a corrupt pickle file triggers a rebuild instead of crashing."""
         from app.services.retrieval.bm25 import (
             _bm25_indexes,
@@ -460,7 +460,7 @@ class TestBM25DiskPersistence:
         assert index is not None
         assert len(loaded_chunks) == 1
 
-    def test_bm25_invalidate_clears_disk(self, tmp_path, monkeypatch):
+    def test_bm25_invalidate_clears_disk(self, tmp_path, monkeypatch) -> None:
         """Test that invalidate_bm25_index() clears all disk cache files."""
         from app.services.retrieval.bm25 import (
             _build_cache_key,
@@ -496,7 +496,7 @@ class TestBM25DiskPersistence:
 class TestRetrievalEdgeCases:
     """Tests for edge cases in retrieval."""
 
-    def test_rrf_duplicate_chunks(self):
+    def test_rrf_duplicate_chunks(self) -> None:
         """Test RRF handles duplicate chunks from different sources."""
         bm25_results = [
             {"chunk_id": "same-id", "content": "test", "score": 0.9, "source": "bm25"},
@@ -516,7 +516,7 @@ class TestRetrievalEdgeCases:
         chunk_ids = [r["chunk_id"] for r in merged]
         assert chunk_ids.count("same-id") == 1
 
-    def test_rrf_k_parameter(self):
+    def test_rrf_k_parameter(self) -> None:
         """Test RRF with different k values."""
         chunks_a = [{"chunk_id": "A", "content": "test"}]
         chunks_b = [{"chunk_id": "B", "content": "test"}]
@@ -528,7 +528,7 @@ class TestRetrievalEdgeCases:
         assert len(merged_large_k) == 2
 
     @pytest.mark.asyncio
-    async def test_rewrite_short_no_demonstrative_no_rewrite(self):
+    async def test_rewrite_short_no_demonstrative_no_rewrite(self) -> None:
         """Test that a short query without demonstrative does not trigger rewrite."""
         history = [
             {"role": "user", "content": "What is machine learning?"},

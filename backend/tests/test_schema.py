@@ -33,7 +33,7 @@ pytestmark = pytest.mark.slow
 
 
 @pytest_asyncio.fixture
-async def real_db_session():
+async def real_db_session() -> None:
     """Create a real in-memory SQLite database, create all tables,
     and yield a session.  Each test gets a fresh database."""
     engine = create_async_engine(
@@ -58,7 +58,7 @@ async def real_db_session():
 
 
 @pytest.mark.asyncio
-async def test_conversation_document_relationship(real_db_session: AsyncSession):
+async def test_conversation_document_relationship(real_db_session: AsyncSession) -> None:
     """Seed test: create user → documents → conversation → junction links →
     message → citation records, then verify every relationship loads correctly.
 
@@ -243,7 +243,7 @@ async def test_conversation_document_relationship(real_db_session: AsyncSession)
 
 
 @pytest.mark.asyncio
-async def test_conversation_document_unique_constraint(real_db_session: AsyncSession):
+async def test_conversation_document_unique_constraint(real_db_session: AsyncSession) -> None:
     """Verify the unique constraint on ``(conversation_id, document_id)``
     rejects duplicate links."""
     session = real_db_session
@@ -282,7 +282,7 @@ async def test_conversation_document_unique_constraint(real_db_session: AsyncSes
 
 
 @pytest.mark.asyncio
-async def test_message_citation_cascade(real_db_session: AsyncSession):
+async def test_message_citation_cascade(real_db_session: AsyncSession) -> None:
     """Verify that deleting a Message cascades to its CitationRecords."""
     session = real_db_session
 

@@ -19,14 +19,14 @@ settings = _test_config.settings
 
 
 @pytest.fixture(autouse=True)
-def reset_cache():
+def reset_cache() -> None:
     """Reset the cache singleton and counters before each test."""
     reset_cache_for_testing()
     yield
 
 
 @pytest.fixture
-def cache():
+def cache() -> None:
     """Create a ResponseCache instance with memory fallback (no Redis)."""
     c = ResponseCache()
     assert not c._redis_available  # Memory mode by default
@@ -36,7 +36,7 @@ def cache():
 # ── Cache Key Generation ─────────────────────────────────
 
 
-def test_make_cache_key_is_deterministic():
+def test_make_cache_key_is_deterministic() -> None:
     """Same conversation + query produces the same key."""
     from app.services.response_cache import _make_cache_key
 
@@ -45,7 +45,7 @@ def test_make_cache_key_is_deterministic():
     assert k1 == k2
 
 
-def test_make_cache_key_differs_by_conversation():
+def test_make_cache_key_differs_by_conversation() -> None:
     """Different conversations produce different keys for the same query."""
     from app.services.response_cache import _make_cache_key
 
@@ -54,7 +54,7 @@ def test_make_cache_key_differs_by_conversation():
     assert k1 != k2
 
 
-def test_make_cache_key_is_case_insensitive():
+def test_make_cache_key_is_case_insensitive() -> None:
     """Query case is normalized so 'Hello' and 'hello' match."""
     from app.services.response_cache import _make_cache_key
 
@@ -68,14 +68,14 @@ def test_make_cache_key_is_case_insensitive():
 
 
 @pytest.mark.asyncio
-async def test_cache_miss_returns_none(cache):
+async def test_cache_miss_returns_none(cache) -> None:
     """A cache miss should return None."""
     result = await cache.get("conv-1", "What is the meaning of life?")
     assert result is None
 
 
 @pytest.mark.asyncio
-async def test_cache_set_and_get(cache):
+async def test_cache_set_and_get(cache) -> None:
     """A value stored in cache should be retrievable."""
     data = {
         "content": "The answer is 42.",
@@ -95,7 +95,7 @@ async def test_cache_set_and_get(cache):
 
 
 @pytest.mark.asyncio
-async def test_cache_expiry(cache):
+async def test_cache_expiry(cache) -> None:
     """Entries past their TTL should not be returned."""
     with patch.object(cache, "_ttl", 0):  # Zero TTL = immediate expiry
         await cache.set("conv-1", "Will expire", {"content": "Gone"})
@@ -104,7 +104,7 @@ async def test_cache_expiry(cache):
 
 
 @pytest.mark.asyncio
-async def test_cache_isolates_conversations(cache):
+async def test_cache_isolates_conversations(cache) -> None:
     """Cache entries for different conversations should not collide."""
     await cache.set("conv-1", "Same query", {"content": "Answer A"})
     await cache.set("conv-2", "Same query", {"content": "Answer B"})
@@ -116,7 +116,7 @@ async def test_cache_isolates_conversations(cache):
 
 
 @pytest.mark.asyncio
-async def test_cache_overwrite(cache):
+async def test_cache_overwrite(cache) -> None:
     """Setting the same key twice should overwrite the old value."""
     await cache.set("conv-1", "Query", {"content": "Old answer"})
     await cache.set("conv-1", "Query", {"content": "New answer"})
@@ -128,7 +128,7 @@ async def test_cache_overwrite(cache):
 
 
 @pytest.mark.asyncio
-async def test_invalidate_specific_query(cache):
+async def test_invalidate_specific_query(cache) -> None:
     """Invalidating a specific query should remove only that entry."""
     await cache.set("conv-1", "Query A", {"content": "Answer A"})
     await cache.set("conv-1", "Query B", {"content": "Answer B"})
@@ -140,7 +140,7 @@ async def test_invalidate_specific_query(cache):
 
 
 @pytest.mark.asyncio
-async def test_invalidate_all_conversation(cache):
+async def test_invalidate_all_conversation(cache) -> None:
     """Invalidating a full conversation should remove all its entries."""
     await cache.set("conv-1", "Q1", {"content": "A1"})
     await cache.set("conv-1", "Q2", {"content": "A2"})
@@ -157,7 +157,7 @@ async def test_invalidate_all_conversation(cache):
 
 
 @pytest.mark.asyncio
-async def test_stats_hit_rate(cache):
+async def test_stats_hit_rate(cache) -> None:
     """Cache stats should track hit/miss correctly."""
     # Miss
     await cache.get("conv-1", "Miss")
@@ -174,7 +174,7 @@ async def test_stats_hit_rate(cache):
     assert stats["enabled"]
 
 
-def test_stats_empty_cache(cache):
+def test_stats_empty_cache(cache) -> None:
     """Stats should handle zero operations gracefully."""
     stats = cache.stats
     assert stats["hits"] == 0
@@ -187,7 +187,7 @@ def test_stats_empty_cache(cache):
 
 
 @pytest.mark.asyncio
-async def test_redis_cache_hit():
+async def test_redis_cache_hit() -> None:
     """When Redis is available, cache reads should use it."""
     reset_cache_for_testing()
     mock_redis = MagicMock()
@@ -215,7 +215,7 @@ async def test_redis_cache_hit():
 
 
 @pytest.mark.asyncio
-async def test_redis_cache_set():
+async def test_redis_cache_set() -> None:
     """When Redis is available, cache writes should use it."""
     reset_cache_for_testing()
     mock_redis = MagicMock()
@@ -240,7 +240,7 @@ async def test_redis_cache_set():
 
 
 @pytest.mark.asyncio
-async def test_redis_connection_failure_falls_back():
+async def test_redis_connection_failure_falls_back() -> None:
     """If Redis connection fails, cache should use memory fallback."""
     reset_cache_for_testing()
     with patch("redis.asyncio.from_url", side_effect=Exception("Connection refused")):
@@ -259,7 +259,7 @@ async def test_redis_connection_failure_falls_back():
 
 
 @pytest.mark.asyncio
-async def test_cache_disabled_does_not_connect():
+async def test_cache_disabled_does_not_connect() -> None:
     """When caching is disabled, no Redis connection is attempted."""
     with patch.object(settings, "redis_cache_enabled", False):
         cache = ResponseCache()
@@ -275,14 +275,14 @@ async def test_cache_disabled_does_not_connect():
 # ── Module-level Singleton ───────────────────────────────
 
 
-def test_get_response_cache_singleton():
+def test_get_response_cache_singleton() -> None:
     """get_response_cache should return the same instance."""
     c1 = get_response_cache()
     c2 = get_response_cache()
     assert c1 is c2
 
 
-def test_reset_cache_for_testing():
+def test_reset_cache_for_testing() -> None:
     """reset_cache_for_testing should create a new singleton."""
     c1 = get_response_cache()
     reset_cache_for_testing()

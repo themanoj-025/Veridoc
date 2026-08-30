@@ -202,7 +202,7 @@ class _TestVectorStore:
 
 
 @pytest.fixture(scope="session")
-def postgres_container():
+def postgres_container() -> None:
     """Start a Postgres container for the test session.
 
     Yields a ``testcontainers.postgres.PostgresContainer`` instance
@@ -221,7 +221,7 @@ def postgres_container():
 
 
 @pytest_asyncio.fixture
-async def pg_engine_and_factory(postgres_container):
+async def pg_engine_and_factory(postgres_container) -> None:
     """Create a SQLAlchemy async engine + session factory pointing to
     the testcontainer Postgres.  All tables are created at setup and
     dropped at teardown (or on engine dispose).
@@ -251,7 +251,7 @@ async def pg_engine_and_factory(postgres_container):
 
 
 @pytest_asyncio.fixture
-async def pg_session(pg_engine_and_factory):
+async def pg_session(pg_engine_and_factory) -> None:
     """A single Postgres session for the test."""
     _engine, factory = pg_engine_and_factory
     async with factory() as session:
@@ -417,7 +417,7 @@ async def test_process_document_end_to_end(
 
 @pytest.mark.skipif(chromadb is None, reason="chromadb not installed")
 @pytest.mark.asyncio
-async def test_chromadb_metadata_filtering():
+async def test_chromadb_metadata_filtering() -> None:
     """Test document_id-based metadata filtering — a core requirement
     for per-user document isolation.  Exercises the same ``where`` clause
     that ``VectorStore.search()`` uses in production.
@@ -489,7 +489,7 @@ async def test_chromadb_metadata_filtering():
 
 
 @pytest.mark.asyncio
-async def test_postgres_document_chunk_relationship(pg_session, temp_dir):
+async def test_postgres_document_chunk_relationship(pg_session, temp_dir) -> None:
     """Test that Document → Chunk ORM relationships work correctly
     against real Postgres, including cascade delete.
     """
@@ -544,7 +544,7 @@ async def test_postgres_document_chunk_relationship(pg_session, temp_dir):
 
 
 @pytest.mark.asyncio
-async def test_postgres_user_scoped_queries(pg_session):
+async def test_postgres_user_scoped_queries(pg_session) -> None:
     """Test that user-scoped queries return correct results from
     real Postgres, exercising the ``(user_id, created_at)`` composite
     index via the standard list-documents query pattern.

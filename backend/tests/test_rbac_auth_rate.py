@@ -78,7 +78,7 @@ class TestF3_RBAC:
 
         app.dependency_overrides.pop(get_current_user, None)
 
-    def test_non_first_user_admin_access(self):
+    def test_non_first_user_admin_access(self) -> bool:
         """Verify that a non-first-registered user with role='admin' can be
         created and granted admin access (the old heuristic would deny them).
 
@@ -116,7 +116,7 @@ class TestF3_RBAC:
 class TestF4_EmailVerification:
     """Tests for token generation, expiry, and successful verification/reset."""
 
-    def test_verification_token_generation(self):
+    def test_verification_token_generation(self) -> None:
         """A verification token should be generated and stored on the user."""
         import secrets
 
@@ -129,7 +129,7 @@ class TestF4_EmailVerification:
         assert user.verification_token == token
         assert len(token) > 20  # should be a reasonable length
 
-    def test_verify_email_success(self):
+    def test_verify_email_success(self) -> None:
         """A valid verification token should mark the user as verified."""
         import secrets
 
@@ -151,7 +151,7 @@ class TestF4_EmailVerification:
         assert found_user.is_verified is True
         assert found_user.verification_token is None
 
-    def test_verify_email_invalid_token(self):
+    def test_verify_email_invalid_token(self) -> None:
         """An invalid verification token should not match any user."""
         user = User(
             email="verify@example.com",
@@ -164,7 +164,7 @@ class TestF4_EmailVerification:
         found = user if user.verification_token == "wrong-token" else None
         assert found is None, "Should not find user with wrong token"
 
-    def test_password_reset_token_generation(self):
+    def test_password_reset_token_generation(self) -> None:
         """A reset token with expiry should be generated on request."""
         import secrets
         from datetime import datetime, timedelta
@@ -183,7 +183,7 @@ class TestF4_EmailVerification:
         assert user.reset_token_expiry is not None
         assert user.reset_token_expiry > datetime.now(UTC)
 
-    def test_password_reset_success(self):
+    def test_password_reset_success(self) -> None:
         """A valid reset token within expiry should allow password reset."""
         import secrets
         from datetime import datetime, timedelta
@@ -215,7 +215,7 @@ class TestF4_EmailVerification:
         assert user.reset_token is None
         assert user.reset_token_expiry is None
 
-    def test_password_reset_expired_token(self):
+    def test_password_reset_expired_token(self) -> None:
         """An expired reset token should not allow password reset."""
         import secrets
         from datetime import datetime, timedelta
@@ -237,7 +237,7 @@ class TestF4_EmailVerification:
         assert is_expired is True, "Token should be expired"
 
     @pytest.mark.asyncio
-    async def test_email_sender_logs_token(self):
+    async def test_email_sender_logs_token(self) -> None:
         """The dev-mode email sender should log the token (not send a real email)."""
         from app.services.email_sender import (
             send_password_reset_email,
@@ -268,7 +268,7 @@ class TestF6_RateLimiting:
     Uses the existing slowapi limiter which returns 429 with Retry-After.
     """
 
-    def test_rate_limit_disabled_in_test_mode(self):
+    def test_rate_limit_disabled_in_test_mode(self) -> None:
         """Rate limits are bypassed in test mode (env='test').
         The _should_rate_limit() function returns False so the
         @limiter.limit() decorator is a no-op in test runs."""
@@ -280,7 +280,7 @@ class TestF6_RateLimiting:
 
         assert _should_rate_limit() is False
 
-    def test_rate_limit_structure(self):
+    def test_rate_limit_structure(self) -> None:
         """Verify the rate limit decorator format is correct for upload and chat endpoints."""
         # This test validates the structure by checking the limiter module
         from app.core.rate_limit import limiter
@@ -303,7 +303,7 @@ class TestF6_RateLimiting:
 class TestF8_AdminAuditLog:
     """Admin actions should be recorded in the append-only audit log."""
 
-    def test_audit_log_creation(self):
+    def test_audit_log_creation(self) -> None:
         """Creating an audit log entry should store the correct fields."""
         log = AdminAuditLog(
             actor_id=uuid.uuid4(),
@@ -319,7 +319,7 @@ class TestF8_AdminAuditLog:
         assert log.actor_id is not None
 
     @pytest.mark.asyncio
-    async def test_audit_log_append_only(self):
+    async def test_audit_log_append_only(self) -> None:
         """The audit log should be append-only — entries cannot be modified
         (no update method is exposed). We test this by creating a log entry
         and verifying it's persisted correctly.
@@ -367,7 +367,7 @@ class TestF8_AdminAuditLog:
         await engine.dispose()
 
     @pytest.mark.asyncio
-    async def test_audit_log_multiple_entries(self):
+    async def test_audit_log_multiple_entries(self) -> None:
         """Multiple admin actions should all be logged separately."""
         from app.core.database import Base
         from sqlalchemy import select
@@ -414,7 +414,7 @@ class TestF8_AdminAuditLog:
 class TestG2_PromptVersion:
     """Messages should record which prompt version was used to generate them."""
 
-    def test_prompt_version_field_exists(self):
+    def test_prompt_version_field_exists(self) -> None:
         """The prompt_version field should exist on the Message model."""
         msg = Message(
             conversation_id=uuid.uuid4(),
@@ -424,7 +424,7 @@ class TestG2_PromptVersion:
         )
         assert msg.prompt_version == "1.0.0"
 
-    def test_prompt_version_optional(self):
+    def test_prompt_version_optional(self) -> None:
         """The prompt_version field should be nullable for backward compatibility."""
         msg = Message(
             conversation_id=uuid.uuid4(),
@@ -434,7 +434,7 @@ class TestG2_PromptVersion:
         assert msg.prompt_version is None
 
     @pytest.mark.asyncio
-    async def test_prompt_version_persisted(self):
+    async def test_prompt_version_persisted(self) -> None:
         """The prompt version should be persisted and retrievable from the DB."""
         from app.core.database import Base
         from app.models.conversation import Conversation
@@ -482,7 +482,7 @@ class TestG2_PromptVersion:
 
         await engine.dispose()
 
-    def test_prompt_registry_exists(self):
+    def test_prompt_registry_exists(self) -> None:
         """The prompts/registry.json file should exist with version info."""
         import json
         from pathlib import Path
@@ -503,20 +503,20 @@ class TestG2_PromptVersion:
             assert "name" in prompt
             assert "template" in prompt
 
-    def test_prompt_version_resolver_returns_registry_version(self):
+    def test_prompt_version_resolver_returns_registry_version(self) -> None:
         """The resolver must return the version recorded in the registry."""
         from app.services.prompt_registry import get_prompt_version
 
         version = get_prompt_version("system-prompt")
         assert version == "1.0.0"
 
-    def test_prompt_version_resolver_unknown_name(self):
+    def test_prompt_version_resolver_unknown_name(self) -> None:
         """Unknown prompt names must resolve to 'unknown', never raise."""
         from app.services.prompt_registry import get_prompt_version
 
         assert get_prompt_version("does-not-exist") == "unknown"
 
-    def test_prompt_template_loaded_from_registry(self):
+    def test_prompt_template_loaded_from_registry(self) -> None:
         """build_system_prompt must load the template from the registry (G2)."""
         from app.services.prompt_registry import get_prompt_template
 
@@ -528,7 +528,7 @@ class TestG2_PromptVersion:
     @pytest.mark.asyncio
     async def test_chat_service_records_prompt_version_on_message(
         self, mock_db_session, sample_user
-    ):
+    ) -> None:
         """ChatService.save_assistant_message must stamp prompt_version (G2)."""
         import asyncio
         from unittest.mock import MagicMock, patch
@@ -576,7 +576,7 @@ class TestG2_PromptVersion:
         assert msg.role == "assistant"
         assert msg.prompt_version == "1.0.0"
 
-    def test_build_system_prompt_uses_registry_template(self):
+    def test_build_system_prompt_uses_registry_template(self) -> None:
         """build_system_prompt should inline the registry template with context (G2)."""
         from app.models.user import User
         from app.services.chat_service import ChatService
@@ -597,13 +597,13 @@ class TestG2_PromptVersion:
 class TestG4_SecretRotation:
     """The startup config validation should warn about secret rotation age."""
 
-    def test_secret_rotation_check_function_exists(self):
+    def test_secret_rotation_check_function_exists(self) -> None:
         """The _check_secret_rotation_age function should exist in main."""
         from app.main import _check_secret_rotation_age
 
         assert callable(_check_secret_rotation_age)
 
-    def test_secret_rotation_check_runs_without_error(self):
+    def test_secret_rotation_check_runs_without_error(self) -> None:
         """The rotation check should run without raising exceptions."""
         import structlog
 
@@ -630,7 +630,7 @@ class TestG4_SecretRotation:
             _check_secret_rotation_age(mock_logger)
         return mock_logger
 
-    def test_warns_when_never_recorded(self):
+    def test_warns_when_never_recorded(self) -> None:
         """Unset SECRET_ROTATED_AT → warning (status=never_recorded)."""
         logger = self._call_with(None)
         warnings = [
@@ -641,7 +641,7 @@ class TestG4_SecretRotation:
         assert len(warnings) == 1
         assert warnings[0][1]["status"] == "never_recorded"
 
-    def test_warns_when_stale(self):
+    def test_warns_when_stale(self) -> None:
         """Rotation older than the window → warning (status=stale)."""
         from datetime import datetime, timedelta
 
@@ -656,7 +656,7 @@ class TestG4_SecretRotation:
         assert warnings[0][1]["status"] == "stale"
         assert warnings[0][1]["age_days"] > 90
 
-    def test_no_warning_when_fresh(self):
+    def test_no_warning_when_fresh(self) -> None:
         """Recent rotation → info (status=fresh), no warning."""
         from datetime import datetime
 
@@ -671,7 +671,7 @@ class TestG4_SecretRotation:
         assert len(infos) == 1
         assert infos[0][1]["status"] == "fresh"
 
-    def test_warns_on_malformed_date(self):
+    def test_warns_on_malformed_date(self) -> None:
         """A malformed SECRET_ROTATED_AT → warning (status=invalid_date)."""
         logger = self._call_with("not-a-date")
         warnings = [
@@ -682,7 +682,7 @@ class TestG4_SecretRotation:
         assert len(warnings) == 1
         assert warnings[0][1]["status"] == "invalid_date"
 
-    def test_validate_config_rejects_empty_secrets(self):
+    def test_validate_config_rejects_empty_secrets(self) -> None:
         """validate_config() should reject empty JWT_SECRET and FILE_ENCRYPTION_KEY."""
         from app.core.config import settings, validate_config
 
@@ -700,7 +700,7 @@ class TestG4_SecretRotation:
             settings.jwt_secret = orig_jwt
             settings.file_encryption_key = orig_key
 
-    def test_validate_config_rejects_placeholder_secrets(self):
+    def test_validate_config_rejects_placeholder_secrets(self) -> None:
         """validate_config() should reject secrets containing pattern words."""
         from app.core.config import settings, validate_config
 
@@ -716,7 +716,7 @@ class TestG4_SecretRotation:
             settings.jwt_secret = orig_jwt
             settings.file_encryption_key = orig_key
 
-    def test_validate_config_accepts_valid_secrets(self):
+    def test_validate_config_accepts_valid_secrets(self) -> None:
         """validate_config() should accept properly-set secrets."""
         from app.core.config import settings, validate_config
 
@@ -734,7 +734,7 @@ class TestG4_SecretRotation:
             settings.jwt_secret = orig_jwt
             settings.file_encryption_key = orig_key
 
-    def test_secret_validation_patterns(self):
+    def test_secret_validation_patterns(self) -> None:
         """The placeholder detection should catch known patterns."""
         from app.core.config import _validate_secret
 

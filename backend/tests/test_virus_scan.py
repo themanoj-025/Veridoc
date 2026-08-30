@@ -29,13 +29,13 @@ def _auth(token: str) -> dict:
 
 
 class TestVirusScanner:
-    def test_noop_scanner_reports_clean(self):
+    def test_noop_scanner_reports_clean(self) -> None:
         """The default scanner always reports clean (True)."""
         from app.services.ssrf_protection import NoopVirusScanner
 
         assert NoopVirusScanner().scan("/tmp/any-file.txt") is True
 
-    def test_get_virus_scanner_factory_returns_noop_by_default(self):
+    def test_get_virus_scanner_factory_returns_noop_by_default(self) -> None:
         """The factory returns the no-op scanner until a real one is configured."""
         from app.services.ssrf_protection import get_virus_scanner
 
@@ -51,7 +51,7 @@ class TestVirusScanner:
         sample_user_token,
         app,
         temp_upload_dir,
-    ):
+    ) -> None:
         """An EICAR file flagged by the scanner → 400, file removed, no doc created."""
         _override_get_user(app, sample_user)
         mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
@@ -89,7 +89,7 @@ class TestVirusScanner:
         sample_user_token,
         app,
         temp_upload_dir,
-    ):
+    ) -> None:
         """A clean file passes the no-op scan and proceeds to doc creation."""
         _override_get_user(app, sample_user)
         mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(

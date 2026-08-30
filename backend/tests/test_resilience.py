@@ -40,7 +40,7 @@ pytestmark = pytest.mark.slow
 
 
 @pytest_asyncio.fixture
-async def test_client():
+async def test_client() -> None:
     """Standard FastAPI test client with a mocked DB session.
 
     Sets lifespan=None on the app to avoid real DB/Chroma initialization.
@@ -59,7 +59,7 @@ async def test_client():
     session.add = MagicMock()
     session.delete = AsyncMock()
 
-    async def override_get_session():
+    async def override_get_session() -> None:
         yield session
 
     _app.dependency_overrides[get_session] = override_get_session
@@ -87,7 +87,7 @@ class TestPostgresFailure:
         self,
         mock_session_factory,
         test_client,
-    ):
+    ) -> None:
         """When the DB connection fails, the health endpoint should report
         the issue but the app should still respond (no crash)."""
         from sqlalchemy.exc import OperationalError
@@ -108,7 +108,7 @@ class TestPostgresFailure:
             body = resp.json()
             assert "dependencies" in body or "detail" in body
 
-    async def test_health_responds_even_without_db(self, test_client):
+    async def test_health_responds_even_without_db(self, test_client) -> None:
         """The health endpoint should always return a response,
         even if underlying DB operations fail (the endpoint itself
         should catch connection errors)."""
@@ -132,7 +132,7 @@ class TestChromaFailure:
         self,
         mock_search,
         test_client,
-    ):
+    ) -> None:
         """When ChromaDB search fails, the health endpoint should
         report the issue without crashing."""
         mock_search.side_effect = ConnectionError("Cannot connect to ChromaDB")
@@ -155,12 +155,12 @@ class TestChromaFailure:
 class TestRedisFailure:
     """Verify graceful degradation when Redis is unreachable."""
 
-    async def test_health_responds_without_redis(self, test_client):
+    async def test_health_responds_without_redis(self, test_client) -> None:
         """The health endpoint should still respond if Redis is down."""
         resp = await test_client.get("/api/v1/health")
         assert resp.status_code in (200, 503)
 
-    async def test_response_cache_fallback_to_memory(self):
+    async def test_response_cache_fallback_to_memory(self) -> None:
         """The response cache module should handle Redis failure
         by falling back to in-memory storage without crashing."""
         from app.services.response_cache import ResponseCache, reset_cache_for_testing
@@ -181,7 +181,7 @@ class TestRedisFailure:
 class TestMinIOFailure:
     """Verify graceful degradation when MinIO (S3 storage) is unavailable."""
 
-    async def test_health_responds_without_minio(self, test_client):
+    async def test_health_responds_without_minio(self, test_client) -> None:
         """The health endpoint should still respond even if MinIO is down."""
         resp = await test_client.get("/api/v1/health")
         assert resp.status_code in (200, 503)
@@ -200,7 +200,7 @@ class TestLLMFailure:
     """Verify the fallback-routing mechanism (D3) works when the
     primary LLM provider is unreachable."""
 
-    async def test_health_responds_without_llm(self, test_client):
+    async def test_health_responds_without_llm(self, test_client) -> None:
         """The health endpoint should still respond when LLM is unavailable."""
         resp = await test_client.get("/api/v1/health")
         assert resp.status_code in (200, 503)
@@ -282,7 +282,7 @@ class TestLLMFailure:
 class TestDependencyTimeouts:
     """Verify timeouts are respected and trigger graceful degradation."""
 
-    async def test_health_responds_during_timeout(self, test_client):
+    async def test_health_responds_during_timeout(self, test_client) -> None:
         """The app should not crash when dependencies are slow."""
         resp = await test_client.get("/api/v1/health")
         assert resp.status_code in (200, 503)
@@ -311,17 +311,17 @@ class TestRealContainerChaos:
     - Restarts the container and verifies recovery
     """
 
-    async def test_postgres_stopped(self):
+    async def test_postgres_stopped(self) -> None:
         pytest.skip("Tier 2: requires docker compose up -d")
 
-    async def test_chroma_stopped(self):
+    async def test_chroma_stopped(self) -> None:
         pytest.skip("Tier 2: requires docker compose up -d")
 
-    async def test_redis_stopped(self):
+    async def test_redis_stopped(self) -> None:
         pytest.skip("Tier 2: requires docker compose up -d")
 
-    async def test_minio_stopped(self):
+    async def test_minio_stopped(self) -> None:
         pytest.skip("Tier 2: requires docker compose up -d")
 
-    async def test_ollama_stopped(self):
+    async def test_ollama_stopped(self) -> None:
         pytest.skip("Tier 2: requires docker compose up -d")
