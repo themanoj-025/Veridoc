@@ -20,7 +20,7 @@ METRICS_PATH = EVAL_DIR / "squad_metrics.json"
 
 def download_squad() -> None:
     """Download SQuAD 2.0 dev split and compute summary metrics."""
-    print(f"Downloading SQuAD 2.0 dev from {SQUAD_URL}...")
+    logger.info(f"Downloading SQuAD 2.0 dev from {SQUAD_URL}...")
 
     response = httpx.get(SQUAD_URL, timeout=60, follow_redirects=True)
     response.raise_for_status()
@@ -55,20 +55,20 @@ def download_squad() -> None:
     # Save metrics only
     METRICS_PATH.write_text(json.dumps(metrics, indent=2))
 
-    print(f"\n  Total questions: {total_questions}")
-    print(f"  Answerable: {total_questions - unanswerable_count}")
-    print(f"  Unanswerable: {unanswerable_count}")
-    print(f"  Unique topics: {len(topics)}")
-    print(f"\nRaw data saved to: {SQUAD_PATH}")
-    print(f"Metrics saved to: {METRICS_PATH}")
+    logger.info(f"\n  Total questions: {total_questions}")
+    logger.info(f"  Answerable: {total_questions - unanswerable_count}")
+    logger.info(f"  Unanswerable: {unanswerable_count}")
+    logger.info(f"  Unique topics: {len(topics)}")
+    logger.info(f"\nRaw data saved to: {SQUAD_PATH}")
+    logger.info(f"Metrics saved to: {METRICS_PATH}")
 
 
 def main() -> None:
-    print("=" * 60)
-    print("Veridoc — Download SQuAD 2.0")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("Veridoc — Download SQuAD 2.0")
+    logger.info("=" * 60)
     download_squad()
-    print("=" * 60)
+    logger.info("=" * 60)
 
 
 if __name__ == "__main__":

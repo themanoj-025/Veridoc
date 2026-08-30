@@ -53,15 +53,13 @@ def status() -> None:
     queue = load_json(eval_dir / "continuous_feedback.json")
     gold = load_json(eval_dir / "gold_qa.json")
 
-    print(f"Feedback queue:      {len(queue)} entries")
-    print(f"Gold Q&A set:        {len(gold)} entries")
+    logger.info(f"Feedback queue:      {len(queue)} entries")
+    logger.info(f"Gold Q&A set:        {len(gold)} entries")
 
     if queue:
         down_count = sum(1 for e in queue if e.get("feedback") == "down")
-        print(f"  Thumbs-down:       {down_count}")
-        print(
-            f"  Avg faithfulness:  {sum(e.get('faithfulness_score', 0) or 0 for e in queue) / len(queue):.2f}"
-        )
+        logger.info(f"  Thumbs-down:       {down_count}")
+        logger.info(f"  Avg faithfulness:  {sum(e.get('faithfulness_score', 0) or 0 for e in queue) / len(queue):.2f}")
 
 
 def auto_promote(threshold: float = 0.8) -> int:
@@ -92,9 +90,9 @@ def auto_promote(threshold: float = 0.8) -> int:
     save_json(eval_dir / "gold_qa.json", gold)
     save_json(eval_dir / "continuous_feedback.json", remaining)
 
-    print(f"Auto-promoted {promoted} entries (threshold >= {threshold})")
-    print(f"Remaining in queue: {len(remaining)}")
-    print(f"Gold set now: {len(gold)} entries")
+    logger.info(f"Auto-promoted {promoted} entries (threshold >= {threshold})")
+    logger.info(f"Remaining in queue: {len(remaining)}")
+    logger.info(f"Gold set now: {len(gold)} entries")
     return promoted
 
 
@@ -105,22 +103,22 @@ def interactive_promote() -> int:
     gold = load_json(eval_dir / "gold_qa.json")
 
     if not queue:
-        print("No entries in the feedback queue.")
+        logger.info("No entries in the feedback queue.")
         return 0
 
     promoted = 0
     remaining = []
 
-    print(f"\n{'=' * 60}")
-    print(f"Reviewing {len(queue)} feedback entries")
-    print(f"{'=' * 60}\n")
+    logger.info(f"\n{'=' * 60}")
+    logger.info(f"Reviewing {len(queue)} feedback entries")
+    logger.info(f"{'=' * 60}\n")
 
     for i, entry in enumerate(queue):
-        print(f"\n--- Entry {i + 1}/{len(queue)} ---")
-        print(f"Question:    {entry.get('question', '?')[:200]}")
-        print(f"Answer:      {entry.get('answer', '?')[:300]}")
-        print(f"Faithfulness: {entry.get('faithfulness_score', 'N/A')}")
-        print(f"Feedback:    {entry.get('feedback', '?')}")
+        logger.info(f"\n--- Entry {i + 1}/{len(queue)} ---")
+        logger.info(f"Question:    {entry.get('question', '?')[:200]}")
+        logger.info(f"Answer:      {entry.get('answer', '?')[:300]}")
+        logger.info(f"Faithfulness: {entry.get('faithfulness_score', 'N/A')}")
+        logger.info(f"Feedback:    {entry.get('feedback', '?')}")
 
         while True:
             action = input("\n[A]ccept [R]eject [S]kip [Q]uit: ").strip().lower()
@@ -135,33 +133,33 @@ def interactive_promote() -> int:
                 }
                 gold.append(gold_entry)
                 promoted += 1
-                print("  ✓ Promoted to gold set")
+                logger.info("  ✓ Promoted to gold set")
                 break
             elif action in ("r", "reject"):
-                print("  ✗ Rejected")
+                logger.info("  ✗ Rejected")
                 break
             elif action in ("s", "skip"):
                 remaining.append(entry)
-                print("  → Skipped (kept in queue)")
+                logger.info("  → Skipped (kept in queue)")
                 break
             elif action in ("q", "quit"):
                 remaining.extend(queue[i:])
                 save_json(eval_dir / "gold_qa.json", gold)
                 save_json(eval_dir / "continuous_feedback.json", remaining)
-                print(f"\nSaved. Promoted: {promoted}, Remaining: {len(remaining)}")
+                logger.info(f"\nSaved. Promoted: {promoted}, Remaining: {len(remaining)}")
                 return promoted
             else:
-                print("  Please enter A, R, S, or Q")
+                logger.info("  Please enter A, R, S, or Q")
 
     # Save results
     save_json(eval_dir / "gold_qa.json", gold)
     save_json(eval_dir / "continuous_feedback.json", remaining)
 
-    print(f"\n{'=' * 60}")
-    print(f"Promoted: {promoted}")
-    print(f"Remaining in queue: {len(remaining)}")
-    print(f"Gold set now: {len(gold)} entries")
-    print(f"{'=' * 60}")
+    logger.info(f"\n{'=' * 60}")
+    logger.info(f"Promoted: {promoted}")
+    logger.info(f"Remaining in queue: {len(remaining)}")
+    logger.info(f"Gold set now: {len(gold)} entries")
+    logger.info(f"{'=' * 60}")
     return promoted
 
 

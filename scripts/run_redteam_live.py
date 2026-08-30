@@ -112,10 +112,10 @@ _COMPLIANCE_PATTERNS = [
 def load_test_cases() -> list[dict]:
     """Load the red-team test cases from JSON."""
     if not RED_TEAM_PATH.exists():
-        print(f"ERROR: {RED_TEAM_PATH} not found")
+        logger.error(f"ERROR: {RED_TEAM_PATH} not found")
         sys.exit(1)
     tests = json.loads(RED_TEAM_PATH.read_text(encoding="utf-8"))
-    print(f"  Loaded {len(tests)} red-team test cases from {RED_TEAM_PATH}")
+    logger.info(f"  Loaded {len(tests)} red-team test cases from {RED_TEAM_PATH}")
     return tests
 
 
@@ -182,19 +182,17 @@ def classify_response(text: str, test: dict) -> tuple[str, str, list[str]]:
 def print_results(results: list[dict]) -> None:
     """Print the results table."""
     print()
-    print(f"{'ID':<14} {'Name':<42} {'Severity':<10} {'Verdict':<10}")
-    print("-" * 76)
+    logger.info(f"{'ID':<14} {'Name':<42} {'Severity':<10} {'Verdict':<10}")
+    logger.info("-" * 76)
     for r in results:
         icon = "✅" if r["verdict"] == "PASS" else "❌"
-        print(
-            f"{icon} {r['id']:<12} {r['name'][:40]:<40} {r['severity']:<10} {r['verdict']:<10}"
-        )
+        logger.info(f"{icon} {r['id']:<12} {r['name'][:40]:<40} {r['severity']:<10} {r['verdict']:<10}")
     print()
 
     passed = sum(1 for r in results if r["verdict"] == "PASS")
     failed = sum(1 for r in results if r["verdict"] in ("FAIL", "ERROR"))
     total = len(results)
-    print(f"Summary: {passed}/{total} PASS, {failed}/{total} FAIL")
+    logger.error(f"Summary: {passed}/{total} PASS, {failed}/{total} FAIL")
 
 
 def update_security_notes(results: list[dict]) -> None:
@@ -257,7 +255,7 @@ def update_security_notes(results: list[dict]) -> None:
 
         if updated == existing:
             # Pattern didn't match — append instead
-            print("  (No existing red-team section found — appending)")
+            logger.info("  (No existing red-team section found — appending)")
             updated = existing + "\n\n" + new_section_text
 
         # Update the timestamp at the top
@@ -269,9 +267,9 @@ def update_security_notes(results: list[dict]) -> None:
         )
 
         SECURITY_NOTES_PATH.write_text(updated, encoding="utf-8")
-        print(f"\n→ Updated red-team results in {SECURITY_NOTES_PATH}")
+        logger.info(f"\n→ Updated red-team results in {SECURITY_NOTES_PATH}")
     else:
-        print(f"\n  WARNING: {SECURITY_NOTES_PATH} not found — saving new file")
+        logger.warning(f"\n  WARNING: {SECURITY_NOTES_PATH} not found — saving new file")
         SECURITY_NOTES_PATH.write_text(
             "# Veridoc -- Security Notes\n\n" + new_section_text + "\n",
             encoding="utf-8",
@@ -287,16 +285,14 @@ async def check_ollama_health(model: str) -> bool:
             data = resp.json()
             models = [m.get("name", "") for m in data.get("models", [])]
             if model in models:
-                print(f"  Model '{model}' found in Ollama")
+                logger.info(f"  Model '{model}' found in Ollama")
                 return True
             else:
-                print(
-                    f"  Model '{model}' NOT found (available: {', '.join(models[:5]) or 'none'})"
-                )
-                print(f"  Run: docker exec veridoc-ollama ollama pull {model}")
+                logger.warning(f"  Model '{model}' NOT found (available: {', '.join(models[:5]) or 'none'})")
+                logger.info(f"  Run: docker exec veridoc-ollama ollama pull {model}")
                 return False
     except (OSError, ValueError) as e:
-        print(f"  Cannot reach Ollama at {OLLAMA_BASE_URL}: {e}")
+        logger.info(f"  Cannot reach Ollama at {OLLAMA_BASE_URL}: {e}")
         return False
 
 
@@ -317,53 +313,49 @@ async def main() -> None:
     )
     args = parser.parse_args()
 
-    print("=" * 60)
-    print("Live Red-Team Tests (A2)")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("Live Red-Team Tests (A2)")
+    logger.info("=" * 60)
 
     # Dry-run: validate everything except API calls
     if args.dry_run:
-        print("\n[DRY RUN] Validating script setup...")
+        logger.info("\n[DRY RUN] Validating script setup...")
         tests = load_test_cases()
-        print(f"  Loaded {len(tests)} test cases")
-        print(f"  Refusal patterns: {len(_REFUSAL_PATTERNS)}")
-        print(f"  Compliance patterns: {len(_COMPLIANCE_PATTERNS)}")
+        logger.info(f"  Loaded {len(tests)} test cases")
+        logger.info(f"  Refusal patterns: {len(_REFUSAL_PATTERNS)}")
+        logger.info(f"  Compliance patterns: {len(_COMPLIANCE_PATTERNS)}")
         # Compile all patterns to check for errors
         for p in _REFUSAL_PATTERNS + _COMPLIANCE_PATTERNS:
             try:
                 re.compile(p)
             except re.error as e:
-                print(f"  Pattern ERROR: {p[:50]}... -> {e}")
+                logger.error(f"  Pattern ERROR: {p[:50]}... -> {e}")
                 return
-        print("  All patterns compile OK")
-        print("\n[OK] Dry run passed - ready for live execution")
+        logger.info("  All patterns compile OK")
+        logger.info("\n[OK] Dry run passed - ready for live execution")
         return
 
     # 1. Check Ollama health
-    print(f"\nChecking Ollama at {OLLAMA_BASE_URL}...")
+    logger.info(f"\nChecking Ollama at {OLLAMA_BASE_URL}...")
     healthy = await check_ollama_health(args.model)
     if not healthy:
-        print("\nERROR: Ollama is not reachable or model not found.")
-        print("Make sure the Docker stack is running:")
-        print("  docker compose up -d")
-        print(f"  docker exec veridoc-ollama ollama pull {args.model}")
+        logger.error("\nERROR: Ollama is not reachable or model not found.")
+        logger.info("Make sure the Docker stack is running:")
+        logger.info("  docker compose up -d")
+        logger.info(f"  docker exec veridoc-ollama ollama pull {args.model}")
         sys.exit(1)
 
     # 2. Load test cases
-    print("\nLoading red-team test cases...")
+    logger.info("\nLoading red-team test cases...")
     tests = load_test_cases()
 
     # 3. Run each test case
-    print(f"\nRunning {len(tests)} test cases against Ollama ({args.model})...")
-    print("  (each request has a 60-second timeout)\n")
+    logger.info(f"\nRunning {len(tests)} test cases against Ollama ({args.model})...")
+    logger.info("  (each request has a 60-second timeout)\n")
 
     results = []
     for i, test in enumerate(tests, 1):
-        print(
-            f"  [{i}/{len(tests)}] {test['id']}: {test['name'][:50]}...",
-            end=" ",
-            flush=True,
-        )
+        logger.info(f"  [{i}/{len(tests)}] {test['id']}: {test['name'][:50]}...")
 
         system_prompt, user_message = build_prompt(test)
 
@@ -386,12 +378,12 @@ async def main() -> None:
             )
 
             icon = {"PASS": "✅", "FAIL": "❌", "UNSURE": "⚠️"}.get(verdict, "?")
-            print(f"{icon} {verdict}")
+            logger.info(f"{icon} {verdict}")
             if verdict != "PASS":
-                print(f"    Excerpt: {excerpt[:120]}...")
+                logger.info(f"    Excerpt: {excerpt[:120]}...")
 
         except (RuntimeError, ValueError) as e:
-            print(f"❌ ERROR: {e}")
+            logger.error(f"❌ ERROR: {e}")
             results.append(
                 {
                     "id": test["id"],
@@ -405,9 +397,9 @@ async def main() -> None:
             )
 
     # 4. Print results table
-    print("\n" + "=" * 60)
-    print("RESULTS")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("RESULTS")
+    logger.info("=" * 60)
     print_results(results)
 
     # 5. Optionally update security notes
@@ -418,10 +410,10 @@ async def main() -> None:
     passed = sum(1 for r in results if r["verdict"] == "PASS")
     failed = sum(1 for r in results if r["verdict"] in ("FAIL", "ERROR"))
     if failed > 0:
-        print(f"\nFailure: {failed} test(s) FAILED or ERROR — review the results above")
+        logger.error(f"\nFailure: {failed} test(s) FAILED or ERROR — review the results above")
         sys.exit(1)
     else:
-        print(f"\nAll {passed} test(s) PASSED")
+        logger.info(f"\nAll {passed} test(s) PASSED")
         sys.exit(0)
 
 

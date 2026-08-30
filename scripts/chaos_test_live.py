@@ -103,41 +103,41 @@ async def test_dependency(service: str, quick: bool = False) -> dict:
     health_key = info["health_key"]
     tolerance = 5 if quick else info["tolerance_seconds"]
 
-    print(f"\n{'=' * 60}")
-    print(f"Testing: {service} ({container})")
-    print(f"{'=' * 60}")
+    logger.info(f"\n{'=' * 60}")
+    logger.info(f"Testing: {service} ({container})")
+    logger.info(f"{'=' * 60}")
 
     result = {"service": service, "container": container, "steps": [], "passed": True}
 
     # Step 1: Verify initial health
-    print("\n  [1/4] Initial health...")
+    logger.info("\n  [1/4] Initial health...")
     health = await check_health()
     if health["status_code"] == 200:
         dep_status = health["body"].get("dependencies", {}).get(health_key, {})
-        print(f"    OK - {health_key}: {dep_status.get('status', 'unknown')}")
+        logger.info(f"    OK - {health_key}: {dep_status.get('status', 'unknown')}")
     else:
-        print(f"    WARN - Health returned {health['status_code']}")
+        logger.warning(f"    WARN - Health returned {health['status_code']}")
 
     # Step 2: Stop container (with guaranteed restart via try/finally)
-    print(f"\n  [2/4] Stopping {service}...")
+    logger.info(f"\n  [2/4] Stopping {service}...")
     stopped = docker_compose_stop(service)
     result["steps"].append({"step": "stop_container", "passed": stopped})
     if not stopped:
-        print("    WARN - Stop command had issues")
+        logger.warning("    WARN - Stop command had issues")
         result["passed"] = False
 
     try:
         await asyncio.sleep(5)
 
         # Step 3: Verify graceful degradation
-        print("\n  [3/4] Verifying graceful degradation...")
+        logger.info("\n  [3/4] Verifying graceful degradation...")
         health = await check_health()
 
         if health["status_code"] == 503:
             deps = health["body"].get("dependencies", {})
             dep = deps.get(health_key, {})
             dep_status = dep.get("status", "unknown")
-            print(f"    PASS - Health 503 ({health_key}={dep_status})")
+            logger.info(f"    PASS - Health 503 ({health_key}={dep_status})")
             result["steps"].append(
                 {
                     "step": "graceful_degradation",
@@ -157,37 +157,33 @@ async def test_dependency(service: str, quick: bool = False) -> dict:
                     and ("error" in log_lower or "unhealthy" in log_lower)
                 ) or f"{key_lower}.*error" in log_lower
                 if has_structured_log:
-                    print(f"    PASS - Backend logged {health_key} failure")
+                    logger.error(f"    PASS - Backend logged {health_key} failure")
                 else:
-                    print(
-                        f"    INFO - Backend logs checked ({health_key} may not appear)"
-                    )
+                    logger.info(f"    INFO - Backend logs checked ({health_key} may not appear)")
                 if "error" in log_lower:
-                    print("    PASS - Error-level log entries found")
+                    logger.error("    PASS - Error-level log entries found")
             else:
-                print("    INFO - Could not read backend logs")
+                logger.info("    INFO - Could not read backend logs")
 
             # (b) Verify JSON error format
             if "dependencies" in health["body"] or "detail" in health["body"]:
-                print("    PASS - Clear error response with dependencies/detail")
+                logger.error("    PASS - Clear error response with dependencies/detail")
 
         elif health["status_code"] == 200:
             deps = health["body"].get("dependencies", {})
             dep = deps.get(health_key, {})
             dep_status = dep.get("status", "unknown")
-            print(f"    INFO - Health still 200 ({health_key}={dep_status})")
+            logger.info(f"    INFO - Health still 200 ({health_key}={dep_status})")
             if dep_status == "error":
-                print("    PASS - Health endpoint is resilient, reports partial error")
+                logger.error("    PASS - Health endpoint is resilient, reports partial error")
             elif service == "minio":
-                print(
-                    "    NOTE - MinIO is file-storage only, not checked on every health call"
-                )
+                logger.info("    NOTE - MinIO is file-storage only, not checked on every health call")
             else:
-                print(f"    WARN - {service} stopped but health unaffected")
+                logger.warning(f"    WARN - {service} stopped but health unaffected")
             result["steps"].append({"step": "graceful_degradation", "passed": True})
 
         elif health["status_code"] == 0:
-            print("    FAIL - App unresponsive (HTTP connection failed)")
+            logger.error("    FAIL - App unresponsive (HTTP connection failed)")
             result["passed"] = False
             result["steps"].append(
                 {
@@ -197,7 +193,7 @@ async def test_dependency(service: str, quick: bool = False) -> dict:
                 }
             )
         else:
-            print(f"    INFO - Health returned {health['status_code']}")
+            logger.info(f"    INFO - Health returned {health['status_code']}")
             result["steps"].append({"step": "graceful_degradation", "passed": True})
 
         # Verify API doesn't crash (use health endpoint which is always available)
@@ -206,12 +202,12 @@ async def test_dependency(service: str, quick: bool = False) -> dict:
 
     finally:
         # Guarantee container is restarted even on Ctrl+C or exception
-        print(f"\n  [4/4] Restarting {service}...")
+        logger.info(f"\n  [4/4] Restarting {service}...")
         started = docker_compose_start(service)
         if started:
-            print("    OK - Restart command issued")
+            logger.info("    OK - Restart command issued")
         else:
-            print("    WARN - Restart command had issues")
+            logger.warning("    WARN - Restart command had issues")
 
         # Wait for recovery
         recovered = False
@@ -221,17 +217,17 @@ async def test_dependency(service: str, quick: bool = False) -> dict:
             if health["status_code"] == 200:
                 dep = health["body"].get("dependencies", {}).get(health_key, {})
                 if dep.get("status") == "ok":
-                    print(f"    PASS - {service} recovered ({attempt * 2 + 2}s)")
+                    logger.info(f"    PASS - {service} recovered ({attempt * 2 + 2}s)")
                     recovered = True
                     break
                 else:
-                    print(f"    Waiting... {health_key}={dep.get('status', 'unknown')}")
+                    logger.info(f"    Waiting... {health_key}={dep.get('status', 'unknown')}")
 
         if recovered:
-            print("    PASS - Health endpoint healthy after restart")
+            logger.info("    PASS - Health endpoint healthy after restart")
             result["steps"].append({"step": "recovery", "passed": True})
         else:
-            print(f"    FAIL - {service} did not recover within {tolerance * 2}s")
+            logger.error(f"    FAIL - {service} did not recover within {tolerance * 2}s")
             result["steps"].append({"step": "recovery", "passed": False})
             result["passed"] = False
 
@@ -239,16 +235,16 @@ async def test_dependency(service: str, quick: bool = False) -> dict:
 
 
 async def verify_stack_healthy() -> bool:
-    print("Verifying Docker stack readiness...")
+    logger.info("Verifying Docker stack readiness...")
 
     code, output = run_cmd(["docker", "info", "--format", "{{.ServerVersion}}"])
     if code != 0:
-        print("  ERROR: Docker not running")
+        logger.error("  ERROR: Docker not running")
         return False
-    print(f"  Docker engine: {output.strip()}")
+    logger.info(f"  Docker engine: {output.strip()}")
 
     if not COMPOSE_FILE.exists():
-        print(f"  ERROR: {COMPOSE_FILE} not found")
+        logger.error(f"  ERROR: {COMPOSE_FILE} not found")
         return False
 
     code, output = run_cmd(
@@ -264,16 +260,16 @@ async def verify_stack_healthy() -> bool:
         ]
     )
     running = [s.strip() for s in output.strip().split("\n") if s.strip()]
-    print(f"  Running: {', '.join(running)}")
+    logger.info(f"  Running: {', '.join(running)}")
 
     health = await check_health()
     if health["status_code"] == 200:
         deps = health["body"].get("dependencies", {})
         all_ok = all(d.get("status") == "ok" for d in deps.values())
-        print(f"  Health: 200 (all ok: {all_ok})")
+        logger.info(f"  Health: 200 (all ok: {all_ok})")
         return all_ok
     else:
-        print(f"  Health: {health['status_code']} - stack may be degraded")
+        logger.info(f"  Health: {health['status_code']} - stack may be degraded")
         return False
 
 
@@ -289,13 +285,13 @@ async def main() -> None:
     )
     args = parser.parse_args()
 
-    print("=" * 60)
-    print("Live Chaos/Resilience Tests (D4 Tier 2)")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("Live Chaos/Resilience Tests (D4 Tier 2)")
+    logger.info("=" * 60)
 
     stack_ok = await verify_stack_healthy()
     if not stack_ok:
-        print("\nERROR: Docker stack not fully healthy. Run: docker compose up -d")
+        logger.error("\nERROR: Docker stack not fully healthy. Run: docker compose up -d")
         sys.exit(1)
 
     services = [args.service] if args.service else ALL_SERVICES
@@ -304,29 +300,29 @@ async def main() -> None:
         result = await test_dependency(service, quick=args.quick)
         results.append(result)
 
-    print("\n" + "=" * 60)
-    print("SUMMARY")
-    print("=" * 60)
-    print(f"{'Service':<12} {'Container':<20} {'Result':<10}")
-    print("-" * 42)
+    logger.info("\n" + "=" * 60)
+    logger.info("SUMMARY")
+    logger.info("=" * 60)
+    logger.info(f"{'Service':<12} {'Container':<20} {'Result':<10}")
+    logger.info("-" * 42)
     for r in results:
         icon = "PASS" if r["passed"] else "FAIL"
-        print(f"{r['service']:<12} {r['container']:<20} {icon:<10}")
+        logger.info(f"{r['service']:<12} {r['container']:<20} {icon:<10}")
 
     passed = sum(1 for r in results if r["passed"])
     total = len(results)
-    print(f"\n{passed}/{total} tests passed")
+    logger.info(f"\n{passed}/{total} tests passed")
 
     if passed < total:
-        print("\nFAILED tests require investigation. Check container logs:")
+        logger.error("\nFAILED tests require investigation. Check container logs:")
         for r in results:
             if not r["passed"]:
-                print(f"  docker logs {r['container']} --tail 30")
+                logger.info(f"  docker logs {r['container']} --tail 30")
         sys.exit(1)
     else:
-        print("\nAll resilience tests passed against live containers.")
-        print("Update the TestRealContainerChaos class in")
-        print("backend/tests/test_resilience.py to reflect real-container validation.")
+        logger.info("\nAll resilience tests passed against live containers.")
+        logger.info("Update the TestRealContainerChaos class in")
+        logger.info("backend/tests/test_resilience.py to reflect real-container validation.")
 
 
 if __name__ == "__main__":

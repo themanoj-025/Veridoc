@@ -91,10 +91,10 @@ def run_locust(
         "5",
     ]
 
-    print(f"\n{'=' * 60}")
-    print(f"  Load test: {users} concurrent users")
-    print(f"  Spawn rate: {spawn_rate}/s,  Run time: {run_time}")
-    print(f"{'=' * 60}")
+    logger.info(f"\n{'=' * 60}")
+    logger.info(f"  Load test: {users} concurrent users")
+    logger.info(f"  Spawn rate: {spawn_rate}/s,  Run time: {run_time}")
+    logger.info(f"{'=' * 60}")
 
     start = time.time()
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=180, check=False)
@@ -127,9 +127,9 @@ def run_locust(
                         )
                         stats["p50_ms"] = float(row.get("50% (ms)", 0))
                         stats["p95_ms"] = float(row.get("95% (ms)", 0))
-            print(f"  Parsed stats from CSV: {stats_path.name}")
+            logger.info(f"  Parsed stats from CSV: {stats_path.name}")
         except (ValueError, KeyError, OSError) as e:
-            print(f"  Warning: Could not parse CSV ({e}), falling back to stdout")
+            logger.warning(f"  Warning: Could not parse CSV ({e}), falling back to stdout")
 
     # ── Fallback: parse stdout summary line ─────────────────────
     if stats["total_requests"] == 0 and result.stdout:
@@ -149,13 +149,13 @@ def run_locust(
                             with contextlib.suppress(ValueError):
                                 stats["p95_ms"] = float(nxt)
 
-    print(f"\n  Results for {users} users ({elapsed:.1f}s):")
-    print(f"    Total requests: {stats['total_requests']}")
-    print(f"    RPS:           {stats['rps']:.1f}")
-    print(f"    Avg latency:   {stats['avg_ms']:.0f} ms")
-    print(f"    P50 latency:   {stats['p50_ms']:.0f} ms")
-    print(f"    P95 latency:   {stats['p95_ms']:.0f} ms")
-    print(f"    Error rate:    {stats['fail_percent']:.1f}%")
+    logger.info(f"\n  Results for {users} users ({elapsed:.1f}s):")
+    logger.info(f"    Total requests: {stats['total_requests']}")
+    logger.info(f"    RPS:           {stats['rps']:.1f}")
+    logger.info(f"    Avg latency:   {stats['avg_ms']:.0f} ms")
+    logger.info(f"    P50 latency:   {stats['p50_ms']:.0f} ms")
+    logger.info(f"    P95 latency:   {stats['p95_ms']:.0f} ms")
+    logger.error(f"    Error rate:    {stats['fail_percent']:.1f}%")
 
     if result.returncode != 0 and result.stderr and "ConnectionError" not in result.stderr:
         sys.stderr.write(f"  Stderr: {result.stderr[:300]}\n")
@@ -228,7 +228,7 @@ def write_report(results: list[dict], host: str, run_time: str) -> None:
 
     report_path = docs_dir / "load-test-report.md"
     report_path.write_text("\n".join(lines) + "\n")
-    print(f"\n[OK] Load test report: {report_path}")
+    logger.info(f"\n[OK] Load test report: {report_path}")
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -277,23 +277,23 @@ def main() -> None:
 
     # ── Pre-flight check ────────────────────────────────────────
     if not args.skip_check:
-        print("Checking API availability...", end=" ", flush=True)
+        logger.info("Checking API availability...")
         if not _check_api(args.host):
-            print("UNREACHABLE")
-            print(f"  Could not reach {args.host}/api/v1/health")
-            print("  Start the Veridoc stack:  docker compose up -d")
-            print("  Or use --skip-check to run anyway.")
+            logger.info("UNREACHABLE")
+            logger.info(f"  Could not reach {args.host}/api/v1/health")
+            logger.info("  Start the Veridoc stack:  docker compose up -d")
+            logger.info("  Or use --skip-check to run anyway.")
             sys.exit(1)
-        print("OK")
+        logger.info("OK")
 
     csv_dir = Path(args.csv_dir)
     results: list[dict] = []
 
-    print("Veridoc Load Test Runner")
-    print(f"  Host:      {args.host}")
-    print(f"  Users:     {args.concurrency}")
-    print(f"  Run time:  {args.run_time}")
-    print(f"  CSV dir:   {csv_dir}")
+    logger.info("Veridoc Load Test Runner")
+    logger.info(f"  Host:      {args.host}")
+    logger.info(f"  Users:     {args.concurrency}")
+    logger.info(f"  Run time:  {args.run_time}")
+    logger.info(f"  CSV dir:   {csv_dir}")
 
     for users in args.concurrency:
         csv_prefix = csv_dir / f"loadtest_{users}u"
@@ -308,9 +308,9 @@ def main() -> None:
 
     write_report(results, args.host, args.run_time)
 
-    print(f"\n{'=' * 60}")
-    print("  Load test complete!")
-    print(f"{'=' * 60}")
+    logger.info(f"\n{'=' * 60}")
+    logger.info("  Load test complete!")
+    logger.info(f"{'=' * 60}")
 
 
 if __name__ == "__main__":

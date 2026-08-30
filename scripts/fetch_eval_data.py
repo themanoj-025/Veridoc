@@ -21,7 +21,7 @@ SOURCES_FILE = Path(__file__).resolve().parent.parent / "docs" / "data-sources.m
 
 def fetch_arxiv_paper() -> None:
     """Fetch a recent AI/ML paper from arXiv."""
-    print("[1/4] Fetching arXiv paper...")
+    logger.info("[1/4] Fetching arXiv paper...")
 
     # Query arXiv API for recent ML papers
     url = "https://export.arxiv.org/api/query?search_query=cat:cs.AI&sortBy=submittedDate&sortOrder=descending&max_results=5"
@@ -50,9 +50,7 @@ def fetch_arxiv_paper() -> None:
     filepath = DATA_DIR / f"arxiv_{paper_id}.pdf"
     filepath.write_bytes(pdf_response.content)
 
-    print(
-        f"  Downloaded: {filepath.name} ({len(pdf_response.content)} bytes) from {pdf_url}"
-    )
+    logger.info(f"  Downloaded: {filepath.name} ({len(pdf_response.content)} bytes) from {pdf_url}")
 
     return {
         "id": f"arxiv_{paper_id}",
@@ -67,7 +65,7 @@ def fetch_arxiv_paper() -> None:
 
 def fetch_gutenberg_book() -> None:
     """Fetch a public-domain book from Project Gutenberg."""
-    print("[2/4] Fetching Project Gutenberg book...")
+    logger.info("[2/4] Fetching Project Gutenberg book...")
 
     # Use the Gutenberg book "The Art of War" (plain text UTF-8)
     # This is reliably available and public domain
@@ -81,10 +79,10 @@ def fetch_gutenberg_book() -> None:
     filepath = DATA_DIR / f"gutenberg_{book_id}.txt"
     filepath.write_bytes(response.content)
 
-    print(f"  Downloaded: {filepath.name} ({len(response.content)} bytes)")
+    logger.info(f"  Downloaded: {filepath.name} ({len(response.content)} bytes)")
 
     # Also create a synthetic "scanned PDF" version
-    print("  Generating synthetic scanned PDF (image-based)...")
+    logger.info("  Generating synthetic scanned PDF (image-based)...")
     try:
         # Create a simple PDF with the first page rendered to an image
         from PIL import Image, ImageDraw, ImageFont
@@ -112,9 +110,9 @@ def fetch_gutenberg_book() -> None:
         # Save as PDF
         scanned_path = DATA_DIR / "gutenberg_synthetic_scanned.pdf"
         img.save(scanned_path, "PDF", resolution=300)
-        print(f"  Created synthetic scanned PDF: {scanned_path.name}")
+        logger.info(f"  Created synthetic scanned PDF: {scanned_path.name}")
     except ImportError:
-        print("  Skipping synthetic scanned PDF (Pillow not available)")
+        logger.info("  Skipping synthetic scanned PDF (Pillow not available)")
 
     return {
         "id": f"gutenberg_{book_id}",
@@ -129,7 +127,7 @@ def fetch_gutenberg_book() -> None:
 
 def generate_synthetic_contract() -> None:
     """Generate a realistic synthetic contract document."""
-    print("[3/4] Generating synthetic contract...")
+    logger.info("[3/4] Generating synthetic contract...")
 
     contract_text = """SYNTHETIC — For evaluation only
 
@@ -191,7 +189,7 @@ Licensee's data.
     filepath = DATA_DIR / "synthetic_contract.txt"
     filepath.write_text(contract_text)
 
-    print(f"  Created: {filepath.name} ({len(contract_text)} bytes)")
+    logger.info(f"  Created: {filepath.name} ({len(contract_text)} bytes)")
 
     return {
         "id": "synthetic_contract_001",
@@ -206,7 +204,7 @@ Licensee's data.
 
 def fetch_github_readme() -> None:
     """Fetch a README from a well-known open-source project on GitHub."""
-    print("[4/4] Fetching open-source README from GitHub...")
+    logger.info("[4/4] Fetching open-source README from GitHub...")
 
     # Fetch the README from a well-known MIT-licensed project
     url = "https://raw.githubusercontent.com/expressjs/express/master/Readme.md"
@@ -222,7 +220,7 @@ def fetch_github_readme() -> None:
     filepath = DATA_DIR / "github_readme.md"
     filepath.write_bytes(response.content)
 
-    print(f"  Downloaded: {filepath.name} ({len(response.content)} bytes) from {url}")
+    logger.info(f"  Downloaded: {filepath.name} ({len(response.content)} bytes) from {url}")
 
     return {
         "id": "github_readme_express",
@@ -263,41 +261,41 @@ This document records the source and license of every data file used by Veridoc.
 
     SOURCES_FILE.parent.mkdir(parents=True, exist_ok=True)
     SOURCES_FILE.write_text(content)
-    print(f"\n  Written: {SOURCES_FILE}")
+    logger.info(f"\n  Written: {SOURCES_FILE}")
 
 
 def main() -> None:
-    print("=" * 60)
-    print("Veridoc — Fetch Evaluation Data")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("Veridoc — Fetch Evaluation Data")
+    logger.info("=" * 60)
 
     sources = []
 
     try:
         sources.append(fetch_arxiv_paper())
     except (OSError, ValueError) as e:
-        print(f"  ERROR fetching arXiv paper: {e}")
+        logger.error(f"  ERROR fetching arXiv paper: {e}")
 
     try:
         sources.append(fetch_gutenberg_book())
     except (OSError, ValueError) as e:
-        print(f"  ERROR fetching Gutenberg book: {e}")
+        logger.error(f"  ERROR fetching Gutenberg book: {e}")
 
     try:
         sources.append(generate_synthetic_contract())
     except (OSError, ValueError) as e:
-        print(f"  ERROR generating contract: {e}")
+        logger.error(f"  ERROR generating contract: {e}")
 
     try:
         sources.append(fetch_github_readme())
     except (OSError, ValueError) as e:
-        print(f"  ERROR fetching GitHub README: {e}")
+        logger.error(f"  ERROR fetching GitHub README: {e}")
 
     write_sources_file(sources)
 
-    print("\n" + "=" * 60)
-    print(f"Done! Downloaded {len(sources)} data sources to {DATA_DIR}")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info(f"Done! Downloaded {len(sources)} data sources to {DATA_DIR}")
+    logger.info("=" * 60)
 
 
 if __name__ == "__main__":

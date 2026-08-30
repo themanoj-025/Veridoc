@@ -50,7 +50,7 @@ DEFAULT_BM25_WEIGHT = 1.0  # implicit; BM25 and dense are equally weighted in RR
 def load_gold_qa() -> list[dict]:
     """Load gold Q&A pairs."""
     if not GOLD_QA_PATH.exists():
-        print(f"ERROR: {GOLD_QA_PATH} not found.")
+        logger.error(f"ERROR: {GOLD_QA_PATH} not found.")
         sys.exit(1)
     return json.loads(GOLD_QA_PATH.read_text())
 
@@ -315,15 +315,11 @@ def print_metrics_table(
 ) -> None:
     """Print a metrics row. Pass an empty dict for ``metrics`` when only the header is wanted."""
     if header:
-        print(
-            f"{'Config':<40} {'P@5':>8} {'P@10':>8} {'R@5':>8} {'R@10':>8} {'MRR':>8}"
-        )
-        print("-" * 80)
+        logger.info(f"{'Config':<40} {'P@5':>8} {'P@10':>8} {'R@5':>8} {'R@10':>8} {'MRR':>8}")
+        logger.info("-" * 80)
     elif metrics:
-        print(
-            f"{label:<40} {metrics['precision@5']:>7.2%} {metrics['precision@10']:>7.2%} "
-            f"{metrics['recall@5']:>7.2%} {metrics['recall@10']:>7.2%} {metrics['MRR']:>7.3f}"
-        )
+        logger.info(f"{label:<40} {metrics['precision@5']:>7.2%} {metrics['precision@10']:>7.2%} "
+            f"{metrics['recall@5']:>7.2%} {metrics['recall@10']:>7.2%} {metrics['MRR']:>7.3f}")
 
 
 def save_tuning_results(best_config: dict) -> None:
@@ -345,7 +341,7 @@ def save_tuning_results(best_config: dict) -> None:
         },
     }
     TUNING_RESULTS_PATH.write_text(_json.dumps(data, indent=2))
-    print(f"\n→ Saved tuning results to {TUNING_RESULTS_PATH}")
+    logger.info(f"\n→ Saved tuning results to {TUNING_RESULTS_PATH}")
 
 
 def main() -> None:
@@ -357,23 +353,23 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    print("=" * 60)
-    print("Hybrid Retrieval Weight Tuning")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("Hybrid Retrieval Weight Tuning")
+    logger.info("=" * 60)
 
     # 1. Load data
-    print("\nLoading gold Q&A set...")
+    logger.info("\nLoading gold Q&A set...")
     gold_qa = load_gold_qa()
-    print(f"  {len(gold_qa)} questions loaded")
+    logger.info(f"  {len(gold_qa)} questions loaded")
 
-    print("Loading document texts...")
+    logger.info("Loading document texts...")
     docs = load_document_texts()
-    print(f"  {len(docs)} documents loaded: {', '.join(docs.keys())}")
+    logger.info(f"  {len(docs)} documents loaded: {', '.join(docs.keys())}")
 
-    print("Building chunk corpus...")
+    logger.info("Building chunk corpus...")
     corpus = build_chunk_corpus(docs)
     total_chunks = sum(len(c) for c in corpus.values())
-    print(f"  {total_chunks} total chunks across all documents")
+    logger.info(f"  {total_chunks} total chunks across all documents")
 
     # 2. Define search grid
     if args.quick:
@@ -384,12 +380,10 @@ def main() -> None:
         bm25_weights = [0.3, 0.5, 0.7, 1.0, 1.5, 2.0]
 
     configs = list(itertools.product(rrf_k_values, bm25_weights))
-    print(
-        f"\nGrid: {len(configs)} configurations ({len(rrf_k_values)} k × {len(bm25_weights)} weights)"
-    )
+    logger.info(f"\nGrid: {len(configs)} configurations ({len(rrf_k_values)} k × {len(bm25_weights)} weights)")
 
     # 3. Evaluate default config
-    print(f"\nEvaluating default (k={DEFAULT_RRF_K}, w={DEFAULT_BM25_WEIGHT})...")
+    logger.info(f"\nEvaluating default (k={DEFAULT_RRF_K}, w={DEFAULT_BM25_WEIGHT})...")
     default_metrics = evaluate_config(
         corpus,
         gold_qa,
@@ -403,7 +397,7 @@ def main() -> None:
     )
 
     # 4. Grid search
-    print("\nGrid search:")
+    logger.info("\nGrid search:")
     print_metrics_table("Config", {}, header=True)
 
     best_config = None
@@ -424,14 +418,12 @@ def main() -> None:
             best_config = (rrf_k, bm25_w, metrics)
 
     # 5. Report
-    print("\n" + "=" * 60)
-    print(f"Best configuration: k={best_config[0]}, BM25 weight={best_config[1]}")
-    print(
-        f"  Composite score: {best_score:.4f} (vs default: {np.mean([default_metrics['precision@5'], default_metrics['recall@5'], default_metrics['MRR']]):.4f})"
-    )
+    logger.info("\n" + "=" * 60)
+    logger.info(f"Best configuration: k={best_config[0]}, BM25 weight={best_config[1]}")
+    logger.info(f"  Composite score: {best_score:.4f} (vs default: {np.mean([default_metrics['precision@5'], default_metrics['recall@5'], default_metrics['MRR']]):.4f})")
 
     # 6. Show all configs sorted
-    print("\nAll configurations sorted by composite score:")
+    logger.info("\nAll configurations sorted by composite score:")
     results.sort(key=lambda x: x[3], reverse=True)
     print_metrics_table("Config", {}, header=True)
     for rrf_k, bm25_w, metrics, score in results:
@@ -448,11 +440,10 @@ def main() -> None:
     save_tuning_results(best_entry)
 
     # 8. Print recommendations
-    print("\n" + "=" * 60)
-    print("RECOMMENDATION")
-    print("=" * 60)
-    print(
-        f"""
+    logger.info("\n" + "=" * 60)
+    logger.info("RECOMMENDATION")
+    logger.info("=" * 60)
+    logger.info(f"""
 Current defaults:
   RRF k = {DEFAULT_RRF_K}
   BM25 weight = {DEFAULT_BM25_WEIGHT}
@@ -467,18 +458,17 @@ external services.  The relative ranking of configurations is
 informative, but absolute metric values should be validated
 end-to-end on a live Docker stack with real sentence-transformer
 embeddings and cross-encoder reranking.
-"""
-    )
+""")
 
     # Print final short table
-    print("Before/After summary:")
-    print(f"  {'Metric':<20} {'Before':>10} {'After':>10} {'Δ':>10}")
-    print(f"  {'-' * 50}")
+    logger.info("Before/After summary:")
+    logger.info(f"  {'Metric':<20} {'Before':>10} {'After':>10} {'Δ':>10}")
+    logger.info(f"  {'-' * 50}")
     for metric in ["precision@5", "precision@10", "recall@5", "recall@10", "MRR"]:
         before = default_metrics[metric]
         after = best_config[2][metric]
         delta = after - before
-        print(f"  {metric:<20} {before:>8.2%} {after:>8.2%} {delta:>+9.2%}")
+        logger.info(f"  {metric:<20} {before:>8.2%} {after:>8.2%} {delta:>+9.2%}")
 
 
 if __name__ == "__main__":

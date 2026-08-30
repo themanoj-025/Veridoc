@@ -31,7 +31,7 @@ from app.services.retrieval import rewrite_query
 
 async def test_faithfulness_check() -> None:
     """Test the faithfulness check logic with known inputs."""
-    print("\n[1/5] Testing faithfulness check...")
+    logger.info("\n[1/5] Testing faithfulness check...")
     results = []
 
     test_cases = [
@@ -56,9 +56,9 @@ async def test_faithfulness_check() -> None:
         try:
             score = await faithfulness_check(tc["query"], tc["answer"], tc["context"])
             results.append({"query": tc["query"][:40], "score": score})
-            print(f"  Query: {tc['query'][:40]}... -> Faithfulness: {score:.2f}")
+            logger.info(f"  Query: {tc['query'][:40]}... -> Faithfulness: {score:.2f}")
         except (RuntimeError, ValueError) as e:
-            print(f"  Query: {tc['query'][:40]}... -> ERROR: {e}")
+            logger.error(f"  Query: {tc['query'][:40]}... -> ERROR: {e}")
             results.append({"query": tc["query"][:40], "score": 0.50, "error": str(e)})
 
     return results
@@ -66,7 +66,7 @@ async def test_faithfulness_check() -> None:
 
 def test_metrics_computation() -> None:
     """Test the metrics computation with sample results."""
-    print("\n[2/5] Testing metrics computation...")
+    logger.info("\n[2/5] Testing metrics computation...")
 
     sample_results = [
         {
@@ -116,11 +116,11 @@ def test_metrics_computation() -> None:
             and key not in ("total_questions",)
         ):
             pct = value * 100 if value <= 1 else value
-            print(f"  {key}: {pct:.1f}%")
+            logger.info(f"  {key}: {pct:.1f}%")
         elif isinstance(value, (float, int)) and "latency" in key.lower():
-            print(f"  {key}: {value:.0f}ms")
+            logger.info(f"  {key}: {value:.0f}ms")
         elif isinstance(value, int):
-            print(f"  {key}: {value}")
+            logger.info(f"  {key}: {value}")
 
     # Verify results
     assert (
@@ -132,13 +132,13 @@ def test_metrics_computation() -> None:
     assert (
         metrics["mean_faithfulness"] > 0.8
     ), f"Expected >0.8, got {metrics['mean_faithfulness']}"
-    print("  [OK] Metrics computation verified")
+    logger.info("  [OK] Metrics computation verified")
     return metrics
 
 
 async def test_query_rewrite() -> None:
     """Test the query rewrite logic."""
-    print("\n[3/5] Testing query rewrite logic...")
+    logger.info("\n[3/5] Testing query rewrite logic...")
     results = []
 
     # Test 1: Long query, no demonstrative
@@ -148,7 +148,7 @@ async def test_query_rewrite() -> None:
         "What is deep learning and how does it differ?", history
     )
     assert result is None, f"Expected None, got {result}"
-    print("  [OK] Long query without demonstrative: no rewrite (None)")
+    logger.info("  [OK] Long query without demonstrative: no rewrite (None)")
     results.append(
         {"test": "long_no_demonstrative", "rewritten": result, "expected": None}
     )
@@ -160,7 +160,7 @@ async def test_query_rewrite() -> None:
     ]
     result = await rewrite_query("what about it?", history)
     status = f"rewritten to: {result}" if result else "None (LLM unavailable in test)"
-    print(f"  Short with demonstrative: {status}")
+    logger.info(f"  Short with demonstrative: {status}")
     results.append({"test": "short_with_demonstrative", "rewritten": result})
 
     # Test 3: Short query without demonstrative -- no rewrite
@@ -171,7 +171,7 @@ async def test_query_rewrite() -> None:
     result = await rewrite_query("python", history)
     # "python" is short but has no demonstrative (this, that, it)
     assert result is None, f"Expected None, got {result}"
-    print("  [OK] Short without demonstrative: no rewrite (None)")
+    logger.info("  [OK] Short without demonstrative: no rewrite (None)")
     results.append(
         {"test": "short_no_demonstrative", "rewritten": result, "expected": None}
     )
@@ -179,7 +179,7 @@ async def test_query_rewrite() -> None:
     # Test 4: Empty history
     result = await rewrite_query("explain more", [])
     assert result is None, f"Expected None, got {result}"
-    print("  [OK] No history: no rewrite (None)")
+    logger.info("  [OK] No history: no rewrite (None)")
     results.append({"test": "no_history", "rewritten": result, "expected": None})
 
     return results
@@ -187,7 +187,7 @@ async def test_query_rewrite() -> None:
 
 def test_prompt_injection_defense() -> None:
     """Test the prompt injection defense mechanism."""
-    print("\n[4/5] Testing prompt injection defense...")
+    logger.info("\n[4/5] Testing prompt injection defense...")
 
     red_team_path = (
         Path(__file__).resolve().parent.parent
@@ -196,11 +196,11 @@ def test_prompt_injection_defense() -> None:
         / "prompt_injection.json"
     )
     if not red_team_path.exists():
-        print("  [!!] Red-team test file not found")
+        logger.warning("  [!!] Red-team test file not found")
         return False
 
     tests = json.loads(red_team_path.read_text(encoding="utf-8"))
-    print(f"  Loaded {len(tests)} red-team test cases")
+    logger.info(f"  Loaded {len(tests)} red-team test cases")
 
     # Build the defense prompt for each test case
     passed = 0
@@ -243,20 +243,16 @@ def test_prompt_injection_defense() -> None:
             status = "[PASS]"
         else:
             status = "[FAIL]"
-            print(
-                f"    {test['id']}: {status} boundary={has_boundary} data={has_data_marking} chunks={has_chunk_markers} isolated={malicious_inside_chunk}"
-            )
+            logger.info(f"    {test['id']}: {status} boundary={has_boundary} data={has_data_marking} chunks={has_chunk_markers} isolated={malicious_inside_chunk}")
 
-    print(
-        f"  Red-team summary: {passed}/{len(tests)} passed (defense mechanism present and isolating injected content)"
-    )
-    print(f"  FAIL rate: {len(tests) - passed}/{len(tests)}")
+    logger.info(f"  Red-team summary: {passed}/{len(tests)} passed (defense mechanism present and isolating injected content)")
+    logger.error(f"  FAIL rate: {len(tests) - passed}/{len(tests)}")
     return True
 
 
 def test_retrieval_integrity() -> None:
     """Test retrieval module imports and functions."""
-    print("\n[5/5] Testing retrieval module integrity...")
+    logger.info("\n[5/5] Testing retrieval module integrity...")
 
     from app.services.retrieval import (
         HybridRetriever,
@@ -269,7 +265,7 @@ def test_retrieval_integrity() -> None:
     assert callable(reciprocal_rank_fusion), "reciprocal_rank_fusion not callable"
     assert HybridRetriever is not None, "HybridRetriever not importable"
     assert callable(rewrite_query), "rewrite_query not callable"
-    print("  [OK] All retrieval module imports resolve correctly")
+    logger.info("  [OK] All retrieval module imports resolve correctly")
 
     # Test RRF
     bm25_results = [
@@ -281,7 +277,7 @@ def test_retrieval_integrity() -> None:
     merged = reciprocal_rank_fusion(bm25_results, dense_results)
     assert len(merged) == 2, f"Expected 2, got {len(merged)}"
     assert all("rrf_score" in r for r in merged), "Missing rrf_score"
-    print("  [OK] RRF fusion produces correct results")
+    logger.info("  [OK] RRF fusion produces correct results")
 
     # Test HybridRetriever
     retriever = HybridRetriever()
@@ -292,12 +288,12 @@ def test_retrieval_integrity() -> None:
 
     sig = inspect.signature(retriever.rerank)
     assert "batch_size" in sig.parameters, "Missing batch_size param"
-    print("  [OK] HybridRetriever has correct interface with batch_size param")
+    logger.info("  [OK] HybridRetriever has correct interface with batch_size param")
 
     # Test rerank fallback -- uses sync code, no asyncio.run needed
     # The rerank method is async, so we don't test it here in the sync section
     # Test RRF at module level
-    print("  [OK] HybridRetriever interface verified")
+    logger.info("  [OK] HybridRetriever interface verified")
 
     return True
 
@@ -388,7 +384,7 @@ async def write_reports(eval_results, metrics, rewrite_results, defense_ok) -> N
     )
 
     (eval_dir / "evaluation-report.md").write_text("\n".join(report) + "\n")
-    print(f"\n[OK] Evaluation report: {eval_dir / 'evaluation-report.md'}")
+    logger.info(f"\n[OK] Evaluation report: {eval_dir / 'evaluation-report.md'}")
 
     # ── Security Notes ──
     red_team_path = (
@@ -499,13 +495,13 @@ async def write_reports(eval_results, metrics, rewrite_results, defense_ok) -> N
     )
 
     (eval_dir / "security-notes.md").write_text("\n".join(security) + "\n")
-    print(f"[OK] Security notes: {eval_dir / 'security-notes.md'}")
+    logger.info(f"[OK] Security notes: {eval_dir / 'security-notes.md'}")
 
 
 async def main() -> None:
-    print("=" * 60)
-    print("Veridoc -- Standalone Evaluation & Security Tests")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("Veridoc -- Standalone Evaluation & Security Tests")
+    logger.info("=" * 60)
 
     eval_results = await test_faithfulness_check()
     metrics = test_metrics_computation()
@@ -515,9 +511,9 @@ async def main() -> None:
 
     await write_reports(eval_results, metrics, rewrite_results, defense_ok)
 
-    print("\n" + "=" * 60)
-    print("All standalone tests complete!")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("All standalone tests complete!")
+    logger.info("=" * 60)
 
 
 if __name__ == "__main__":
