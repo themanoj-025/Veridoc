@@ -31,7 +31,7 @@ export default function Dashboard() {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [mobileView, setMobileView] = useState<"docs" | "chat" | "viewer">("docs");
-  const [fullTextResults, setFullTextResults] = useState<any[] | null>(null);
+  const [fullTextResults, setFullTextResults] = useState<unknown[] | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
