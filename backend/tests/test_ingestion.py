@@ -14,7 +14,7 @@ from app.services.ingestion import _parse_txt, chunk_text, parse_document
 class TestTextParsing:
     """Tests for plain text file parsing."""
 
-    def test_parse_txt_basic(self, tmp_path):
+    def test_parse_txt_basic(self, tmp_path) -> None:
         """Test parsing a basic text file."""
         txt_file = tmp_path / "test.txt"
         txt_file.write_text("Hello, this is a test document.\nIt has multiple lines.\n")
@@ -25,7 +25,7 @@ class TestTextParsing:
         assert 0 in pages
         assert pages[0] == 1
 
-    def test_parse_txt_empty(self, tmp_path):
+    def test_parse_txt_empty(self, tmp_path) -> None:
         """Test parsing an empty text file."""
         txt_file = tmp_path / "empty.txt"
         txt_file.write_text("")
@@ -34,7 +34,7 @@ class TestTextParsing:
         assert text == ""
         assert pages == {0: 1}
 
-    def test_parse_txt_unicode(self, tmp_path):
+    def test_parse_txt_unicode(self, tmp_path) -> None:
         """Test parsing a text file with unicode characters."""
         txt_file = tmp_path / "unicode.txt"
         txt_file.write_text("Café résumé naïve 😊", encoding="utf-8")
@@ -50,7 +50,7 @@ class TestTextParsing:
 class TestChunking:
     """Tests for text chunking logic."""
 
-    def test_chunk_basic(self):
+    def test_chunk_basic(self) -> None:
         """Test basic chunking splits text into chunks of specified size."""
         text = "word " * 1000  # 1000 words → ~5000 chars
         chunks = chunk_text(text, doc_id="doc-1", doc_title="Test Doc")
@@ -62,7 +62,7 @@ class TestChunking:
         # (the default overlap adds up to 200 chars to chunks[1:])
         assert all(len(c["content"]) <= 1700 for c in chunks)
 
-    def test_chunk_small_text(self):
+    def test_chunk_small_text(self) -> None:
         """Test chunking text smaller than chunk size."""
         text = "This is a short document with only a few words."
         chunks = chunk_text(text, doc_id="doc-1", doc_title="Small Doc")
@@ -70,12 +70,12 @@ class TestChunking:
         assert len(chunks) == 1
         assert chunks[0]["content"] == text
 
-    def test_chunk_empty_text(self):
+    def test_chunk_empty_text(self) -> None:
         """Test chunking empty text returns empty list."""
         chunks = chunk_text("", doc_id="doc-1", doc_title="Empty Doc")
         assert len(chunks) == 0
 
-    def test_chunk_overlap(self):
+    def test_chunk_overlap(self) -> None:
         """Test that chunks have overlapping content."""
         text = "word " * 600  # 600 words → ~3000 chars
         chunks = chunk_text(
@@ -93,7 +93,7 @@ class TestChunking:
             words_1 = set(chunks[1]["content"].split())
             assert len(words_0 & words_1) > 0, "Chunks should have overlap"
 
-    def test_chunk_page_numbers(self):
+    def test_chunk_page_numbers(self) -> None:
         """Test that chunking assigns correct page numbers."""
         text = "page one content " * 50 + "page two content " * 50
         pages = {0: 1, 50: 2}  # char offset 50 → page 2
@@ -114,7 +114,7 @@ class TestChunking:
         assert len(page_numbers) > 0
         assert 1 in page_numbers
 
-    def test_chunk_incremental_indices(self):
+    def test_chunk_incremental_indices(self) -> None:
         """Test that chunk indices are sequential starting from 0."""
         text = "word " * 1000
         chunks = chunk_text(text, doc_id="doc-1", doc_title="Index Test")
@@ -129,12 +129,12 @@ class TestChunking:
 class TestParseDocument:
     """Tests for the parse_document dispatcher."""
 
-    def test_parse_unsupported_type(self):
+    def test_parse_unsupported_type(self) -> None:
         """Test that unsupported file types raise ValueError."""
         with pytest.raises(ValueError, match="Unsupported file type"):
             parse_document("/fake/path/file.xyz", "xyz")
 
-    def test_parse_txt_dispatch(self, tmp_path):
+    def test_parse_txt_dispatch(self, tmp_path) -> None:
         """Test that parse_document dispatches TXT correctly."""
         txt_file = tmp_path / "test.txt"
         txt_file.write_text("Test content")
@@ -148,7 +148,7 @@ class TestParseDocument:
 
 
 @pytest.mark.asyncio
-async def test_process_document_not_found():
+async def test_process_document_not_found() -> None:
     """Test processing a non-existent document logs error without crashing."""
     from app.services.ingestion import process_document
 
@@ -166,7 +166,7 @@ async def test_process_document_not_found():
 
 
 @pytest.mark.asyncio
-async def test_process_document_success(tmp_path):
+async def test_process_document_success(tmp_path) -> None:
     """Test the full document processing pipeline with mocks."""
     from app.models.document import Document
     from app.services.ingestion import process_document
@@ -227,7 +227,7 @@ async def test_process_document_success(tmp_path):
 # ── Edge Cases ───────────────────────────────────────────
 
 
-def test_chunk_exact_size_multiple():
+def test_chunk_exact_size_multiple() -> None:
     """Test chunking when text length is an exact multiple of chunk_size (chars)."""
     # Exactly 1500 chars (default chunk_size), one-word text with no separators
     text = "a" * 1500
@@ -239,14 +239,14 @@ def test_chunk_exact_size_multiple():
     assert len(chunks[0]["content"]) == 1500
 
 
-def test_chunk_single_word():
+def test_chunk_single_word() -> None:
     """Test chunking a single word."""
     chunks = chunk_text("hello", doc_id="doc-1", doc_title="Test")
     assert len(chunks) == 1
     assert chunks[0]["content"] == "hello"
 
 
-def test_parse_txt_special_chars(tmp_path):
+def test_parse_txt_special_chars(tmp_path) -> None:
     """Test parsing a text file with special characters."""
     txt_file = tmp_path / "special.txt"
     txt_file.write_text("Tab\tseparated\nNewline\r\nCRLF")

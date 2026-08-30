@@ -45,29 +45,29 @@ def run_eval_mod():
 
 
 class TestSlugMatching:
-    def test_normalize_strips_non_alphanumerics(self, eval_mod):
+    def test_normalize_strips_non_alphanumerics(self, eval_mod) -> None:
         assert (
             eval_mod._normalize_slug("github_readme_express") == "githubreadmeexpress"
         )
         assert eval_mod._normalize_slug("arXiv_2401.12345") == "arxiv240112345"
 
-    def test_exact_slug_matches_filename(self, eval_mod):
+    def test_exact_slug_matches_filename(self, eval_mod) -> None:
         assert eval_mod._slug_matches("gutenberg132", "gutenberg_132.txt") is True
 
-    def test_slug_with_suffix_matches_bare_filename(self, eval_mod):
+    def test_slug_with_suffix_matches_bare_filename(self, eval_mod) -> None:
         # gold slug 'synthetic_contract_001' → file 'synthetic_contract.txt'
         assert (
             eval_mod._slug_matches("syntheticcontract001", "synthetic_contract.txt")
             is True
         )
 
-    def test_readme_slug_matches_md(self, eval_mod):
+    def test_readme_slug_matches_md(self, eval_mod) -> None:
         assert eval_mod._slug_matches("githubreadmeexpress", "github_readme.md") is True
 
-    def test_unrelated_slug_does_not_match(self, eval_mod):
+    def test_unrelated_slug_does_not_match(self, eval_mod) -> None:
         assert eval_mod._slug_matches("zzznope", "synthetic_contract.txt") is False
 
-    def test_none_candidate_false(self, eval_mod):
+    def test_none_candidate_false(self, eval_mod) -> None:
         assert eval_mod._slug_matches("abc", None) is False
 
 
@@ -76,15 +76,15 @@ class TestSlugMatching:
 
 class TestWildcards:
     @pytest.mark.asyncio
-    async def test_star_returns_none(self, eval_mod):
+    async def test_star_returns_none(self, eval_mod) -> None:
         assert await eval_mod.resolve_document_ids("*") is None
 
     @pytest.mark.asyncio
-    async def test_empty_returns_none(self, eval_mod):
+    async def test_empty_returns_none(self, eval_mod) -> None:
         assert await eval_mod.resolve_document_ids("") is None
 
     @pytest.mark.asyncio
-    async def test_prefix_star_returns_none(self, eval_mod):
+    async def test_prefix_star_returns_none(self, eval_mod) -> None:
         assert await eval_mod.resolve_document_ids("arxiv_*") is None
 
 
@@ -96,7 +96,7 @@ class TestResolution:
     async_session_factory used by resolve_document_ids)."""
 
     @pytest.fixture(autouse=True)
-    def _reset_cache(self, eval_mod):
+    def _reset_cache(self, eval_mod) -> None:
         eval_mod._SLUG_CACHE.clear()
         yield
         eval_mod._SLUG_CACHE.clear()
@@ -123,7 +123,7 @@ class TestResolution:
         return FakeFactory()
 
     @pytest.mark.asyncio
-    async def test_resolves_slug_to_uuid(self, eval_mod, monkeypatch):
+    async def test_resolves_slug_to_uuid(self, eval_mod, monkeypatch) -> None:
         rows = [
             (
                 "11111111-1111-1111-1111-111111111111",
@@ -146,7 +146,7 @@ class TestResolution:
         assert ids2 == ids
 
     @pytest.mark.asyncio
-    async def test_contract_slug_suffix_matches(self, eval_mod, monkeypatch):
+    async def test_contract_slug_suffix_matches(self, eval_mod, monkeypatch) -> None:
         rows = [
             (
                 "33333333-3333-3333-3333-333333333333",
@@ -160,7 +160,7 @@ class TestResolution:
         assert ids == ["33333333-3333-3333-3333-333333333333"]
 
     @pytest.mark.asyncio
-    async def test_unmatched_slug_falls_back_to_none(self, eval_mod, monkeypatch):
+    async def test_unmatched_slug_falls_back_to_none(self, eval_mod, monkeypatch) -> None:
         rows = [
             ("11111111-1111-1111-1111-111111111111", "gutenberg_132.txt", "Art of War")
         ]
@@ -170,7 +170,7 @@ class TestResolution:
 
     @pytest.mark.asyncio
     async def test_db_error_falls_back_to_none(self, eval_mod, monkeypatch):
-        def boom(*args, **kwargs):
+        def boom(*args, **kwargs) -> None:
             raise RuntimeError("db down")
 
         bad_session = AsyncMock()
@@ -186,7 +186,7 @@ class TestResolution:
         assert await eval_mod.resolve_document_ids("gutenberg_132") is None
 
     @pytest.mark.asyncio
-    async def test_run_evaluation_uses_resolver(self, run_eval_mod, monkeypatch):
+    async def test_run_evaluation_uses_resolver(self, run_eval_mod, monkeypatch) -> dict[str, object]:
         """run_evaluation() in run_eval.py must call resolve_document_ids
         (not pass slugs raw) — wildcard questions must search all docs."""
         gold_qa = [
@@ -208,7 +208,7 @@ class TestResolution:
 
         calls: list = []
 
-        async def fake_run_single_eval(question, gold_answer, document_ids, use_hybrid):
+        async def fake_run_single_eval(question, gold_answer, document_ids, use_hybrid) -> dict[str, object]:
             calls.append(
                 {
                     "question": question,
@@ -249,13 +249,13 @@ class TestUseHybrid:
     """The `--compare` naive path must actually skip hybrid retrieval."""
 
     @pytest.mark.asyncio
-    async def test_naive_path_does_not_use_hybrid(self, eval_mod, monkeypatch):
+    async def test_naive_path_does_not_use_hybrid(self, eval_mod, monkeypatch) -> list[object]:
         """use_hybrid=False must take the dense-only branch (no HybridRetriever)."""
         import app.services.retrieval.dense as dense_mod
 
         calls = []
 
-        async def fake_dense_search(query, document_ids=None, top_k=20):
+        async def fake_dense_search(query, document_ids=None, top_k=20) -> list[object]:
             calls.append({"query": query, "document_ids": document_ids, "top_k": top_k})
             return [
                 {"content": "chunk-a", "document_id": "uuid-1234", "score": 0.9},
@@ -284,7 +284,7 @@ class TestUseHybrid:
         class FakeLLM:
             model_name = "fake-model"
 
-            async def chat(self, system_prompt, history, message):
+            async def chat(self, system_prompt, history, message) -> str:
                 return "Sun Tzu wrote the Art of War."
 
         monkeypatch.setattr(eval_mod, "get_llm", FakeLLM)

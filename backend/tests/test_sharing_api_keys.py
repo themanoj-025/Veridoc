@@ -35,7 +35,7 @@ class TestDocumentSharing:
         sample_user,
         sample_user_token,
         app,
-    ):
+    ) -> None:
         """A non-owner must get 404 when listing shares of a document."""
         _override_get_user(app, sample_user)
         # DocumentRepository.find_by_id_and_user returns None → not found
@@ -60,7 +60,7 @@ class TestDocumentSharing:
         sample_user,
         sample_user_token,
         app,
-    ):
+    ) -> None:
         """A non-owner must get 404 when trying to share a document."""
         _override_get_user(app, sample_user)
         mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
@@ -85,7 +85,7 @@ class TestDocumentSharing:
         sample_user,
         sample_user_token,
         app,
-    ):
+    ) -> None:
         """Updating a share requires being the document owner."""
         _override_get_user(app, sample_user)
 
@@ -114,7 +114,7 @@ class TestDocumentSharing:
 
 class TestApiKeys:
     @pytest.mark.asyncio
-    async def test_create_api_key_requires_auth(self, test_client: AsyncClient):
+    async def test_create_api_key_requires_auth(self, test_client: AsyncClient) -> None:
         """Creating an API key without a token → 401."""
         response = await test_client.post(
             "/api/v1/api-keys/",
@@ -130,7 +130,7 @@ class TestApiKeys:
         sample_user,
         sample_user_token,
         app,
-    ):
+    ) -> None:
         """Creating a key returns vid_<hex> once and never stores plaintext."""
         _override_get_user(app, sample_user)
         mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
@@ -164,7 +164,7 @@ class TestApiKeys:
         sample_user,
         sample_user_token,
         app,
-    ):
+    ) -> None:
         """Revoking a key that isn't yours → 404."""
         _override_get_user(app, sample_user)
         foreign_key = MagicMock()
@@ -181,7 +181,7 @@ class TestApiKeys:
         app.dependency_overrides.pop(get_current_user, None)
 
     @pytest.mark.asyncio
-    async def test_list_api_keys_requires_auth(self, test_client: AsyncClient):
+    async def test_list_api_keys_requires_auth(self, test_client: AsyncClient) -> None:
         """Listing API keys without a token → 401."""
         response = await test_client.get("/api/v1/api-keys/")
         assert response.status_code == 401

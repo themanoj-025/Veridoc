@@ -37,7 +37,7 @@ from slowapi.util import get_remote_address
 class TestGetUserIdentifier:
     """The key function must bucket by authenticated user ID when present."""
 
-    def test_uses_user_id_when_authenticated(self):
+    def test_uses_user_id_when_authenticated(self) -> None:
         """A Bearer access token yields ``user:<id>`` as the limit key."""
         uid = uuid.uuid4()
         token = create_access_token(uid)
@@ -48,7 +48,7 @@ class TestGetUserIdentifier:
         key = get_user_identifier(request)
         assert key == f"user:{uid}"
 
-    def test_falls_back_to_ip_when_unauthenticated(self):
+    def test_falls_back_to_ip_when_unauthenticated(self) -> None:
         """No auth header → bucket by client IP."""
         request = MagicMock()
         request.headers.get = MagicMock(return_value="")
@@ -57,7 +57,7 @@ class TestGetUserIdentifier:
         key = get_user_identifier(request)
         assert key == "ip:203.0.113.7"
 
-    def test_rejects_refresh_tokens(self):
+    def test_rejects_refresh_tokens(self) -> None:
         """A refresh token must NOT be treated as a user identity."""
         from app.core.security import create_refresh_token
 
@@ -96,14 +96,14 @@ def _build_limited_app(limit_str: str, key_func=None) -> FastAPI:
 
     @app.get("/limited")
     @limiter.limit(limit_str)
-    async def limited(request: Request):
+    async def limited(request: Request) -> dict[str, object]:
         return {"ok": True}
 
     return app
 
 
 @pytest.mark.asyncio
-async def test_429_returned_with_retry_after():
+async def test_429_returned_with_retry_after() -> None:
     """Exceeding the limit returns 429 with a numeric Retry-After header."""
     app = _build_limited_app("3/minute")
     async with AsyncClient(
@@ -122,7 +122,7 @@ async def test_429_returned_with_retry_after():
 
 
 @pytest.mark.asyncio
-async def test_rate_limit_headers_present_and_valued():
+async def test_rate_limit_headers_present_and_valued() -> None:
     """G6: every limited response carries Limit/Remaining/Reset headers."""
     app = _build_limited_app("5/minute")
     async with AsyncClient(
@@ -137,7 +137,7 @@ async def test_rate_limit_headers_present_and_valued():
 
 
 @pytest.mark.asyncio
-async def test_429_response_includes_rate_limit_headers():
+async def test_429_response_includes_rate_limit_headers() -> None:
     """G6: the 429 response itself also carries the rate-limit headers."""
     app = _build_limited_app("2/minute")
     async with AsyncClient(
@@ -157,7 +157,7 @@ async def test_429_response_includes_rate_limit_headers():
 
 
 @pytest.mark.asyncio
-async def test_per_user_rate_limits_are_independent():
+async def test_per_user_rate_limits_are_independent() -> None:
     """Two users with different JWTs get separate buckets (F6).
 
     User A burns through the limit and gets a 429; user B is unaffected
@@ -197,7 +197,7 @@ async def test_per_user_rate_limits_are_independent():
 
 
 @pytest.mark.asyncio
-async def test_per_user_same_user_shares_bucket():
+async def test_per_user_same_user_shares_bucket() -> None:
     """Repeated requests from the SAME user consume one bucket (F6)."""
     app = _build_limited_app("2/minute", key_func=get_user_identifier)
     token = create_access_token(uuid.uuid4())

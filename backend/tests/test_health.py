@@ -7,7 +7,7 @@ from httpx import AsyncClient
 
 
 @pytest.mark.asyncio
-async def test_health_endpoint_returns_ok(test_client: AsyncClient):
+async def test_health_endpoint_returns_ok(test_client: AsyncClient) -> None:
     """Test the health endpoint returns 200 when dependencies are reachable."""
     response = await test_client.get("/api/v1/health")
     # In test mode without real deps, some may be "error" but the endpoint
@@ -23,7 +23,7 @@ async def test_health_endpoint_returns_ok(test_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_health_endpoint_structure(test_client: AsyncClient):
+async def test_health_endpoint_structure(test_client: AsyncClient) -> None:
     """Test the health endpoint returns the expected JSON structure."""
     response = await test_client.get("/api/v1/health")
     data = response.json()
