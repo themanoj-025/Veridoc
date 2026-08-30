@@ -8,6 +8,8 @@ from unittest.mock import patch
 import pytest
 
 
+
+pytestmark = pytest.mark.slow
 class TestSettingsProperties:
     """Settings computed properties build correct URLs."""
 
@@ -163,6 +165,7 @@ class TestValidateConfig:
 
     def test_both_missing_shows_both_errors(self) -> None:
         from app.core.config import Settings, validate_config
+
 
         with patch("app.core.config.settings", Settings(
             jwt_secret="",

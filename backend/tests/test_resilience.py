@@ -32,6 +32,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 import pytest_asyncio
 
+
+pytestmark = pytest.mark.slow
 # ══════════════════════════════════════════════════════════════════════
 # Fixtures
 # ══════════════════════════════════════════════════════════════════════
@@ -233,6 +235,7 @@ class TestLLMFailure:
 
         # Build the wrapper manually (same pattern as _with_fallback_to_ollama)
         import asyncio
+
 
         class FallbackWrapper:
             def __init__(self, primary, fallback):

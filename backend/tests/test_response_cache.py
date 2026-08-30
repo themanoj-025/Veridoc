@@ -8,6 +8,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from app.core import config as _test_config
 from app.services.response_cache import (
+
+pytestmark = pytest.mark.slow
     ResponseCache,
     get_response_cache,
     reset_cache_for_testing,
@@ -55,6 +57,7 @@ def test_make_cache_key_differs_by_conversation():
 def test_make_cache_key_is_case_insensitive():
     """Query case is normalized so 'Hello' and 'hello' match."""
     from app.services.response_cache import _make_cache_key
+
 
     k1 = _make_cache_key("conv-1", "Hello World")
     k2 = _make_cache_key("conv-1", "hello world")
