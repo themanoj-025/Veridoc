@@ -65,7 +65,7 @@ structlog==24.4.0
 
 # ── Optional: Claude / OpenAI API ──
 anthropic==1.2.0
-openai==3.3.1
+openai==3.5.0
 
 # ── Testing ──
 pytest==8.3.3
