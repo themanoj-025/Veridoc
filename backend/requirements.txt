@@ -2,7 +2,7 @@
 fastapi==0.141.1  # bumped: 0.115.0 breaks UploadFile param with `from __future__ import annotations` (ForwardRef error); host runs 0.139.2
 uvicorn[standard]==0.52.4
 pydantic==2.13.4
-pydantic-settings==2.5.2
+pydantic-settings==2.15.0
 python-multipart==0.0.32
 
 # ── Database ──
