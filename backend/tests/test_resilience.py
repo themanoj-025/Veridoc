@@ -204,7 +204,7 @@ class TestLLMFailure:
         resp = await test_client.get("/api/v1/health")
         assert resp.status_code in (200, 503)
 
-    async def test_fallback_wrapper_uses_secondary_on_failure(self):
+    async def test_fallback_wrapper_uses_secondary_on_failure(self) -> None:
         """The FallbackWrapper should try the secondary provider
         when the primary fails.
 
@@ -237,21 +237,21 @@ class TestLLMFailure:
 
 
         class FallbackWrapper:
-            def __init__(self, primary, fallback):
+            def __init__(self, primary, fallback) -> None:
                 self._primary = primary
                 self._fallback = fallback
                 self._fallback_activated = False
                 self._active_model_name = primary.model_name
 
             @property
-            def model_name(self):
+            def model_name(self) -> None:
                 return self._active_model_name
 
             @property
-            def fallback_used(self):
+            def fallback_used(self) -> None:
                 return self._fallback_activated
 
-            async def chat(self, system_prompt, history, message):
+            async def chat(self, system_prompt, history, message) -> None:
                 try:
                     return await asyncio.wait_for(
                         self._primary.chat(system_prompt, history, message),

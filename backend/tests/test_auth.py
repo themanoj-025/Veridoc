@@ -17,7 +17,7 @@ from httpx import AsyncClient
 def _override_get_user(app, user):
     """Override the get_current_user dependency for a test."""
 
-    async def override():
+    async def override() -> None:
         return user
 
     app.dependency_overrides[get_current_user] = override
@@ -532,11 +532,11 @@ class TestNegativeSecurity:
         mock_db_session,
         app,
         sample_user,
-    ):
+    ) -> None:
         """A user accessing another user's document by ID must be rejected with 404."""
         from app.core.dependencies import get_current_user
 
-        async def override_user():
+        async def override_user() -> None:
             return sample_user
 
         app.dependency_overrides[get_current_user] = override_user
@@ -564,11 +564,11 @@ class TestNegativeSecurity:
         mock_db_session,
         app,
         sample_user,
-    ):
+    ) -> None:
         """A user accessing another user's conversation by ID must be rejected with 404."""
         from app.core.dependencies import get_current_user
 
-        async def override_user():
+        async def override_user() -> None:
             return sample_user
 
         app.dependency_overrides[get_current_user] = override_user

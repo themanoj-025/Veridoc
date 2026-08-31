@@ -28,12 +28,12 @@ class TestF3_RBAC:
     @pytest.mark.asyncio
     async def test_admin_role_required(
         self, test_client: AsyncClient, sample_user, app
-    ):
+    ) -> None:
         """A user with role='user' should be denied admin access with 403."""
         sample_user.role = "user"
         from app.core.dependencies import get_current_user
 
-        async def override():
+        async def override() -> None:
             return sample_user
 
         app.dependency_overrides[get_current_user] = override
@@ -50,12 +50,12 @@ class TestF3_RBAC:
     @pytest.mark.asyncio
     async def test_admin_role_granted(
         self, test_client: AsyncClient, sample_user, app, mock_db_session
-    ):
+    ) -> None:
         """A user with role='admin' should be granted admin access (200, not 403)."""
         sample_user.role = "admin"
         from app.core.dependencies import get_current_user
 
-        async def override():
+        async def override() -> None:
             return sample_user
 
         app.dependency_overrides[get_current_user] = override
@@ -616,7 +616,7 @@ class TestG4_SecretRotation:
 
     # ── G4: warning fires / does not fire appropriately ────────────
 
-    def _call_with(self, rotated_at, window_days=90):
+    def _call_with(self, rotated_at, window_days=90) -> None:
         """Invoke the check with a patched settings object and capture log calls."""
         from app.core import config as config_module
         from app.main import _check_secret_rotation_age

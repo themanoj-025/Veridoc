@@ -11,7 +11,7 @@ from httpx import AsyncClient
 
 
 def _override_get_user(app, user):
-    async def override():
+    async def override() -> None:
         return user
 
     app.dependency_overrides[get_current_user] = override
