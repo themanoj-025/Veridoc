@@ -36,7 +36,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 import pytest_asyncio
 
-
 pytestmark = pytest.mark.slow
 # ── Module-level skips ────────────────────────────────────────────
 # Skip if testcontainers not installed

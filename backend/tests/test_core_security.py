@@ -4,9 +4,7 @@ import uuid
 from unittest.mock import patch
 
 import pytest
-
 from app.core.security import (
-    _COMPLEXITY_CATEGORIES,
     create_access_token,
     create_refresh_token,
     decode_token,

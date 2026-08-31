@@ -1,9 +1,7 @@
 """Tests for app.core.config — Settings model and validation."""
 
-import os
-from unittest.mock import patch
 
-from app.core.config import Settings, _PLACEHOLDER_PATTERNS, _validate_secret
+from app.core.config import _PLACEHOLDER_PATTERNS, Settings, _validate_secret
 
 
 class TestSettings:
@@ -50,7 +48,7 @@ class TestSettings:
     def test_redis_url_without_password(self) -> None:
         s = Settings(redis_host="localhost", redis_port=6379, redis_db=0)
         url = s.redis_url
-        assert "redis://localhost:6379/0" == url
+        assert url == "redis://localhost:6379/0"
 
     def test_redis_url_empty_host(self) -> None:
         s = Settings(redis_host="")

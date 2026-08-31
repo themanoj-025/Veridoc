@@ -1,6 +1,5 @@
 """Tests for Veridoc text chunking service."""
 
-import pytest
 
 from app.services.chunking import recursive_chunk_text
 

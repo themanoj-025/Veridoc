@@ -23,6 +23,12 @@ ignore = [
     "RUF102",  # invalid-rule-code — forward compat
     "PLC0415", # import-outside-top-level — lazy imports
     "G201",    # logging exception info — intentional
+    "F821",    # undefined name — structlog logger + from __future__ annotations
+    "G003",    # logging f-string concatenation — structlog pattern
+    "SIM102",  # collapsible if — readability preference
+    "RUF012",  # mutable class default — Pydantic/Django pattern
+    "BLE001",  # blind except — defensive coding
+    "DTZ005",  # datetime.now() without tz — test fixtures
 ]
 
 [tool.ruff.lint.per-file-ignores]
