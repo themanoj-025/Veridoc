@@ -22,9 +22,7 @@ ignore = [
     "RUF001",  # ambiguous unicode — intentional multiplication sign
     "RUF102",  # invalid-rule-code — forward compat
     "PLC0415", # import-outside-top-level — lazy imports
-    "BM25",    # blind match — pattern matching style
     "G201",    # logging exception info — intentional
-    "F300",    # f-string without placeholder — intentional
 ]
 
 [tool.ruff.lint.per-file-ignores]
