@@ -38,7 +38,7 @@ ignore = [
 "backend/alembic/**/*.py" = ["SIM105"]  # migration scripts use try-except-pass for row-level error handling
 
 [tool.pytest.ini_options]
-addopts = "-m 'not slow'"
+addopts = "-m 'not slow' --cov --cov-fail-under=50"
 testpaths = ["backend/tests", "scripts"]
 python_files = ["test_*.py"]
 asyncio_mode = "auto"
