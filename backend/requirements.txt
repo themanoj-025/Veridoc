@@ -61,7 +61,7 @@ redis[hiredis]==8.1.0
 prometheus-fastapi-instrumentator==8.1.0  # 8.1 required for fastapi>=0.116 router handling (was ==7.0.1); exact pin per repo convention
 
 # ── Structured Logging ──
-structlog==24.4.0
+structlog==26.1.0
 
 # ── Optional: Claude / OpenAI API ──
 anthropic==1.2.0
