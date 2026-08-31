@@ -18,7 +18,7 @@ EICAR = b"X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
 
 
 def _override_get_user(app, user):
-    async def override():
+    async def override() -> None:
         return user
 
     app.dependency_overrides[get_current_user] = override

@@ -24,7 +24,7 @@ SCRIPT_PATH = Path(__file__).resolve().parent.parent.parent / "scripts" / "run_e
 
 
 @pytest.fixture
-def eval_mod():
+def eval_mod() -> None:
     """Lazily import app.services.evaluation (heavy import chain)."""
     from app.services import evaluation as mod
 
@@ -32,7 +32,7 @@ def eval_mod():
 
 
 @pytest.fixture
-def run_eval_mod():
+def run_eval_mod() -> None:
     """Load scripts/run_eval.py lazily (heavy import chain)."""
     spec = importlib.util.spec_from_file_location("run_eval_under_test", SCRIPT_PATH)
     assert spec and spec.loader
@@ -101,7 +101,7 @@ class TestResolution:
         yield
         eval_mod._SLUG_CACHE.clear()
 
-    def _fake_factory(self, rows):
+    def _fake_factory(self, rows) -> None:
         """Build a fake async_session_factory returning *rows*.
 
         The session is an AsyncMock (``await session.execute(...)``) but the
@@ -117,7 +117,7 @@ class TestResolution:
         fake_session.__aexit__ = AsyncMock(return_value=False)
 
         class FakeFactory:
-            def __call__(self):
+            def __call__(self) -> None:
                 return fake_session
 
         return FakeFactory()
@@ -169,7 +169,7 @@ class TestResolution:
         assert await eval_mod.resolve_document_ids("nope_does_not_exist") is None
 
     @pytest.mark.asyncio
-    async def test_db_error_falls_back_to_none(self, eval_mod, monkeypatch):
+    async def test_db_error_falls_back_to_none(self, eval_mod, monkeypatch) -> None:
         def boom(*args, **kwargs) -> None:
             raise RuntimeError("db down")
 
@@ -178,7 +178,7 @@ class TestResolution:
         bad_session.__aexit__ = AsyncMock(return_value=False)
 
         class BadFactory:
-            def __call__(self):
+            def __call__(self) -> None:
                 return bad_session
 
         monkeypatch.setattr(eval_mod, "async_session_factory", BadFactory())
@@ -272,7 +272,7 @@ class TestUseHybrid:
         monkeypatch.setattr(dense_mod, "dense_search", fake_dense_search)
 
         class FakeHybrid:
-            def __init__(self):
+            def __init__(self) -> None:
                 raise AssertionError(
                     "HybridRetriever must NOT be used on the naive path"
                 )

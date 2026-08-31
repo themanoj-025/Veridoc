@@ -84,7 +84,7 @@ class _TestVectorStore:
     ChromaDB instance.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         import chromadb
 
         self._client = chromadb.EphemeralClient()
@@ -314,7 +314,7 @@ async def test_process_document_end_to_end(
     pg_engine_and_factory,
     sample_text_file,
     temp_dir,
-):
+) -> None:
     """Call ``process_document()`` with a real Postgres session factory,
     patched embedding model, and a ``_TestVectorStore`` (EphemeralClient).
     Then verify:
