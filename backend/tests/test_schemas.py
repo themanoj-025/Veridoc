@@ -4,12 +4,9 @@ import uuid
 from datetime import datetime
 
 import pytest
-from pydantic import ValidationError
-
 from app.schemas.auth import UserCreate, UserLogin, UserResponse
 from app.schemas.document import DocumentResponse, DocumentUploadResponse
-from app.schemas.chat import ChatRequest
-from app.schemas.sharing import ShareCreate
+from pydantic import ValidationError
 
 
 class TestUserCreate:

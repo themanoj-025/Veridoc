@@ -3,7 +3,6 @@
 import os
 
 import pytest
-
 from app.services.email_sender import (
     _get_base_url,
     get_dev_email_sender,

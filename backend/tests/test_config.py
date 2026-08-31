@@ -7,8 +7,6 @@ from unittest.mock import patch
 
 import pytest
 
-
-
 pytestmark = pytest.mark.slow
 class TestSettingsProperties:
     """Settings computed properties build correct URLs."""

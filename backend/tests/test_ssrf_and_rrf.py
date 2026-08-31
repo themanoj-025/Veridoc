@@ -4,11 +4,10 @@ import socket
 from unittest.mock import patch
 
 import pytest
-
 from app.services.retrieval.rrf import reciprocal_rank_fusion
 from app.services.ssrf_protection import (
-    NoopVirusScanner,
     _PRIVATE_RANGES,
+    NoopVirusScanner,
     validate_upload_url,
 )
 
@@ -26,37 +25,31 @@ class TestSSRFProtection:
 
     @patch("app.services.ssrf_protection.socket.gethostbyname")
     def test_private_ip_blocked(self, mock_resolve: object) -> None:
-        from unittest.mock import MagicMock
         mock_resolve.return_value = "127.0.0.1"
         assert validate_upload_url("http://evil.com/file.pdf") is False
 
     @patch("app.services.ssrf_protection.socket.gethostbyname")
     def test_private_192_168_blocked(self, mock_resolve: object) -> None:
-        from unittest.mock import MagicMock
         mock_resolve.return_value = "192.168.1.1"
         assert validate_upload_url("http://evil.com/file.pdf") is False
 
     @patch("app.services.ssrf_protection.socket.gethostbyname")
     def test_private_10_blocked(self, mock_resolve: object) -> None:
-        from unittest.mock import MagicMock
         mock_resolve.return_value = "10.0.0.1"
         assert validate_upload_url("http://evil.com/file.pdf") is False
 
     @patch("app.services.ssrf_protection.socket.gethostbyname")
     def test_link_local_blocked(self, mock_resolve: object) -> None:
-        from unittest.mock import MagicMock
         mock_resolve.return_value = "169.254.1.1"
         assert validate_upload_url("http://evil.com/file.pdf") is False
 
     @patch("app.services.ssrf_protection.socket.gethostbyname")
     def test_public_ip_allowed(self, mock_resolve: object) -> None:
-        from unittest.mock import MagicMock
         mock_resolve.return_value = "8.8.8.8"
         assert validate_upload_url("http://example.com/file.pdf") is True
 
     @patch("app.services.ssrf_protection.socket.gethostbyname")
     def test_dns_failure(self, mock_resolve: object) -> None:
-        from unittest.mock import MagicMock
         mock_resolve.side_effect = socket.gaierror("DNS failure")
         assert validate_upload_url("http://unknown.host/file.pdf") is False
 
