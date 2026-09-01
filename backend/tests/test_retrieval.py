@@ -13,6 +13,8 @@ from app.services.retrieval import (
     rewrite_query,
 )
 
+pytestmark = pytest.mark.unit
+
 # ── Sample test data ─────────────────────────────────────
 
 SAMPLE_CHUNKS = [

@@ -29,6 +29,9 @@ from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
+pytestmark = pytest.mark.slow
+pytestmark = pytest.mark.integration
+
 # ════════════════════════════════════════════════════════════════
 # F6: Per-user rate-limit key
 # ════════════════════════════════════════════════════════════════

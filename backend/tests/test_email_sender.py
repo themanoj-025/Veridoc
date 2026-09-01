@@ -10,6 +10,8 @@ from app.services.email_sender import (
     send_verification_email,
 )
 
+pytestmark = pytest.mark.slow
+pytestmark = pytest.mark.integration
 
 class TestGetBaseUrl:
     """Tests for _get_base_url helper."""

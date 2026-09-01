@@ -33,6 +33,9 @@ import pytest
 import pytest_asyncio
 
 pytestmark = pytest.mark.slow
+pytestmark = pytest.mark.integration
+
+pytestmark = pytest.mark.slow
 # ══════════════════════════════════════════════════════════════════════
 # Fixtures
 # ══════════════════════════════════════════════════════════════════════

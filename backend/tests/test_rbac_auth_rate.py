@@ -17,6 +17,9 @@ from app.models.message import Message
 from app.models.user import User
 from httpx import AsyncClient
 
+pytestmark = pytest.mark.slow
+pytestmark = pytest.mark.integration
+
 # ════════════════════════════════════════════════════════════════
 # F3: RBAC — role-based admin check
 # ════════════════════════════════════════════════════════════════

@@ -8,6 +8,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from app.services.ingestion import _parse_txt, chunk_text, parse_document
 
+pytestmark = pytest.mark.unit
+
 # ── TXT Parsing ──────────────────────────────────────────
 
 

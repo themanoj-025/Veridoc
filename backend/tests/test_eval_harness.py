@@ -20,6 +20,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+pytestmark = pytest.mark.unit
+
 SCRIPT_PATH = Path(__file__).resolve().parent.parent.parent / "scripts" / "run_eval.py"
 
 
