@@ -241,7 +241,7 @@ async def delete_document(
     document_id: uuid.UUID,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-) -> dict[str, str]:
+) -> None:
     """Delete a document and its chunks."""
     bind_log_context(document_id=str(document_id))
     doc_repo = DocumentRepository(session)
