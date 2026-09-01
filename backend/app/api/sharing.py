@@ -187,7 +187,7 @@ async def delete_share(
     share_id: uuid.UUID,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-) -> dict[str, str]:
+) -> None:
     """Remove a share. Only the document owner can unshare."""
     share = await session.get(DocumentShare, share_id)
     if not share:

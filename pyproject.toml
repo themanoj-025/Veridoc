@@ -41,6 +41,7 @@ ignore = [
 addopts = "-m 'not slow' --cov --cov-fail-under=50"
 testpaths = ["backend/tests", "scripts"]
 python_files = ["test_*.py"]
+pythonpath = ["."]
 asyncio_mode = "auto"
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
