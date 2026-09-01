@@ -3,6 +3,7 @@
 
 from app.services.chunking import recursive_chunk_text
 
+pytestmark = pytest.mark.unit
 
 class TestRecursiveChunkText:
     """Tests for recursive boundary-aware text chunking."""

@@ -3,6 +3,8 @@
 
 from app.core.config import _PLACEHOLDER_PATTERNS, Settings, _validate_secret
 
+pytestmark = pytest.mark.slow
+pytestmark = pytest.mark.integration
 
 class TestSettings:
     """Test Settings model defaults and properties."""

@@ -5,6 +5,8 @@ from __future__ import annotations
 import pytest
 from httpx import AsyncClient
 
+pytestmark = pytest.mark.slow
+pytestmark = pytest.mark.integration
 
 @pytest.mark.asyncio
 async def test_health_endpoint_returns_ok(test_client: AsyncClient) -> None:

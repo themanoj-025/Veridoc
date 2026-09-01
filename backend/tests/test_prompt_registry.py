@@ -3,6 +3,7 @@
 
 from app.services.prompt_registry import get_prompt_template, get_prompt_version
 
+pytestmark = pytest.mark.unit
 
 class TestGetPromptVersion:
     """Tests for prompt version lookup."""

@@ -14,6 +14,9 @@ import pytest
 from app.core.dependencies import get_current_user
 from httpx import AsyncClient
 
+pytestmark = pytest.mark.slow
+pytestmark = pytest.mark.integration
+
 EICAR = b"X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
 
 

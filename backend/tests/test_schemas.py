@@ -8,6 +8,7 @@ from app.schemas.auth import UserCreate, UserLogin, UserResponse
 from app.schemas.document import DocumentResponse, DocumentUploadResponse
 from pydantic import ValidationError
 
+pytestmark = pytest.mark.unit
 
 class TestUserCreate:
     """Tests for UserCreate schema."""
