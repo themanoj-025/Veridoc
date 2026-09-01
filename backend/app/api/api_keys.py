@@ -114,7 +114,7 @@ async def revoke_api_key(
     key_id: uuid.UUID,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-) -> Any:
+) -> None:
     """Revoke (delete) an API key. Irreversible."""
     key = await session.get(ApiKey, key_id)
     if not key or key.user_id != user.id:

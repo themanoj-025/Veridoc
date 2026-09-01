@@ -168,7 +168,7 @@ async def delete_conversation(
     conversation_id: uuid.UUID,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-) -> dict[str, str]:
+) -> None:
     """Delete a conversation."""
     bind_log_context(conversation_id=str(conversation_id))
     conv_repo = ConversationRepository(session)
