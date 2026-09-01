@@ -13,6 +13,8 @@ from app.services.response_cache import (
     reset_cache_for_testing,
 )
 
+pytestmark = pytest.mark.unit
+
 pytestmark = pytest.mark.slow
 
 settings = _test_config.settings

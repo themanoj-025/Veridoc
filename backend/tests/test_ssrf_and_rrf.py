@@ -11,6 +11,7 @@ from app.services.ssrf_protection import (
     validate_upload_url,
 )
 
+pytestmark = pytest.mark.unit
 
 class TestSSRFProtection:
     """Test validate_upload_url."""

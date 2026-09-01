@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
+pytestmark = pytest.mark.unit
 
 class TestValidateUploadUrl:
     """validate_upload_url blocks private/link-local IPs."""

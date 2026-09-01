@@ -17,6 +17,7 @@ from app.core.security import (
     verify_password,
 )
 
+pytestmark = pytest.mark.unit
 
 class TestPasswordComplexity:
     """Test validate_password_complexity."""

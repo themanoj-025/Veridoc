@@ -11,6 +11,9 @@ from app.core.dependencies import get_current_user
 from app.core.security import create_access_token, decode_token, hash_password
 from httpx import AsyncClient
 
+pytestmark = pytest.mark.slow
+pytestmark = pytest.mark.integration
+
 # ── Helpers ──────────────────────────────────────────────
 
 

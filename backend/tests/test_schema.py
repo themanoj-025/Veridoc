@@ -27,6 +27,8 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+pytestmark = pytest.mark.unit
+
 pytestmark = pytest.mark.slow
 
 # ── Fixture: real in-memory SQLite DB ────────────────────

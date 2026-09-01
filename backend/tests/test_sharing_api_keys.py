@@ -9,6 +9,8 @@ import pytest
 from app.core.dependencies import get_current_user
 from httpx import AsyncClient
 
+pytestmark = pytest.mark.slow
+pytestmark = pytest.mark.integration
 
 def _override_get_user(app, user):
     async def override() -> None:
