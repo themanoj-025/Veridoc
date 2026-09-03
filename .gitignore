@@ -51,3 +51,9 @@ eval/squad_dev_v2.0.json
 
 # Cache
 .mypy_cache/
+
+# Test coverage artifacts
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
