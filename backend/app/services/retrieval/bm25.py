@@ -1,18 +1,23 @@
 """BM25 keyword search — lexical retrieval with cached and disk-persisted indexes.
 
 The BM25 index is built once per unique set of document IDs and cached
-in-memory AND persisted to disk (as a pickle).  On cold start, the
+in-memory AND persisted to disk (as JSON).  On cold start, the
 persisted index is loaded from disk instead of rebuilding from scratch,
 eliminating the ~500ms warmup on first query (C1).
 
 The cache is invalidated when documents are added, deleted, or re-indexed
 by calling ``invalidate_bm25_index()``.
+
+Security: Uses JSON serialization instead of pickle to prevent arbitrary
+code execution (CWE-502). The BM25Okapi index is reconstructed from the
+saved tokenized corpus on load.
 """
 
 from __future__ import annotations
 
 import hashlib
-import pickle
+import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -52,36 +57,74 @@ def _ensure_cache_dir() -> Path:
 
 def _disk_cache_path(cache_key: str) -> Path:
     """Get the disk cache path for a given cache key."""
-    return _ensure_cache_dir() / f"{cache_key}.pkl"
+    return _ensure_cache_dir() / f"{cache_key}.json"
 
 
 def _save_to_disk(cache_key: str, index: Any, chunks: list[dict]) -> None:
-    """Persist BM25 index and chunk data to disk."""
+    """Persist BM25 index and chunk data to disk as JSON.
+
+    Instead of pickling the BM25Okapi object (which allows arbitrary code
+    execution), we save the tokenized corpus that built it. On load, we
+    reconstruct the BM25Okapi instance from the saved corpus.
+    """
     try:
         path = _disk_cache_path(cache_key)
-        data = {"index": index, "chunks": chunks, "key": cache_key}
-        with open(path, "wb") as f:
-            pickle.dump(data, f)
-        logger.debug("BM25 index persisted to disk: %s", path.name)
-    except (OSError, pickle.PicklingError) as e:
+        # Extract the tokenized corpus from the BM25 index internals.
+        # rank_bm25.BM25Okapi stores the corpus in self.corpus after __init__.
+        tokenized_corpus = getattr(index, "corpus", None)
+        if tokenized_corpus is None:
+            logger.warning("BM25 index has no corpus attribute — skipping disk persist")
+            return
+
+        data = {
+            "version": 2,
+            "tokenized_corpus": tokenized_corpus,
+            "chunks": chunks,
+            "key": cache_key,
+        }
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False)
+        logger.debug("BM25 index persisted to disk (JSON): %s", path.name)
+    except (OSError, ValueError, TypeError) as e:
         logger.warning("BM25 disk persistence failed: %s", e)
 
 
 def _load_from_disk(cache_key: str) -> tuple[Any, list[dict]] | None:
-    """Load a persisted BM25 index from disk."""
+    """Load a persisted BM25 index from disk (JSON format).
+
+    Reconstructs the BM25Okapi instance from the saved tokenized corpus.
+    """
     path = _disk_cache_path(cache_key)
     if not path.exists():
+        # Also check for legacy pickle format and clean it up
+        legacy_path = _ensure_cache_dir() / f"{cache_key}.pkl"
+        if legacy_path.exists():
+            try:
+                legacy_path.unlink()
+                logger.debug("Removed legacy pickle cache: %s", legacy_path.name)
+            except OSError:
+                pass
         return None
+
     try:
-        with open(path, "rb") as f:
-            data = pickle.load(f)
+        from rank_bm25 import BM25Okapi
+
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        tokenized_corpus = data["tokenized_corpus"]
+        chunks = data["chunks"]
+
+        # Reconstruct BM25Okapi from the saved tokenized corpus
+        index = BM25Okapi(tokenized_corpus)
+
         logger.info(
-            "BM25 index loaded from disk: %s (%d chunks)",
+            "BM25 index loaded from disk (JSON): %s (%d chunks)",
             path.name,
-            len(data.get("chunks", [])),
+            len(chunks),
         )
-        return data["index"], data["chunks"]
-    except (pickle.UnpicklingError, EOFError, OSError, ValueError) as e:
+        return index, chunks
+    except (json.JSONDecodeError, EOFError, OSError, ValueError, KeyError) as e:
         logger.warning("BM25 disk load failed, will rebuild: %s", e)
         path.unlink(missing_ok=True)
         return None
@@ -151,7 +194,7 @@ def get_bm25_index(
         )
         return cached_index, cached_chunks
 
-    # 2. Try disk cache
+    # 2. Try disk cache (JSON format)
     disk_cached = _load_from_disk(cache_key)
     if disk_cached is not None:
         _bm25_indexes[cache_key] = disk_cached
@@ -168,7 +211,7 @@ def get_bm25_index(
     index = BM25Okapi(tokenized)
     _bm25_indexes[cache_key] = (index, chunks)
 
-    # 4. Persist to disk for next cold start
+    # 4. Persist to disk for next cold start (JSON, not pickle)
     _save_to_disk(cache_key, index, chunks)
 
     return index, chunks
@@ -180,9 +223,12 @@ def invalidate_bm25_index() -> None:
     # Also clear disk cache
     try:
         cache_dir = _ensure_cache_dir()
-        pkl_files = list(cache_dir.glob("*.pkl"))
-        count = len(pkl_files)
-        for f in pkl_files:
+        cache_files = list(cache_dir.glob("*.json"))
+        # Also clean up any legacy pickle files
+        legacy_files = list(cache_dir.glob("*.pkl"))
+        all_files = cache_files + legacy_files
+        count = len(all_files)
+        for f in all_files:
             f.unlink()
         logger.debug("BM25 disk cache cleared: %d files", count)
     except (OSError, ValueError) as e:
