@@ -417,7 +417,7 @@ Veridoc/
 
 ```bash
 # One command — zero accounts, zero config
-git clone https://github.com/themanoj-025/veridoc.git
+git clone https://github.com/themanoj-025/Veridoc.git
 cd veridoc
 cp .env.example .env
 # Edit .env to set JWT_SECRET and FILE_ENCRYPTION_KEY
