@@ -60,32 +60,36 @@ class TestPasswordHashing:
     def test_hash_and_verify(self) -> None:
         from app.core.security import hash_password, verify_password
 
-        try:
-            pwd = "MyStr0ng!Pass"
-            hashed = hash_password(pwd)
-            assert verify_password(pwd, hashed) is True
-        except (ValueError, TypeError):
-            pytest.skip("passlib/bcrypt version incompatibility")
+        pwd = "MyStr0ng!Pass"
+        hashed = hash_password(pwd)
+        assert verify_password(pwd, hashed) is True
 
     def test_wrong_password_fails(self) -> None:
         from app.core.security import hash_password, verify_password
 
-        try:
-            hashed = hash_password("correct-password")
-            assert verify_password("wrong-password", hashed) is False
-        except (ValueError, TypeError):
-            pytest.skip("passlib/bcrypt version incompatibility")
+        hashed = hash_password("correct-password")
+        assert verify_password("wrong-password", hashed) is False
 
     def test_different_hashes_for_same_password(self) -> None:
         from app.core.security import hash_password
 
-        try:
-            h1 = hash_password("same-password")
-            h2 = hash_password("same-password")
-            # bcrypt uses random salt, so hashes should differ
-            assert h1 != h2
-        except (ValueError, TypeError):
-            pytest.skip("passlib/bcrypt version incompatibility")
+        h1 = hash_password("same-password")
+        h2 = hash_password("same-password")
+        # bcrypt uses random salt, so hashes should differ
+        assert h1 != h2
+
+    def test_legacy_passlib_hash_still_verifies(self) -> None:
+        from app.core.security import verify_password
+
+        # passlib-generated bcrypt hash (cost 12) for "LegacyPass123!"
+        legacy_hash = "$2b$12$v.YhbgoxDPV6FCW5sMt9d.IxRL.HBbIqoWj40UTqdNyVXboprl7oO"
+        assert verify_password("LegacyPass123!", legacy_hash) is True
+        assert verify_password("nope", legacy_hash) is False
+
+    def test_malformed_hash_returns_false(self) -> None:
+        from app.core.security import verify_password
+
+        assert verify_password("anything", "garbage-hash") is False
 
 
 class TestJWT:

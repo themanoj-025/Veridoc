@@ -13,8 +13,7 @@ psycopg2-binary==2.9.12
 
 # ── Auth ──
 python-jose[cryptography]==3.5.0
-passlib[bcrypt]==1.7.4
-bcrypt==5.0.0
+bcrypt==5.0.0  # used directly (app/core/security.py) — passlib 1.7.4 is incompatible with bcrypt>=4.1
 email-validator==2.3.0  # required by pydantic EmailStr (pydantic.networks) — missing dep broke test-backend
 
 # ── ML / Embeddings ──
@@ -68,6 +67,7 @@ anthropic==1.2.0
 openai==3.5.0
 
 # ── Testing ──
+aiosqlite==0.22.1  # sqlite+aiosqlite in-memory DB used by the test suite (tests/conftest.py etc.)
 pytest==8.3.3
 pytest-asyncio==1.4.0
 pytest-timeout==2.4.0

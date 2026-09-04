@@ -10,7 +10,7 @@
 fastapi==0.141.1
 uvicorn[standard]==0.52.4
 pydantic==2.13.4
-pydantic-settings==2.5.2
+pydantic-settings==2.15.0
 python-multipart==0.32
 
 # ── Database ──
@@ -21,8 +21,7 @@ psycopg2-binary==2.9.12
 
 # ── Auth ──
 python-jose[cryptography]==3.5.0
-passlib[bcrypt]==1.7.4
-bcrypt==4.0.1
+bcrypt==5.0.0
 email-validator==2.3.0
 
 # ── ML / Embeddings ──
@@ -73,6 +72,7 @@ anthropic==1.0.0
 openai==1.51.2
 
 # ── Testing ──
+aiosqlite==0.22.1
 pytest==8.3.3
 pytest-asyncio==0.24.0
 pytest-timeout==2.4.0

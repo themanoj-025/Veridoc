@@ -22,12 +22,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Requirements lock file (`requirements.lock`)
 
 ### Changed
+- Settings migrated to pydantic-settings 2.x `model_config`/`SettingsConfigDict`
+- Password hashing uses `bcrypt` directly (`app/core/security.py`); `passlib` removed so bcrypt 5.0.0 is supported
 - CI actions pinned to latest versions (checkout@v7, setup-python@v7, hadolint@v3.2.0)
 - Narrowed all bare `except:` and `except Exception:` to specific exception types
 - Replaced deprecated `typing.Optional`/`Union` with modern `X | None` syntax
 - Added return type hints across all Python functions
 
 ### Fixed
+- Added missing `aiosqlite` test dependency (`sqlite+aiosqlite` in-memory DB used by the test suite)
+- `test_core_config.py` collection error (missing `pytest` import for `pytestmark`)
 - Security: removed hardcoded API keys and secrets
 - Security: replaced `os.system()` with `subprocess.run()`
 - Security: added dependency vulnerability scanning
