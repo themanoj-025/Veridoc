@@ -83,5 +83,5 @@ starting from v1.0.0.
 - CI pipeline with GitHub Actions
 - Full documentation suite (architecture, security, deployment, case study)
 
-[1.0.0]: https://github.com/themanoj-025/veridoc/releases/tag/v1.0.0
-[0.1.0]: https://github.com/themanoj-025/veridoc/releases/tag/v0.1.0
+[1.0.0]: https://github.com/themanoj-025/Veridoc/releases/tag/v1.0.0
+[0.1.0]: https://github.com/themanoj-025/Veridoc/releases/tag/v0.1.0
