@@ -21,6 +21,10 @@ from app.services.evaluation import (
     run_single_eval,
 )
 
+import structlog
+
+logger = structlog.get_logger(__name__)
+
 EVAL_DIR = Path(__file__).resolve().parent.parent / "eval"
 GOLD_QA_PATH = EVAL_DIR / "gold_qa.json"
 REPORT_PATH = EVAL_DIR / "evaluation-report.md"
