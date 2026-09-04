@@ -6,13 +6,11 @@ import time
 import uuid
 from datetime import UTC, datetime, timedelta
 
+import bcrypt
 from cryptography.fernet import Fernet
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from app.core.config import settings
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Password complexity: at least 2 of {uppercase, digit, symbol}
 _COMPLEXITY_CATEGORIES = [
@@ -51,14 +49,36 @@ def validate_password_complexity(password: str) -> str | None:
 # ── Password Hashing ─────────────────────────────────────
 
 
+_BCRYPT_MAX_BYTES = 72
+
+
+def _bcrypt_bytes(password: str) -> bytes:
+    """Encode *password* to UTF-8, truncated to bcrypt's 72-byte limit.
+
+    bcrypt only considers the first 72 bytes of a password. We truncate
+    explicitly (as passlib previously did silently) so hashing and
+    verification stay consistent for longer inputs.
+    """
+    data = password.encode("utf-8")
+    if len(data) > _BCRYPT_MAX_BYTES:
+        data = data[:_BCRYPT_MAX_BYTES]
+    return data
+
+
 def hash_password(password: str) -> str:
     """Hash a plaintext password with bcrypt."""
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(_bcrypt_bytes(password), bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a plaintext password against its hash."""
-    return pwd_context.verify(plain_password, hashed_password)
+    """Verify a plaintext password against its bcrypt hash."""
+    try:
+        return bcrypt.checkpw(
+            _bcrypt_bytes(plain_password), hashed_password.encode("utf-8")
+        )
+    except ValueError:
+        # Malformed hash (bad prefix or salt) — treat as failed verification.
+        return False
 
 
 # ── JWT Tokens ───────────────────────────────────────────
