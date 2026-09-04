@@ -1,6 +1,6 @@
 """Tests for app.core.config — Settings model and validation."""
 
-
+import pytest
 from app.core.config import _PLACEHOLDER_PATTERNS, Settings, _validate_secret
 
 pytestmark = pytest.mark.slow

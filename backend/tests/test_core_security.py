@@ -49,27 +49,37 @@ class TestPasswordHashing:
     """Test hash_password and verify_password."""
 
     def test_hash_and_verify(self) -> None:
-        try:
-            pwd = "MyStr0ng!"  # truncated to <72 bytes for bcrypt
-            hashed = hash_password(pwd)
-            assert verify_password(pwd, hashed) is True
-        except (ValueError, AttributeError):
-            pytest.skip("passlib/bcrypt version incompatibility")
+        pwd = "MyStr0ng!"  # truncated to <72 bytes for bcrypt
+        hashed = hash_password(pwd)
+        assert verify_password(pwd, hashed) is True
 
     def test_wrong_password(self) -> None:
-        try:
-            hashed = hash_password("correct")
-            assert verify_password("wrong", hashed) is False
-        except (ValueError, AttributeError):
-            pytest.skip("passlib/bcrypt version incompatibility")
+        hashed = hash_password("correct")
+        assert verify_password("wrong", hashed) is False
 
     def test_different_hashes(self) -> None:
-        try:
-            h1 = hash_password("same")
-            h2 = hash_password("same")
-            assert h1 != h2  # bcrypt salts differ
-        except (ValueError, AttributeError):
-            pytest.skip("passlib/bcrypt version incompatibility")
+        h1 = hash_password("same")
+        h2 = hash_password("same")
+        assert h1 != h2  # bcrypt salts differ
+
+    def test_long_password_truncated_to_72_bytes(self) -> None:
+        # bcrypt only considers the first 72 bytes; hashing a longer
+        # password must not raise and must verify consistently.
+        pwd = "x" * 100
+        hashed = hash_password(pwd)
+        assert verify_password(pwd, hashed) is True
+        # Passwords sharing the first 72 bytes are equivalent.
+        assert verify_password("x" * 73, hashed) is True
+
+    def test_legacy_passlib_hash_verifies(self) -> None:
+        # Hashes created by passlib (bcrypt 4.x) must keep verifying
+        # after the direct-bcrypt migration.
+        legacy_hash = "$2b$12$v.YhbgoxDPV6FCW5sMt9d.IxRL.HBbIqoWj40UTqdNyVXboprl7oO"
+        assert verify_password("LegacyPass123!", legacy_hash) is True
+        assert verify_password("wrong-password", legacy_hash) is False
+
+    def test_malformed_hash_returns_false(self) -> None:
+        assert verify_password("anything", "not-a-bcrypt-hash") is False
 
 
 class TestJWT:

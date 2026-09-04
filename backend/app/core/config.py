@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Literal
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -117,10 +117,12 @@ class Settings(BaseSettings):
     redis_cache_enabled: bool = True
     redis_cache_ttl_seconds: int = 3600  # 1 hour
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        extra = "ignore"
+    # pydantic-settings 2.x configuration — loaded from .env in the CWD.
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
 
 # Strict startup validation — refuses to boot with placeholder secrets
