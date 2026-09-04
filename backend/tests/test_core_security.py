@@ -118,12 +118,12 @@ class TestJWT:
     def test_get_token_jti(self) -> None:
         assert get_token_jti({"jti": "abc123"}) == "abc123"
         assert get_token_jti({}) is None
-        assert get_token_jti(None) is None  # type: ignore[arg-type]
+        assert get_token_jti(None) is None  # intentionally passes None
 
     def test_get_token_exp(self) -> None:
         assert get_token_exp({"exp": 1234567890.0}) == 1234567890.0
         assert get_token_exp({}) is None
-        assert get_token_exp(None) is None  # type: ignore[arg-type]
+        assert get_token_exp(None) is None  # intentionally passes None
 
 
 class TestFileEncryption:
