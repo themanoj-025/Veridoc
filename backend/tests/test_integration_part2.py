@@ -33,6 +33,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+# Skip ChromaDB-backed tests if chromadb is not installed
+try:
+    import chromadb
+except ImportError:
+    chromadb = None
+
 
 async def test_process_document_end_to_end(
     pg_engine_and_factory,
