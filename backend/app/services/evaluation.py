@@ -80,7 +80,7 @@ async def resolve_document_ids(doc_id: str) -> list[str] | None:
             for row in rows
             if _slug_matches(needle, row[1]) or _slug_matches(needle, row[2])
         ]
-    except (OSError, ValueError) as exc:
+    except (OSError, ValueError, RuntimeError) as exc:
         logger.warning(
             "could_not_resolve_slug",
             slug=doc_id,
