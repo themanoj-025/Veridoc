@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -57,7 +58,7 @@ async def submit_feedback(
         "answer": body.answer,
         "citations": body.citations or [],
         "faithfulness_score": body.faithfulness_score,
-        "timestamp": __import__("datetime").datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
     if body.feedback == "down":
