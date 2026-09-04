@@ -17,9 +17,6 @@ import sys
 import time
 from pathlib import Path
 
-# Add backend to path so we can import the model
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
-
 
 def main() -> None:
     logger.info("=" * 60)

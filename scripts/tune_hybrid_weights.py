@@ -29,9 +29,6 @@ import sys
 import time
 from pathlib import Path
 
-# Ensure the backend package is importable
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
-
 import numpy as np
 from rank_bm25 import BM25Okapi
 
