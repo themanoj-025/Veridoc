@@ -1,6 +1,8 @@
 """Tests for Veridoc prompt registry."""
 
 
+import pytest
+
 from app.services.prompt_registry import get_prompt_template, get_prompt_version
 
 pytestmark = pytest.mark.unit
