@@ -23,8 +23,6 @@ from pathlib import Path
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8")
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
-
 from app.services.evaluation import compute_metrics, faithfulness_check
 from app.services.retrieval import rewrite_query
 
