@@ -233,6 +233,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ── Security Headers ─────────────────────────────────────
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next) -> None:
+    """Add security headers to every response."""
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["X-XSS-Protection"] = "0"
+    response.headers["Permissions-Policy"] = (
+        "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+    )
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'none'; frame-ancestors 'none';"
+    )
+    return response
+
+
 # ── Rate Limiting ────────────────────────────────────────
 if _slowapi_available:
     from slowapi.errors import RateLimitExceeded
