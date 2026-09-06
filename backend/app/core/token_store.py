@@ -61,17 +61,33 @@ async def _try_redis_set(jti: str, user_id: str, ttl_seconds: int) -> bool:
     return False
 
 
-async def _try_redis_get(jti: str) -> bool:
-    """Check if a consumed JTI exists in Redis. Returns False on failure."""
-    try:
-        from app.services.job_queue import get_job_queue
+class TokenStoreUnavailableError(RuntimeError):
+    """Raised when the configured token store cannot answer a lookup.
 
-        q = get_job_queue()
-        if q._arq_pool is not None:
+    Callers must treat this as "cannot verify" and fail closed (deny the
+    operation) rather than assume the token is unused.
+    """
+
+
+async def _try_redis_get(jti: str) -> bool:
+    """Check if a consumed JTI exists in Redis.
+
+    Raises ``TokenStoreUnavailableError`` when Redis is configured but the
+    lookup fails — the caller must fail closed instead of treating the token
+    as unused (which would let a consumed refresh token be replayed).
+    """
+    from app.services.job_queue import get_job_queue
+
+    q = get_job_queue()
+    if q._arq_pool is not None:
+        try:
             result = await q._arq_pool.get(f"token:consumed:{jti}")
-            return result is not None
-    except (OSError, ValueError):
-        pass
+        except (OSError, ValueError) as e:
+            logger.warning("Redis token-store get failed", error=str(e))
+            raise TokenStoreUnavailableError(
+                "Token store unavailable; cannot verify token."
+            ) from e
+        return result is not None
     return False
 
 
@@ -100,7 +116,17 @@ async def validate_and_consume(
     blacklist self-clears after the token expires naturally.
     """
     # Check if already consumed (try Redis first, then memory)
-    if await _try_redis_get(jti) or _memory_exists(jti):
+    try:
+        consumed = await _try_redis_get(jti)
+    except TokenStoreUnavailableError:
+        # Fail CLOSED: we cannot verify the token's freshness, so deny the
+        # refresh. Allowing it through would let a previously consumed token
+        # be replayed during a Redis outage.
+        logger.warning(
+            "Token store unavailable; failing closed on refresh", jti=jti[:8]
+        )
+        return False
+    if consumed or _memory_exists(jti):
         logger.warning("Refresh token reuse detected", jti=jti[:8])
         return False
 
