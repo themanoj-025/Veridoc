@@ -21,7 +21,7 @@ email-validator==2.3.0  # required by pydantic EmailStr (pydantic.networks) — 
 # ONNX Runtime would require replacing sentence-transformers with a different
 # embedding/reranking library — evaluated and documented in DECISIONS.md.
 sentence-transformers==6.0.1
-torch==2.13.0+cpu
+torch==2.14.0+cpu
 --extra-index-url https://download.pytorch.org/whl/cpu
 
 # ── Vector DB ──
