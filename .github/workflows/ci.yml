@@ -516,7 +516,7 @@ jobs:
           pip install schemathesis
         env:
           JWT_SECRET: ci-build-only-dummy-secret
-                    DATABASE_URL: postgresql+asyncpg://veridoc:veridoc_local_dev@localhost:5432/veridoc
+          DATABASE_URL: "postgresql+asyncpg://veridoc:veridoc_local_dev@localhost:5432/veridoc"
       - name: Generate OpenAPI spec
         run: |
           python -c "
