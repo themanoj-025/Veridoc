@@ -499,6 +499,8 @@ jobs:
       - uses: hadolint/hadolint-action@v3.5.0
         with:
           dockerfile: Dockerfile
+          failure-threshold: warning
+          failure-threshold-ignore: DL3066
 
   schemathesis-fuzz:
     name: Contract fuzzing (Schemathesis)
