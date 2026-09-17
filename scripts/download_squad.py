@@ -9,6 +9,9 @@ import json
 from pathlib import Path
 
 import httpx
+import structlog
+
+logger = structlog.get_logger(__name__)
 
 EVAL_DIR = Path(__file__).resolve().parent.parent / "eval"
 EVAL_DIR.mkdir(parents=True, exist_ok=True)

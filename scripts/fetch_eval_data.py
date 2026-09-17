@@ -12,6 +12,9 @@ Usage: python scripts/fetch_eval_data.py
 from pathlib import Path
 
 import httpx
+import structlog
+
+logger = structlog.get_logger(__name__)
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "documents"
 DATA_DIR.mkdir(parents=True, exist_ok=True)

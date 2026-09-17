@@ -30,7 +30,10 @@ import time
 from pathlib import Path
 
 import numpy as np
+import structlog
 from rank_bm25 import BM25Okapi
+
+logger = structlog.get_logger(__name__)
 
 # ── Paths ──────────────────────────────────────────────────────────────
 PROJECT_ROOT = Path(__file__).resolve().parent.parent

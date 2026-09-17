@@ -15,7 +15,10 @@ The cross-encoder model is downloaded on first run (~300MB).
 
 import sys
 import time
-from pathlib import Path
+
+import structlog
+
+logger = structlog.get_logger(__name__)
 
 
 def main() -> None:
