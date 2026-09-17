@@ -33,6 +33,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from tests.test_integration import _TestVectorStore
+
 # Skip ChromaDB-backed tests if chromadb is not installed
 try:
     import chromadb
