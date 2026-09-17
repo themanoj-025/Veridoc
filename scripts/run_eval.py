@@ -12,14 +12,14 @@ import json
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
+import structlog
 from app.services.evaluation import (
     compute_metrics,
     resolve_document_ids,
     run_single_eval,
 )
-
-import structlog
 
 logger = structlog.get_logger(__name__)
 

@@ -24,6 +24,10 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+import structlog
+
+logger = structlog.get_logger(__name__)
+
 
 def get_eval_dir() -> Path:
     """Get the eval directory (project root / eval)."""

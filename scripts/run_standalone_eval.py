@@ -23,8 +23,11 @@ from pathlib import Path
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8")
 
+import structlog
 from app.services.evaluation import compute_metrics, faithfulness_check
 from app.services.retrieval import rewrite_query
+
+logger = structlog.get_logger(__name__)
 
 
 async def test_faithfulness_check() -> None:

@@ -29,6 +29,9 @@ import sys
 from pathlib import Path
 
 import httpx
+import structlog
+
+logger = structlog.get_logger(__name__)
 
 BACKEND_URL = "http://localhost:8000"
 COMPOSE_FILE = Path(__file__).resolve().parent.parent / "docker-compose.yml"
