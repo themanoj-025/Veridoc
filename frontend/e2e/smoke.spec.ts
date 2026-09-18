@@ -12,6 +12,9 @@ test.describe("Veridoc E2E Smoke Test", () => {
   // Clear auth state before each test to prevent state leakage
   test.beforeEach(async ({ page, context }) => {
     await context.clearCookies();
+    // localStorage is inaccessible on about:blank (opaque origin) — land on
+    // the app first, then clear its storage.
+    await page.goto("/");
     await page.evaluate(() => {
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
