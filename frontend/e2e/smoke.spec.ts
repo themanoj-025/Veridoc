@@ -123,7 +123,7 @@ test.describe("Veridoc E2E Smoke Test", () => {
 
     // Ask a question about the Gutenberg text (The Art of War)
     await chatInput.fill("What is the supreme art of war?");
-    await page.click('button[type="submit"]');
+    await page.getByRole("button", { name: "Send message" }).click();
 
     // Wait for the response to appear (may take a while with Ollama)
     await page.waitForTimeout(3000);
@@ -181,7 +181,7 @@ test.describe("Veridoc E2E Smoke Test", () => {
     await chatInput.fill(
       "What is the recipe for chocolate chip cookies?"
     );
-    await page.click('button[type="submit"]');
+    await page.getByRole("button", { name: "Send message" }).click();
 
     // Wait for response (this may take time with Ollama)
     await page.waitForTimeout(5000);

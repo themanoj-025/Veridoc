@@ -343,6 +343,7 @@ export function ChatPanel({ conversationId, onNewConversation }: ChatPanelProps)
           <button
             onClick={handleSend}
             disabled={!input.trim() || isStreaming}
+            aria-label="Send message"
             className={cn(
               "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-150",
               "bg-veridoc-500 text-white hover:bg-veridoc-600",
