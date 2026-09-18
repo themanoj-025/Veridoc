@@ -65,7 +65,7 @@ structlog==24.4.0
 
 # ── Optional: Claude / OpenAI API ──
 anthropic==1.5.0
-openai==3.13.0
+openai==3.14.0
 
 # ── Testing ──
 aiosqlite==0.22.1  # sqlite+aiosqlite in-memory DB used by the test suite (tests/conftest.py etc.)
