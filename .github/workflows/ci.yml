@@ -379,7 +379,7 @@ jobs:
           docker exec ollama ollama pull tinyllama || echo "Model pull skipped"
       - name: Start MinIO (object storage)
         run: |
-          docker run -d --rm --name minio -p 9000:9000             -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin             minio/minio:latest server /data
+          docker run -d --rm --name minio -p 9000:9000             -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin             quay.io/minio/minio:latest server /data
           for i in $(seq 1 30); do
             if curl -sf http://localhost:9000/minio/health/live > /dev/null 2>&1; then
               echo "MinIO ready"
