@@ -187,10 +187,11 @@ test.describe("Veridoc E2E Smoke Test", () => {
     await page.waitForTimeout(5000);
 
     // Check for refusal keywords in the response
-    // The response should indicate it cannot answer the question
-    // We look for common refusal patterns
+    // The response should indicate it cannot answer the question. Small
+    // models phrase grounded refusals in many ways (e.g. "not mentioned in
+    // the given text"), so accept the common phrasings rather than one.
     await page.waitForSelector(
-      "text=/cannot|cannot determine|don't have enough|not enough information|not provided|no information|unable to|not found|does not contain/i",
+      "text=/cannot|don't have enough|not enough information|not provided|no information|unable to|not found|does not contain|not mentioned|no mention|not specified|not described|could not|couldn't|not in the/i",
       { timeout: 60000 }
     );
   });
