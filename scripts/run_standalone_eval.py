@@ -124,15 +124,9 @@ def test_metrics_computation() -> None:
             logger.info(f"  {key}: {value}")
 
     # Verify results
-    assert (
-        metrics["total_questions"] == 5
-    ), f"Expected 5, got {metrics['total_questions']}"
-    assert (
-        metrics["refusal_accuracy"] == 1.0
-    ), f"Expected 1.0, got {metrics['refusal_accuracy']}"
-    assert (
-        metrics["mean_faithfulness"] > 0.8
-    ), f"Expected >0.8, got {metrics['mean_faithfulness']}"
+    assert metrics["total_questions"] == 5, f"Expected 5, got {metrics['total_questions']}"
+    assert metrics["refusal_accuracy"] == 1.0, f"Expected 1.0, got {metrics['refusal_accuracy']}"
+    assert metrics["mean_faithfulness"] > 0.8, f"Expected >0.8, got {metrics['mean_faithfulness']}"
     logger.info("  [OK] Metrics computation verified")
     return metrics
 
@@ -145,14 +139,10 @@ async def test_query_rewrite() -> None:
     # Test 1: Long query, no demonstrative
     history = [{"role": "user", "content": "What is machine learning?"}]
     # Test 1: Long query, no demonstrative
-    result = await rewrite_query(
-        "What is deep learning and how does it differ?", history
-    )
+    result = await rewrite_query("What is deep learning and how does it differ?", history)
     assert result is None, f"Expected None, got {result}"
     logger.info("  [OK] Long query without demonstrative: no rewrite (None)")
-    results.append(
-        {"test": "long_no_demonstrative", "rewritten": result, "expected": None}
-    )
+    results.append({"test": "long_no_demonstrative", "rewritten": result, "expected": None})
 
     # Test 2: Short query with demonstrative
     history = [
@@ -173,9 +163,7 @@ async def test_query_rewrite() -> None:
     # "python" is short but has no demonstrative (this, that, it)
     assert result is None, f"Expected None, got {result}"
     logger.info("  [OK] Short without demonstrative: no rewrite (None)")
-    results.append(
-        {"test": "short_no_demonstrative", "rewritten": result, "expected": None}
-    )
+    results.append({"test": "short_no_demonstrative", "rewritten": result, "expected": None})
 
     # Test 4: Empty history
     result = await rewrite_query("explain more", [])
@@ -191,10 +179,7 @@ def test_prompt_injection_defense() -> None:
     logger.info("\n[4/5] Testing prompt injection defense...")
 
     red_team_path = (
-        Path(__file__).resolve().parent.parent
-        / "eval"
-        / "red_team"
-        / "prompt_injection.json"
+        Path(__file__).resolve().parent.parent / "eval" / "red_team" / "prompt_injection.json"
     )
     if not red_team_path.exists():
         logger.warning("  [!!] Red-team test file not found")
@@ -234,19 +219,18 @@ def test_prompt_injection_defense() -> None:
             chunk_content = system_prompt[ctx_start:ctx_end]
             malicious_inside_chunk = test["dangerous_document"] in chunk_content
 
-        if (
-            has_boundary
-            and has_data_marking
-            and has_chunk_markers
-            and malicious_inside_chunk
-        ):
+        if has_boundary and has_data_marking and has_chunk_markers and malicious_inside_chunk:
             passed += 1
             status = "[PASS]"
         else:
             status = "[FAIL]"
-            logger.info(f"    {test['id']}: {status} boundary={has_boundary} data={has_data_marking} chunks={has_chunk_markers} isolated={malicious_inside_chunk}")
+            logger.info(
+                f"    {test['id']}: {status} boundary={has_boundary} data={has_data_marking} chunks={has_chunk_markers} isolated={malicious_inside_chunk}"
+            )
 
-    logger.info(f"  Red-team summary: {passed}/{len(tests)} passed (defense mechanism present and isolating injected content)")
+    logger.info(
+        f"  Red-team summary: {passed}/{len(tests)} passed (defense mechanism present and isolating injected content)"
+    )
     logger.error(f"  FAIL rate: {len(tests) - passed}/{len(tests)}")
     return True
 
@@ -269,12 +253,8 @@ def test_retrieval_integrity() -> None:
     logger.info("  [OK] All retrieval module imports resolve correctly")
 
     # Test RRF
-    bm25_results = [
-        {"chunk_id": "c1", "content": "test", "score": 0.9, "source": "bm25"}
-    ]
-    dense_results = [
-        {"chunk_id": "c2", "content": "test", "score": 0.8, "source": "vector"}
-    ]
+    bm25_results = [{"chunk_id": "c1", "content": "test", "score": 0.9, "source": "bm25"}]
+    dense_results = [{"chunk_id": "c2", "content": "test", "score": 0.8, "source": "vector"}]
     merged = reciprocal_rank_fusion(bm25_results, dense_results)
     assert len(merged) == 2, f"Expected 2, got {len(merged)}"
     assert all("rrf_score" in r for r in merged), "Missing rrf_score"
@@ -342,11 +322,7 @@ async def write_reports(eval_results, metrics, rewrite_results, defense_ok) -> N
     )
 
     for r in rewrite_results:
-        status = (
-            "Rewritten"
-            if r.get("rewritten")
-            else "None (no rewrite or LLM unavailable)"
-        )
+        status = "Rewritten" if r.get("rewritten") else "None (no rewrite or LLM unavailable)"
         report.append(f"- **{r['test']}**: {status}")
 
     report.extend(
@@ -389,10 +365,7 @@ async def write_reports(eval_results, metrics, rewrite_results, defense_ok) -> N
 
     # ── Security Notes ──
     red_team_path = (
-        Path(__file__).resolve().parent.parent
-        / "eval"
-        / "red_team"
-        / "prompt_injection.json"
+        Path(__file__).resolve().parent.parent / "eval" / "red_team" / "prompt_injection.json"
     )
     red_team_rows = []
     if red_team_path.exists():
@@ -412,10 +385,7 @@ async def write_reports(eval_results, metrics, rewrite_results, defense_ok) -> N
             )
             has_boundary = "NOT an instruction" in system_prompt
             has_data_marking = "is data for you to use as evidence" in system_prompt
-            has_chunks = (
-                "---BEGIN CHUNK---" in system_prompt
-                and "---END CHUNK---" in system_prompt
-            )
+            has_chunks = "---BEGIN CHUNK---" in system_prompt and "---END CHUNK---" in system_prompt
             ctx_start = system_prompt.find("---BEGIN CHUNK---")
             ctx_end = system_prompt.find("---END CHUNK---")
             malicious_inside = (
@@ -423,9 +393,7 @@ async def write_reports(eval_results, metrics, rewrite_results, defense_ok) -> N
                 if ctx_start >= 0 and ctx_end >= 0
                 else False
             )
-            all_pass = (
-                has_boundary and has_data_marking and has_chunks and malicious_inside
-            )
+            all_pass = has_boundary and has_data_marking and has_chunks and malicious_inside
             if all_pass:
                 passed_count += 1
             result = "PASS" if all_pass else "FAIL"

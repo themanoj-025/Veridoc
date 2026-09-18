@@ -203,9 +203,7 @@ def downgrade() -> None:
 
     op.add_column(
         "conversations",
-        sa.Column(
-            "document_ids", ARRAY(UUID(as_uuid=True)), default=list, nullable=True
-        ),
+        sa.Column("document_ids", ARRAY(UUID(as_uuid=True)), default=list, nullable=True),
     )
 
     # Migrate data back (simplified: aggregate citation_records into JSON)
@@ -233,9 +231,7 @@ def downgrade() -> None:
     for row in doc_rows:
         conv_id, doc_ids = row
         connection.execute(
-            text(
-                "UPDATE conversations SET document_ids = :doc_ids WHERE id = :conv_id"
-            ),
+            text("UPDATE conversations SET document_ids = :doc_ids WHERE id = :conv_id"),
             {"doc_ids": doc_ids, "conv_id": conv_id},
         )
 

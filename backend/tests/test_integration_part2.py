@@ -63,11 +63,14 @@ async def test_process_document_end_to_end(
 
     _engine, test_factory = pg_engine_and_factory
 
-    # ── 1. Create a Document record in Postgres ──────────────
+    # ── 1. Create a User (FK target) + Document record in Postgres ──
+    from app.models.user import User
+
     doc_id = uuid.uuid4()
+    user = User(id=uuid.uuid4(), email=f"ingest2-{uuid.uuid4().hex[:8]}@example.com", role="user")
     doc = Document(
         id=doc_id,
-        user_id=uuid.uuid4(),
+        user_id=user.id,
         title="Machine Learning Fundamentals",
         filename=sample_text_file.name,
         file_type="txt",
@@ -76,6 +79,7 @@ async def test_process_document_end_to_end(
         status="pending",
     )
     async with test_factory() as session:
+        session.add(user)
         session.add(doc)
         await session.flush()
 
@@ -224,11 +228,13 @@ async def test_postgres_document_chunk_relationship(pg_session, temp_dir) -> Non
     """
     from app.models.chunk import Chunk
     from app.models.document import Document
+    from app.models.user import User
     from sqlalchemy import select
 
+    user = User(id=uuid.uuid4(), email=f"rel2-{uuid.uuid4().hex[:8]}@example.com", role="user")
     doc = Document(
         id=uuid.uuid4(),
-        user_id=uuid.uuid4(),
+        user_id=user.id,
         title="Test Document",
         filename="test.txt",
         file_type="txt",
@@ -236,6 +242,7 @@ async def test_postgres_document_chunk_relationship(pg_session, temp_dir) -> Non
         file_path=str(temp_dir / "test.txt"),
         status="indexed",
     )
+    pg_session.add(user)
     pg_session.add(doc)
     await pg_session.flush()
 

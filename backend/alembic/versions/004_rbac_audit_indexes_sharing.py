@@ -108,15 +108,11 @@ def upgrade() -> None:
     )
     op.create_index("idx_admin_audit_actor", "admin_audit_log", ["actor_id"])
     op.create_index("idx_admin_audit_action", "admin_audit_log", ["action"])
-    op.create_index(
-        "idx_admin_audit_created", "admin_audit_log", [sa.text("created_at DESC")]
-    )
+    op.create_index("idx_admin_audit_created", "admin_audit_log", [sa.text("created_at DESC")])
 
     # ── F9: Add composite indexes ──
     op.create_index("idx_documents_user_status", "documents", ["user_id", "status"])
-    op.create_index(
-        "idx_conversations_user_active", "conversations", ["user_id", "is_active"]
-    )
+    op.create_index("idx_conversations_user_active", "conversations", ["user_id", "is_active"])
 
     # ── F20: Create document_shares table ──
     op.create_table(

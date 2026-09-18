@@ -36,8 +36,10 @@ def main() -> int:
         feedback = json.loads(feedback_path.read_text())
         logger.info(f"Feedback queue: {len(feedback)} entries")
         if len(feedback) > 1000:
-            logger.warning(f"WARN: Feedback queue has {len(feedback)} entries, "
-                "consider running promote_feedback.py")
+            logger.warning(
+                f"WARN: Feedback queue has {len(feedback)} entries, "
+                "consider running promote_feedback.py"
+            )
 
     logger.info("PASS: Evaluation regression gate")
     return 0
