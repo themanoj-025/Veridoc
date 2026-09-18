@@ -26,9 +26,7 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     op.add_column(
         "users",
-        sa.Column(
-            "verification_token_expiry", sa.DateTime(timezone=True), nullable=True
-        ),
+        sa.Column("verification_token_expiry", sa.DateTime(timezone=True), nullable=True),
     )
 
 

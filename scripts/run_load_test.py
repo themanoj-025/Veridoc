@@ -126,9 +126,7 @@ def run_locust(
                         stats["rps"] = float(row.get("Requests/s", 0))
                         stats["fail_percent"] = float(row.get("Failure Percentage", 0))
                         stats["total_requests"] = int(row.get("Request Count", 0))
-                        stats["avg_ms"] = float(
-                            row.get("Average Response Time (ms)", 0)
-                        )
+                        stats["avg_ms"] = float(row.get("Average Response Time (ms)", 0))
                         stats["p50_ms"] = float(row.get("50% (ms)", 0))
                         stats["p95_ms"] = float(row.get("95% (ms)", 0))
             logger.info(f"  Parsed stats from CSV: {stats_path.name}")

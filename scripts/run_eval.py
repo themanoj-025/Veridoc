@@ -41,7 +41,9 @@ async def run_evaluation(
     use_hybrid: bool = True,
 ) -> tuple[list[dict], dict]:
     """Run evaluation on all gold Q&A pairs."""
-    logger.info(f"\nRunning evaluation with {'hybrid+rerank' if use_hybrid else 'naive dense'} retrieval...")
+    logger.info(
+        f"\nRunning evaluation with {'hybrid+rerank' if use_hybrid else 'naive dense'} retrieval..."
+    )
     logger.info(f"  Total questions: {len(gold_qa)}")
     print()
 
@@ -155,9 +157,7 @@ def write_report(
                 improvement = f"+{imp:.1f}%" if imp > 0 else f"{imp:.1f}%"
             elif "ms" in naive_val and "ms" in hybrid_val:
                 imp = float(naive_val.strip("ms")) - float(hybrid_val.strip("ms"))
-                improvement = (
-                    f"-{imp:.0f}ms faster" if imp > 0 else f"+{abs(imp):.0f}ms slower"
-                )
+                improvement = f"-{imp:.0f}ms faster" if imp > 0 else f"+{abs(imp):.0f}ms slower"
             lines.append(f"| {name} | {naive_val} | {hybrid_val} | {improvement} |")
     else:
         lines.append(
@@ -169,12 +169,8 @@ def write_report(
         lines.append(
             f"| Mean Faithfulness | N/A | {hybrid_metrics.get('mean_faithfulness', 0) * 100:.1f}% | — |"
         )
-        lines.append(
-            f"| P50 Latency | N/A | {hybrid_metrics.get('p50_latency_ms', 0):.0f}ms | — |"
-        )
-        lines.append(
-            f"| P95 Latency | N/A | {hybrid_metrics.get('p95_latency_ms', 0):.0f}ms | — |"
-        )
+        lines.append(f"| P50 Latency | N/A | {hybrid_metrics.get('p50_latency_ms', 0):.0f}ms | — |")
+        lines.append(f"| P95 Latency | N/A | {hybrid_metrics.get('p95_latency_ms', 0):.0f}ms | — |")
 
     lines.extend(
         [
@@ -192,9 +188,7 @@ def write_report(
         f = r.get("faithfulness_score", 0)
         lat = r.get("latency_ms", 0)
         status = "✅" if f >= 0.7 else "⚠️" if f >= 0.4 else "❌"
-        lines.append(
-            f"| {i + 1} | {q}... | {t} | {f * 100:.0f}% | {lat:.0f}ms | {status} |"
-        )
+        lines.append(f"| {i + 1} | {q}... | {t} | {f * 100:.0f}% | {lat:.0f}ms | {status} |")
 
     lines.extend(
         [
@@ -226,9 +220,7 @@ def write_report(
 
 async def main() -> None:
     parser = argparse.ArgumentParser(description="Run Veridoc evaluation")
-    parser.add_argument(
-        "--compare", action="store_true", help="Run naive vs hybrid comparison"
-    )
+    parser.add_argument("--compare", action="store_true", help="Run naive vs hybrid comparison")
     args = parser.parse_args()
 
     gold_qa = load_gold_qa()

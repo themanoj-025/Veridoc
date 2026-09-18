@@ -128,9 +128,7 @@ def build_prompt(test: dict) -> tuple[str, str]:
     Returns (system_prompt, user_message).
     The dangerous document content is placed inside the data boundary.
     """
-    system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
-        chunk_content=test["dangerous_document"]
-    )
+    system_prompt = SYSTEM_PROMPT_TEMPLATE.format(chunk_content=test["dangerous_document"])
     # The user asks a benign question to get the assistant to process the chunk
     user_message = "What does this document say? Please summarize the key points."
     return system_prompt, user_message
@@ -189,7 +187,9 @@ def print_results(results: list[dict]) -> None:
     logger.info("-" * 76)
     for r in results:
         icon = "✅" if r["verdict"] == "PASS" else "❌"
-        logger.info(f"{icon} {r['id']:<12} {r['name'][:40]:<40} {r['severity']:<10} {r['verdict']:<10}")
+        logger.info(
+            f"{icon} {r['id']:<12} {r['name'][:40]:<40} {r['severity']:<10} {r['verdict']:<10}"
+        )
     print()
 
     passed = sum(1 for r in results if r["verdict"] == "PASS")
@@ -291,7 +291,9 @@ async def check_ollama_health(model: str) -> bool:
                 logger.info(f"  Model '{model}' found in Ollama")
                 return True
             else:
-                logger.warning(f"  Model '{model}' NOT found (available: {', '.join(models[:5]) or 'none'})")
+                logger.warning(
+                    f"  Model '{model}' NOT found (available: {', '.join(models[:5]) or 'none'})"
+                )
                 logger.info(f"  Run: docker exec veridoc-ollama ollama pull {model}")
                 return False
     except (OSError, ValueError) as e:
@@ -300,9 +302,7 @@ async def check_ollama_health(model: str) -> bool:
 
 
 async def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Run live red-team tests against Ollama"
-    )
+    parser = argparse.ArgumentParser(description="Run live red-team tests against Ollama")
     parser.add_argument(
         "--model",
         default=DEFAULT_MODEL,
@@ -363,9 +363,7 @@ async def main() -> None:
         system_prompt, user_message = build_prompt(test)
 
         try:
-            response_text = await query_ollama(
-                system_prompt, user_message, model=args.model
-            )
+            response_text = await query_ollama(system_prompt, user_message, model=args.model)
             verdict, excerpt, patterns = classify_response(response_text, test)
 
             results.append(

@@ -87,16 +87,12 @@ async def check_health() -> dict:
 
 
 def docker_compose_stop(service: str) -> bool:
-    code, _output = run_cmd(
-        ["docker", "compose", "-f", str(COMPOSE_FILE), "stop", service]
-    )
+    code, _output = run_cmd(["docker", "compose", "-f", str(COMPOSE_FILE), "stop", service])
     return code == 0
 
 
 def docker_compose_start(service: str) -> bool:
-    code, _output = run_cmd(
-        ["docker", "compose", "-f", str(COMPOSE_FILE), "start", service]
-    )
+    code, _output = run_cmd(["docker", "compose", "-f", str(COMPOSE_FILE), "start", service])
     return code == 0
 
 
@@ -156,8 +152,7 @@ async def test_dependency(service: str, quick: bool = False) -> dict:
                 key_lower = health_key.lower()
                 # Look for the health_key in proximity to error/unhealthy
                 has_structured_log = (
-                    key_lower in log_lower
-                    and ("error" in log_lower or "unhealthy" in log_lower)
+                    key_lower in log_lower and ("error" in log_lower or "unhealthy" in log_lower)
                 ) or f"{key_lower}.*error" in log_lower
                 if has_structured_log:
                     logger.error(f"    PASS - Backend logged {health_key} failure")
@@ -180,7 +175,9 @@ async def test_dependency(service: str, quick: bool = False) -> dict:
             if dep_status == "error":
                 logger.error("    PASS - Health endpoint is resilient, reports partial error")
             elif service == "minio":
-                logger.info("    NOTE - MinIO is file-storage only, not checked on every health call")
+                logger.info(
+                    "    NOTE - MinIO is file-storage only, not checked on every health call"
+                )
             else:
                 logger.warning(f"    WARN - {service} stopped but health unaffected")
             result["steps"].append({"step": "graceful_degradation", "passed": True})
@@ -277,15 +274,9 @@ async def verify_stack_healthy() -> bool:
 
 
 async def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Live chaos/resilience tests (D4 Tier 2)"
-    )
-    parser.add_argument(
-        "--service", choices=ALL_SERVICES, help="Test a single dependency only"
-    )
-    parser.add_argument(
-        "--quick", action="store_true", help="Shorter recovery wait times"
-    )
+    parser = argparse.ArgumentParser(description="Live chaos/resilience tests (D4 Tier 2)")
+    parser.add_argument("--service", choices=ALL_SERVICES, help="Test a single dependency only")
+    parser.add_argument("--quick", action="store_true", help="Shorter recovery wait times")
     args = parser.parse_args()
 
     logger.info("=" * 60)

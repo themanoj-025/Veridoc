@@ -137,9 +137,7 @@ def upgrade() -> None:
         ),
         sa.Column("title", sa.String(500), default="New Conversation", nullable=False),
         sa.Column("is_active", sa.Boolean(), default=True, nullable=False),
-        sa.Column(
-            "document_ids", ARRAY(UUID(as_uuid=True)), default=list, nullable=False
-        ),
+        sa.Column("document_ids", ARRAY(UUID(as_uuid=True)), default=list, nullable=False),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),

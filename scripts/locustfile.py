@@ -296,6 +296,4 @@ class VeridocUser(HttpUser):
                 elif detail_resp.status_code == 401:
                     self._refresh_token()
                 else:
-                    detail_resp.failure(
-                        f"Get document failed: {detail_resp.status_code}"
-                    )
+                    detail_resp.failure(f"Get document failed: {detail_resp.status_code}")
