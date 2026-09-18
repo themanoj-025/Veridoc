@@ -72,7 +72,7 @@ class JobQueue:
         if self._arq_pool is not None:
             try:
                 await self._arq_pool.close()
-            except (OSError, ValueError) as e:
+            except (OSError, ValueError, RedisError) as e:
                 logger.warning("Error closing ARQ pool: %s", e)
             self._arq_pool = None
         self._initialized = False
