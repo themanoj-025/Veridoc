@@ -25,8 +25,10 @@ export function middleware(request: NextRequest) {
     "img-src 'self' data: blob:",
     // Fonts
     "font-src 'self' data:",
-    // API / SSE connections – same-origin covers Next.js rewrites
-    "connect-src 'self' ws: wss:",
+    // API / SSE connections – same-origin plus the backend API origin
+    // (the browser talks to the FastAPI service cross-origin in
+    // production; this must mirror lib/api.ts's API_BASE fallback).
+    `connect-src 'self' ws: wss: ${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}`,
     // Forms
     "form-action 'self'",
     // Prevent framing
