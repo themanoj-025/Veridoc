@@ -114,6 +114,7 @@ async def upload_document(
         status="pending",
     )
     await doc_repo.create(doc)
+    await session.commit()
 
     # Enqueue background ingestion via job queue
     await get_job_queue().enqueue_job(
@@ -181,6 +182,7 @@ async def update_document(
     if body.title is not None:
         doc.title = body.title
     await doc_repo.update(doc)
+    await session.commit()
     await session.close()
     return DocumentResponse.model_validate(doc)
 
@@ -245,6 +247,7 @@ async def delete_document(
 
     # Delete from database
     await doc_repo.delete(doc)
+    await session.commit()
     await session.close()
 
 
@@ -268,6 +271,7 @@ async def reindex_document(
     # Reset status
     doc.status = "pending"
     await doc_repo.update(doc)
+    await session.commit()
 
     # Enqueue reindex job
     await get_job_queue().enqueue_job(
