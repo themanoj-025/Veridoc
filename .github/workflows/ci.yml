@@ -393,6 +393,9 @@ jobs:
           CHROMA_HOST: localhost
           CHROMA_PORT: 8001
           OLLAMA_BASE_URL: http://localhost:11434
+          # Matches the tinyllama pulled by the 'Start Ollama' step — the
+          # app's default (llama3.1:8b) is far too large for CI runners
+          OLLAMA_MODEL: tinyllama
           APP_ENV: production
           # Throwaway CI-only credentials — the app fail-fasts on empty secrets
           JWT_SECRET: e2e-ci-only-throwaway-secret-0123456789abcdef
