@@ -1,13 +1,34 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import path from "path";
 import fs from "fs";
 
-const TEST_EMAIL = `e2e-test-${Date.now()}@example.com`;
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const TEST_PASSWORD = "E2eTestPass123!";
 const TEST_NAME = "E2E Test User";
 const TEST_FILE = path.resolve(__dirname, "../../data/documents/gutenberg_132.txt");
 
-// Helper: check that the file exists before running tests
+/**
+ * Register a fresh user via the API so every test is self-contained and
+ * independent of cross-test timing (a shared module-level user made login
+ * flaky: whichever test ran first got in, later ones saw intermittent 401s).
+ */
+async function createTestUser(page: Page): Promise<string> {
+  const email = `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const res = await page.request.post(`${API_BASE}/api/v1/auth/register`, {
+      data: { email, password: TEST_PASSWORD, full_name: TEST_NAME },
+    });
+    if (res.status() === 201) return email;
+    if (res.status() === 429) {
+      // register is rate-limited (5/min) — back off and retry
+      await new Promise((r) => setTimeout(r, 15000));
+      continue;
+    }
+    throw new Error(`register failed: ${res.status()} ${await res.text()}`);
+  }
+  throw new Error("register failed: rate-limit retries exhausted");
+}
+
 test.describe("Veridoc E2E Smoke Test", () => {
   // Clear auth state before each test to prevent state leakage
   test.beforeEach(async ({ page, context }) => {
@@ -35,7 +56,7 @@ test.describe("Veridoc E2E Smoke Test", () => {
 
     // Fill registration form
     await page.fill("#name", TEST_NAME);
-    await page.fill("#email", TEST_EMAIL);
+    await page.fill("#email", `ui-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`);
     await page.fill("#password", TEST_PASSWORD);
 
     // Submit
@@ -48,9 +69,10 @@ test.describe("Veridoc E2E Smoke Test", () => {
 
   // ── Upload ──────────────────────────────────────────────────
   test("2. User can upload a document", async ({ page }) => {
-    // Login first
+    // Login first (fresh user per test)
+    const email = await createTestUser(page);
     await page.goto("/login");
-    await page.fill("#email", TEST_EMAIL);
+    await page.fill("#email", email);
     await page.fill("#password", TEST_PASSWORD);
     await page.click('button[type="submit"]');
     await page.waitForURL(/\/dashboard/, { timeout: 15000 });
@@ -61,7 +83,10 @@ test.describe("Veridoc E2E Smoke Test", () => {
 
     // Click upload button
     await page.click("text=Upload Document");
-    await expect(page.locator("h3")).toContainText("Upload Document");
+    // Role-based selector: the dashboard has multiple <h3> elements once the
+    // upload modal opens ("No document selected" + "Upload Document"), which
+    // trips strict mode on a bare locator("h3").
+    await expect(page.getByRole("heading", { name: "Upload Document" })).toBeVisible();
 
     // Fill title
     await page.fill('input[name="title"]', "E2E Test Document");
@@ -81,9 +106,9 @@ test.describe("Veridoc E2E Smoke Test", () => {
 
   // ── Ask a question ──────────────────────────────────────────
   test("3. User can ask a question and get a response", async ({ page }) => {
-    // Login
+    const email = await createTestUser(page);
     await page.goto("/login");
-    await page.fill("#email", TEST_EMAIL);
+    await page.fill("#email", email);
     await page.fill("#password", TEST_PASSWORD);
     await page.click('button[type="submit"]');
     await page.waitForURL(/\/dashboard/, { timeout: 15000 });
@@ -110,9 +135,9 @@ test.describe("Veridoc E2E Smoke Test", () => {
 
   // ── Citation click ──────────────────────────────────────────
   test("4. Citations are rendered and clickable", async ({ page }) => {
-    // Login
+    const email = await createTestUser(page);
     await page.goto("/login");
-    await page.fill("#email", TEST_EMAIL);
+    await page.fill("#email", email);
     await page.fill("#password", TEST_PASSWORD);
     await page.click('button[type="submit"]');
     await page.waitForURL(/\/dashboard/, { timeout: 15000 });
@@ -139,9 +164,9 @@ test.describe("Veridoc E2E Smoke Test", () => {
 
   // ── Unanswerable question → refusal ─────────────────────────
   test("5. Unanswerable question produces a refusal", async ({ page }) => {
-    // Login
+    const email = await createTestUser(page);
     await page.goto("/login");
-    await page.fill("#email", TEST_EMAIL);
+    await page.fill("#email", email);
     await page.fill("#password", TEST_PASSWORD);
     await page.click('button[type="submit"]');
     await page.waitForURL(/\/dashboard/, { timeout: 15000 });
