@@ -425,6 +425,19 @@ jobs:
             echo "Waiting for backend... ($i/15)"
             sleep 2
           done
+      - name: Pre-warm ML models
+        # The chat pipeline lazily downloads all-MiniLM-L6-v2 and the
+        # cross-encoder from HuggingFace on first use. Under CI network
+        # latency that first call can exceed retrieval_timeout, which used
+        # to surface as a dead SSE connection. Warm both before tests run.
+        run: |
+          cd backend
+          python - <<'EOF'
+          from sentence_transformers import SentenceTransformer, CrossEncoder
+          SentenceTransformer("all-MiniLM-L6-v2")
+          CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+          print("ML models warmed")
+          EOF
       - name: Build frontend
         run: |
           cd frontend

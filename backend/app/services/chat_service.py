@@ -325,14 +325,32 @@ class ChatService:
 
             return EventSourceResponse(cached_generator())
 
-        # Cache miss — proceed with full pipeline
-        (
-            _top_chunks,
-            citations_data,
-            context,
-            retrieval_time,
-            rerank_time,
-        ) = await self.retrieve_context(search_query, conv)
+        try:
+            # Cache miss — proceed with full pipeline
+            (
+                _top_chunks,
+                citations_data,
+                context,
+                retrieval_time,
+                rerank_time,
+            ) = await self.retrieve_context(search_query, conv)
+        except Exception:
+            # SSE boundary: retrieval happens before the stream starts, so any
+            # failure here must degrade to an SSE error event — a raised
+            # exception becomes a bare 500 that bypasses CORS middleware and
+            # the browser sees a dead connection.
+            logger.exception("chat.retrieval_pre_stream_error")
+
+            async def retrieval_error_generator() -> AsyncGenerator[dict, None]:
+                yield {
+                    "event": "error",
+                    "data": json.dumps({"error": "Failed to prepare the response"}),
+                }
+                if session is not None:
+                    with contextlib.suppress(OSError, ValueError):
+                        await session.close()
+
+            return EventSourceResponse(retrieval_error_generator())
 
         system_prompt = self.build_system_prompt(context)
         gen_start = time.time()
