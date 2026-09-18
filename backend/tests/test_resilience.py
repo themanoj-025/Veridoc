@@ -95,9 +95,7 @@ class TestPostgresFailure:
         from sqlalchemy.exc import OperationalError
 
         mock_session = AsyncMock()
-        mock_session.execute = AsyncMock(
-            side_effect=OperationalError("mock", "mock", "mock")
-        )
+        mock_session.execute = AsyncMock(side_effect=OperationalError("mock", "mock", "mock"))
         mock_session_factory.return_value.__aenter__.return_value = mock_session
 
         resp = await test_client.get("/api/v1/health")
@@ -237,7 +235,6 @@ class TestLLMFailure:
 
         # Build the wrapper manually (same pattern as _with_fallback_to_ollama)
         import asyncio
-
 
         class FallbackWrapper:
             def __init__(self, primary, fallback) -> None:

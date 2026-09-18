@@ -34,9 +34,7 @@ class BaseRepository(Generic[ModelT]):
 
     async def find_by_id(self, id: uuid.UUID) -> ModelT | None:
         """Find a single entity by primary key."""
-        result = await self.session.execute(
-            select(self.model_cls).where(self.model_cls.id == id)
-        )
+        result = await self.session.execute(select(self.model_cls).where(self.model_cls.id == id))
         return result.scalar_one_or_none()
 
     async def find_all(

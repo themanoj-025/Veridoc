@@ -48,9 +48,7 @@ def run_eval_mod() -> None:
 
 class TestSlugMatching:
     def test_normalize_strips_non_alphanumerics(self, eval_mod) -> None:
-        assert (
-            eval_mod._normalize_slug("github_readme_express") == "githubreadmeexpress"
-        )
+        assert eval_mod._normalize_slug("github_readme_express") == "githubreadmeexpress"
         assert eval_mod._normalize_slug("arXiv_2401.12345") == "arxiv240112345"
 
     def test_exact_slug_matches_filename(self, eval_mod) -> None:
@@ -58,10 +56,7 @@ class TestSlugMatching:
 
     def test_slug_with_suffix_matches_bare_filename(self, eval_mod) -> None:
         # gold slug 'synthetic_contract_001' → file 'synthetic_contract.txt'
-        assert (
-            eval_mod._slug_matches("syntheticcontract001", "synthetic_contract.txt")
-            is True
-        )
+        assert eval_mod._slug_matches("syntheticcontract001", "synthetic_contract.txt") is True
 
     def test_readme_slug_matches_md(self, eval_mod) -> None:
         assert eval_mod._slug_matches("githubreadmeexpress", "github_readme.md") is True
@@ -163,9 +158,7 @@ class TestResolution:
 
     @pytest.mark.asyncio
     async def test_unmatched_slug_falls_back_to_none(self, eval_mod, monkeypatch) -> None:
-        rows = [
-            ("11111111-1111-1111-1111-111111111111", "gutenberg_132.txt", "Art of War")
-        ]
+        rows = [("11111111-1111-1111-1111-111111111111", "gutenberg_132.txt", "Art of War")]
         monkeypatch.setattr(eval_mod, "async_session_factory", self._fake_factory(rows))
 
         assert await eval_mod.resolve_document_ids("nope_does_not_exist") is None
@@ -188,7 +181,9 @@ class TestResolution:
         assert await eval_mod.resolve_document_ids("gutenberg_132") is None
 
     @pytest.mark.asyncio
-    async def test_run_evaluation_uses_resolver(self, run_eval_mod, monkeypatch) -> dict[str, object]:
+    async def test_run_evaluation_uses_resolver(
+        self, run_eval_mod, monkeypatch
+    ) -> dict[str, object]:
         """run_evaluation() in run_eval.py must call resolve_document_ids
         (not pass slugs raw) — wildcard questions must search all docs."""
         gold_qa = [
@@ -210,7 +205,9 @@ class TestResolution:
 
         calls: list = []
 
-        async def fake_run_single_eval(question, gold_answer, document_ids, use_hybrid) -> dict[str, object]:
+        async def fake_run_single_eval(
+            question, gold_answer, document_ids, use_hybrid
+        ) -> dict[str, object]:
             calls.append(
                 {
                     "question": question,
@@ -275,9 +272,7 @@ class TestUseHybrid:
 
         class FakeHybrid:
             def __init__(self) -> None:
-                raise AssertionError(
-                    "HybridRetriever must NOT be used on the naive path"
-                )
+                raise AssertionError("HybridRetriever must NOT be used on the naive path")
 
         # Regression guard: if someone re-wires the naive branch to construct
         # HybridRetriever, this raises and the test fails.

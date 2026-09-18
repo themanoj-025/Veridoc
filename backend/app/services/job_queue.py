@@ -96,12 +96,8 @@ class JobQueue:
         import asyncio
 
         jid = job_id or str(uuid.uuid4())
-        logger.info(
-            "Running job %s synchronously (no Redis): %s", jid[:8], job_func.__name__
-        )
-        asyncio.create_task(
-            self._run_with_retry(job_func, jid, max_retries, *args, **kwargs)
-        )
+        logger.info("Running job %s synchronously (no Redis): %s", jid[:8], job_func.__name__)
+        asyncio.create_task(self._run_with_retry(job_func, jid, max_retries, *args, **kwargs))
         return None
 
     async def _enqueue_redis(

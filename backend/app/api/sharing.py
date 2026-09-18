@@ -41,9 +41,7 @@ async def list_shares(
     doc_repo = DocumentRepository(session)
     doc = await doc_repo.find_by_id_and_user(document_id, user.id)
     if not doc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
     result = await session.execute(
         select(DocumentShare).where(DocumentShare.document_id == document_id)
@@ -86,9 +84,7 @@ async def create_share(
     doc_repo = DocumentRepository(session)
     doc = await doc_repo.find_by_id_and_user(document_id, user.id)
     if not doc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
     # Find the target user by email
     from app.repositories.user_repo import UserRepository
@@ -153,16 +149,12 @@ async def update_share(
     """Update a share's permission level. Only the document owner can update."""
     share = await session.get(DocumentShare, share_id)
     if not share:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Share not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Share not found")
 
     doc_repo = DocumentRepository(session)
     doc = await doc_repo.find_by_id_and_user(share.document_id, user.id)
     if not doc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
     share.permission = body.permission
     await session.commit()
@@ -180,9 +172,7 @@ async def update_share(
     )
 
 
-@router.delete(
-    "/{share_id}", status_code=status.HTTP_204_NO_CONTENT, operation_id="shares_delete"
-)
+@router.delete("/{share_id}", status_code=status.HTTP_204_NO_CONTENT, operation_id="shares_delete")
 async def delete_share(
     share_id: uuid.UUID,
     user: User = Depends(get_current_user),
@@ -191,16 +181,12 @@ async def delete_share(
     """Remove a share. Only the document owner can unshare."""
     share = await session.get(DocumentShare, share_id)
     if not share:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Share not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Share not found")
 
     doc_repo = DocumentRepository(session)
     doc = await doc_repo.find_by_id_and_user(share.document_id, user.id)
     if not doc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
     await session.delete(share)
     await session.commit()

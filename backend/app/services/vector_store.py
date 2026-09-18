@@ -20,9 +20,7 @@ class VectorStore:
             port=settings.chroma_port,
             settings=ChromaSettings(
                 anonymized_telemetry=False,
-                chroma_server_grpc_max_message_length=settings.chroma_timeout
-                * 1000
-                * 1000,
+                chroma_server_grpc_max_message_length=settings.chroma_timeout * 1000 * 1000,
             ),
         )
         # Apply HTTP timeout — the underlying httpx client respects this
@@ -102,27 +100,19 @@ class VectorStore:
                     {
                         "chunk_id": results["ids"][0][i],
                         "content": results["documents"][0][i],
-                        "document_id": results["metadatas"][0][i].get(
-                            "document_id", ""
-                        ),
-                        "document_title": results["metadatas"][0][i].get(
-                            "document_title", ""
-                        ),
+                        "document_id": results["metadatas"][0][i].get("document_id", ""),
+                        "document_title": results["metadatas"][0][i].get("document_title", ""),
                         "page_number": results["metadatas"][0][i].get("page_number"),
                         "ocr_used": results["metadatas"][0][i].get("ocr_used", False),
                         "score": (
-                            1.0 - results["distances"][0][i]
-                            if results["distances"]
-                            else 0.0
+                            1.0 - results["distances"][0][i] if results["distances"] else 0.0
                         ),
                         "source": "vector",
                     }
                 )
         return chunks
 
-    async def get_all_chunks(
-        self, document_ids: list[str] | None = None
-    ) -> list[dict[str, Any]]:
+    async def get_all_chunks(self, document_ids: list[str] | None = None) -> list[dict[str, Any]]:
         """Retrieve ALL chunks for the given document IDs (not just top-k).
 
         Used by the BM25 indexer to build a complete lexical index over
@@ -144,9 +134,7 @@ class VectorStore:
                 chunks.append(
                     {
                         "chunk_id": results["ids"][i],
-                        "content": (
-                            results["documents"][i] if results["documents"] else ""
-                        ),
+                        "content": (results["documents"][i] if results["documents"] else ""),
                         "document_id": meta.get("document_id", ""),
                         "document_title": meta.get("document_title", ""),
                         "ocr_used": meta.get("ocr_used", False),

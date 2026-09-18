@@ -123,7 +123,19 @@ interface StreamChatOptions {
   conversationId: string;
   message: string;
   onToken: (token: string) => void;
-  onDone: (data: { conversation_id: string; answer: string; citations?: Array<{ document_id: string; chunk_id: string }> }) => void;
+  onDone: (data: {
+    conversation_id: string;
+    answer: string;
+    message_id?: string;
+    content?: string;
+    citations?: Array<{ document_id: string; chunk_id: string; text: string; page_number?: number | null; score: number }>;
+    latency_ms?: number;
+    tokens_used?: number;
+    faithfulness_score?: number;
+    model_used?: string;
+    fallback_used?: boolean;
+    cache_hit?: boolean;
+  }) => void;
   onError: (error: string) => void;
   /** Called before each automatic reconnect attempt (F11) so the UI can show a "Reconnecting..." state. */
   onReconnecting?: () => void;

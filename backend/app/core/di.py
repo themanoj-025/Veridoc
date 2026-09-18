@@ -142,9 +142,7 @@ class DIContainer:
             import structlog
             from sentence_transformers import SentenceTransformer
 
-            structlog.get_logger(__name__).info(
-                "Loading embedding model: all-MiniLM-L6-v2"
-            )
+            structlog.get_logger(__name__).info("Loading embedding model: all-MiniLM-L6-v2")
             model = SentenceTransformer("all-MiniLM-L6-v2")
             if not isinstance(model, EmbeddingModel):
                 # Runtime safety: wrap non-conforming instance

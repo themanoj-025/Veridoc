@@ -32,9 +32,7 @@ def _override_get_user(app, user):
 @pytest.mark.asyncio
 async def test_register_success(test_client: AsyncClient, mock_db_session, app) -> None:
     """Test successful user registration returns tokens and user data."""
-    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
-        return_value=None
-    )
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=None)
 
     response = await test_client.post(
         "/api/v1/auth/register",
@@ -59,9 +57,7 @@ async def test_register_duplicate_email(
     test_client: AsyncClient, mock_db_session, sample_user
 ) -> None:
     """Test registration with existing email returns 409."""
-    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
-        return_value=sample_user
-    )
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=sample_user)
 
     response = await test_client.post(
         "/api/v1/auth/register",
@@ -107,9 +103,7 @@ async def test_register_password_no_complexity(test_client: AsyncClient) -> None
 @pytest.mark.asyncio
 async def test_login_success(test_client: AsyncClient, mock_db_session, sample_user) -> None:
     """Test successful login returns tokens and user data."""
-    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
-        return_value=sample_user
-    )
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=sample_user)
 
     response = await test_client.post(
         "/api/v1/auth/login",
@@ -127,13 +121,9 @@ async def test_login_success(test_client: AsyncClient, mock_db_session, sample_u
 
 
 @pytest.mark.asyncio
-async def test_login_wrong_password(
-    test_client: AsyncClient, mock_db_session, sample_user
-) -> None:
+async def test_login_wrong_password(test_client: AsyncClient, mock_db_session, sample_user) -> None:
     """Test login with wrong password returns 401."""
-    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
-        return_value=sample_user
-    )
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=sample_user)
 
     response = await test_client.post(
         "/api/v1/auth/login",
@@ -150,9 +140,7 @@ async def test_login_wrong_password(
 @pytest.mark.asyncio
 async def test_login_nonexistent_user(test_client: AsyncClient, mock_db_session) -> None:
     """Test login with non-existent email returns 401."""
-    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
-        return_value=None
-    )
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=None)
 
     response = await test_client.post(
         "/api/v1/auth/login",
@@ -166,14 +154,10 @@ async def test_login_nonexistent_user(test_client: AsyncClient, mock_db_session)
 
 
 @pytest.mark.asyncio
-async def test_login_inactive_user(
-    test_client: AsyncClient, mock_db_session, sample_user
-) -> None:
+async def test_login_inactive_user(test_client: AsyncClient, mock_db_session, sample_user) -> None:
     """Test login with inactive user returns 403."""
     sample_user.is_active = False
-    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
-        return_value=sample_user
-    )
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=sample_user)
 
     response = await test_client.post(
         "/api/v1/auth/login",
@@ -195,9 +179,7 @@ async def test_refresh_success(
     test_client: AsyncClient, mock_db_session, sample_user, sample_refresh_token
 ) -> None:
     """Test successful token refresh returns new tokens."""
-    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
-        return_value=sample_user
-    )
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=sample_user)
 
     response = await test_client.post(
         "/api/v1/auth/refresh",
@@ -301,9 +283,7 @@ async def test_logout_revokes_refresh_token(
     assert "successfully" in response.json()["message"]
 
     # Refreshing with the same token should now fail
-    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
-        return_value=sample_user
-    )
+    mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=sample_user)
     resp2 = await test_client.post(
         "/api/v1/auth/refresh",
         json={"refresh_token": sample_refresh_token},
@@ -486,5 +466,3 @@ class TestSecurityUtilities:
 
 
 # ── Negative Security Tests (G29) ───────────────────────
-
-

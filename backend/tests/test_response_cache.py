@@ -60,7 +60,6 @@ def test_make_cache_key_is_case_insensitive() -> None:
     """Query case is normalized so 'Hello' and 'hello' match."""
     from app.services.response_cache import _make_cache_key
 
-
     k1 = _make_cache_key("conv-1", "Hello World")
     k2 = _make_cache_key("conv-1", "hello world")
     assert k1 == k2
@@ -81,9 +80,7 @@ async def test_cache_set_and_get(cache) -> None:
     """A value stored in cache should be retrievable."""
     data = {
         "content": "The answer is 42.",
-        "citations": [
-            {"chunk_id": "c1", "document_id": "d1", "text": "Meaning is 42."}
-        ],
+        "citations": [{"chunk_id": "c1", "document_id": "d1", "text": "Meaning is 42."}],
         "faithfulness_score": 0.95,
         "model_used": "llama3.1:8b",
     }

@@ -110,9 +110,7 @@ class TestChunking:
         )
 
         # Some chunks should be on page 1, some on page 2
-        page_numbers = {
-            c["page_number"] for c in chunks if c["page_number"] is not None
-        }
+        page_numbers = {c["page_number"] for c in chunks if c["page_number"] is not None}
         assert len(page_numbers) > 0
         assert 1 in page_numbers
 
@@ -233,9 +231,7 @@ def test_chunk_exact_size_multiple() -> None:
     """Test chunking when text length is an exact multiple of chunk_size (chars)."""
     # Exactly 1500 chars (default chunk_size), one-word text with no separators
     text = "a" * 1500
-    chunks = chunk_text(
-        text, doc_id="doc-1", doc_title="Test", chunk_size=1500, overlap=0
-    )
+    chunks = chunk_text(text, doc_id="doc-1", doc_title="Test", chunk_size=1500, overlap=0)
 
     assert len(chunks) == 1
     assert len(chunks[0]["content"]) == 1500

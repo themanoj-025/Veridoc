@@ -38,9 +38,7 @@ class UsageLogRepository(BaseRepository[UsageLog]):
     async def get_percentile_latency(self, percentile: float) -> float:
         """Get a latency percentile using Postgres percentile_cont."""
         result = await self.session.execute(
-            select(
-                func.percentile_cont(percentile).within_group(UsageLog.response_time_ms)
-            )
+            select(func.percentile_cont(percentile).within_group(UsageLog.response_time_ms))
         )
         return float(result.scalar() or 0)
 
@@ -65,9 +63,7 @@ class UsageLogRepository(BaseRepository[UsageLog]):
     async def get_avg_cost(self) -> float:
         """Average estimated cost per query where cost is tracked."""
         result = await self.session.execute(
-            select(func.avg(UsageLog.estimated_cost)).where(
-                UsageLog.estimated_cost.isnot(None)
-            )
+            select(func.avg(UsageLog.estimated_cost)).where(UsageLog.estimated_cost.isnot(None))
         )
         return float(result.scalar() or 0)
 
@@ -93,6 +89,4 @@ class UsageLogRepository(BaseRepository[UsageLog]):
 
     async def delete_all_by_user(self, user_id: uuid.UUID) -> None:
         """Bulk delete all usage logs for a user (for GDPR account deletion)."""
-        await self.session.execute(
-            sa_delete(UsageLog).where(UsageLog.user_id == user_id)
-        )
+        await self.session.execute(sa_delete(UsageLog).where(UsageLog.user_id == user_id))

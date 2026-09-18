@@ -105,9 +105,7 @@ async def test_process_document_end_to_end(
         result = await session.execute(select(Document).where(Document.id == doc_id))
         updated_doc = result.scalar_one_or_none()
         assert updated_doc is not None
-        assert (
-            updated_doc.status == "indexed"
-        ), f"Expected status=indexed, got {updated_doc.status}"
+        assert updated_doc.status == "indexed", f"Expected status=indexed, got {updated_doc.status}"
         assert updated_doc.chunk_count is not None
         assert updated_doc.chunk_count > 0
 
@@ -118,15 +116,15 @@ async def test_process_document_end_to_end(
         assert len(orm_chunks) == updated_doc.chunk_count
         assert orm_chunks[0].chunk_index == 0
         assert orm_chunks[-1].chunk_index == len(orm_chunks) - 1
-        assert all(
-            c.chroma_id is not None for c in orm_chunks
-        ), "All chunks should have a chroma_id set by process_document"
+        assert all(c.chroma_id is not None for c in orm_chunks), (
+            "All chunks should have a chroma_id set by process_document"
+        )
 
     # ── 5. Verify ChromaDB: chunks are searchable ───────────
     vs_count = await test_vs.count_documents()
-    assert (
-        vs_count == updated_doc.chunk_count
-    ), f"ChromaDB should contain {updated_doc.chunk_count} chunks, got {vs_count}"
+    assert vs_count == updated_doc.chunk_count, (
+        f"ChromaDB should contain {updated_doc.chunk_count} chunks, got {vs_count}"
+    )
 
     query_emb = np.random.rand(embedding_dim).tolist()
     search_results = await test_vs.search(
@@ -136,9 +134,9 @@ async def test_process_document_end_to_end(
     )
     assert len(search_results) > 0, "Search should return at least 1 chunk"
     for r in search_results:
-        assert r["document_id"] == str(
-            doc_id
-        ), f"Expected document_id={doc_id}, got {r['document_id']}"
+        assert r["document_id"] == str(doc_id), (
+            f"Expected document_id={doc_id}, got {r['document_id']}"
+        )
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -241,9 +239,7 @@ async def test_postgres_document_chunk_relationship(pg_session, temp_dir) -> Non
     pg_session.add(doc)
     await pg_session.flush()
 
-    chunks_data = [
-        Chunk(document_id=doc.id, chunk_index=i, content=f"Chunk {i}") for i in range(3)
-    ]
+    chunks_data = [Chunk(document_id=doc.id, chunk_index=i, content=f"Chunk {i}") for i in range(3)]
     for c in chunks_data:
         pg_session.add(c)
     await pg_session.flush()
@@ -261,12 +257,8 @@ async def test_postgres_document_chunk_relationship(pg_session, temp_dir) -> Non
     # Cascade delete
     await pg_session.delete(doc)
     await pg_session.flush()
-    remaining = await pg_session.execute(
-        select(Chunk).where(Chunk.document_id == doc.id)
-    )
-    assert (
-        remaining.scalar_one_or_none() is None
-    ), "Cascade delete should remove all chunks"
+    remaining = await pg_session.execute(select(Chunk).where(Chunk.document_id == doc.id))
+    assert remaining.scalar_one_or_none() is None, "Cascade delete should remove all chunks"
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -284,7 +276,6 @@ async def test_postgres_user_scoped_queries(pg_session) -> None:
 
     from app.models.document import Document
     from sqlalchemy import func, select
-
 
     user_id = uuid.uuid4()
     now = datetime.now(UTC)
@@ -306,9 +297,7 @@ async def test_postgres_user_scoped_queries(pg_session) -> None:
 
     # List by user (exercises composite index ordering)
     result = await pg_session.execute(
-        select(Document)
-        .where(Document.user_id == user_id)
-        .order_by(Document.created_at.desc())
+        select(Document).where(Document.user_id == user_id).order_by(Document.created_at.desc())
     )
     assert len(result.scalars().all()) == 5
 
@@ -319,9 +308,7 @@ async def test_postgres_user_scoped_queries(pg_session) -> None:
     assert count == 5
 
     # Other user isolation
-    other = await pg_session.execute(
-        select(Document).where(Document.user_id == uuid.uuid4())
-    )
+    other = await pg_session.execute(select(Document).where(Document.user_id == uuid.uuid4()))
     assert len(other.scalars().all()) == 0
 
     # Pagination

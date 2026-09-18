@@ -57,16 +57,12 @@ class TestVirusScanner:
     ) -> None:
         """An EICAR file flagged by the scanner → 400, file removed, no doc created."""
         _override_get_user(app, sample_user)
-        mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
-            return_value=None
-        )
+        mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=None)
 
         fake_scanner = MagicMock()
         fake_scanner.scan = MagicMock(return_value=False)  # infected
 
-        with patch(
-            "app.services.ssrf_protection.get_virus_scanner", return_value=fake_scanner
-        ):
+        with patch("app.services.ssrf_protection.get_virus_scanner", return_value=fake_scanner):
             response = await test_client.post(
                 "/api/v1/documents/upload",
                 headers=_auth(sample_user_token),
@@ -95,9 +91,7 @@ class TestVirusScanner:
     ) -> None:
         """A clean file passes the no-op scan and proceeds to doc creation."""
         _override_get_user(app, sample_user)
-        mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
-            return_value=None
-        )
+        mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=None)
 
         with patch("app.services.ssrf_protection.get_virus_scanner") as factory:
             factory.return_value.scan.return_value = True

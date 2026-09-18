@@ -188,9 +188,7 @@ def _build_llm_provider() -> LLMProvider:
     logger = structlog.get_logger(__name__)
 
     if settings.anthropic_api_key and settings.llm_provider == "claude":
-        logger.info(
-            "llm.provider_selected", provider="claude", model="claude-sonnet-4-20250514"
-        )
+        logger.info("llm.provider_selected", provider="claude", model="claude-sonnet-4-20250514")
         return _with_fallback_to_ollama(ClaudeProvider(), "claude", logger)
     elif settings.openai_api_key and settings.llm_provider == "openai":
         logger.info("llm.provider_selected", provider="openai", model="gpt-4o-mini")
@@ -236,9 +234,7 @@ def _with_fallback_to_ollama(primary: LLMProvider, name: str, logger) -> LLMProv
             )
             return fallback
 
-        async def chat(
-            self, system_prompt: str, history: list[dict], message: str
-        ) -> str:
+        async def chat(self, system_prompt: str, history: list[dict], message: str) -> str:
             try:
                 return await asyncio.wait_for(
                     primary.chat(system_prompt, history, message),
@@ -251,9 +247,7 @@ def _with_fallback_to_ollama(primary: LLMProvider, name: str, logger) -> LLMProv
                     error=str(e)[:100],
                     timeout=isinstance(e, asyncio.TimeoutError),
                 )
-                fallback = await self._fallback_to_ollama(
-                    system_prompt, history, message
-                )
+                fallback = await self._fallback_to_ollama(system_prompt, history, message)
                 return await fallback.chat(system_prompt, history, message)
 
         async def stream_chat(
@@ -272,12 +266,8 @@ def _with_fallback_to_ollama(primary: LLMProvider, name: str, logger) -> LLMProv
                     error=str(e)[:100],
                     timeout=isinstance(e, asyncio.TimeoutError),
                 )
-                fallback = await self._fallback_to_ollama(
-                    system_prompt, history, message
-                )
-                async for token in fallback.stream_chat(
-                    system_prompt, history, message
-                ):
+                fallback = await self._fallback_to_ollama(system_prompt, history, message)
+                async for token in fallback.stream_chat(system_prompt, history, message):
                     yield token
 
     return FallbackWrapper()

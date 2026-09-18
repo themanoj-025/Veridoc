@@ -74,9 +74,7 @@ class HybridRetriever:
             vs = vs_mod.get_vector_store()
             full_corpus = vs.get_all_chunks(document_ids=document_ids)
         except (OSError, ValueError, KeyError) as exc:
-            logger.warning(
-                "Full corpus load failed — falling back to dense-only: %s", exc
-            )
+            logger.warning("Full corpus load failed — falling back to dense-only: %s", exc)
 
         # BM25 search — uses the full corpus, cached per document set
         bm25_results = []
@@ -132,9 +130,7 @@ class HybridRetriever:
         pairs = [(query, c["content"]) for c in chunks]
 
         # Use explicit batch_size if provided, otherwise let the model decide
-        predict_kwargs: dict[str, Any] = (
-            {"batch_size": batch_size} if batch_size > 0 else {}
-        )
+        predict_kwargs: dict[str, Any] = {"batch_size": batch_size} if batch_size > 0 else {}
 
         start = time.time()
         scores = reranker.predict(pairs, **predict_kwargs)

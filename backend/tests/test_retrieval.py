@@ -180,9 +180,7 @@ class TestQueryRewrite:
     async def test_rewrite_long_query_no_rewrite(self) -> None:
         """Test that long queries without demonstratives are not rewritten."""
         history = [{"role": "user", "content": "What is machine learning?"}]
-        result = await rewrite_query(
-            "What is deep learning and how does it work?", history
-        )
+        result = await rewrite_query("What is deep learning and how does it work?", history)
         assert result is None
 
     @pytest.mark.asyncio
@@ -208,18 +206,14 @@ class TestQueryRewrite:
 
         mock_llm = AsyncMock()
         mock_llm.model_name = "test-model"
-        mock_llm.chat = AsyncMock(
-            return_value="What is machine learning? Explain more about it."
-        )
+        mock_llm.chat = AsyncMock(return_value="What is machine learning? Explain more about it.")
 
         history = [
             {"role": "user", "content": "What is machine learning?"},
             {"role": "assistant", "content": "Machine learning is a subset of AI..."},
         ]
 
-        with patch(
-            "app.services.retrieval.query_rewrite.get_llm", return_value=mock_llm
-        ):
+        with patch("app.services.retrieval.query_rewrite.get_llm", return_value=mock_llm):
             result = await rewrite_query("explain more about it", history)
             assert result is not None
             assert "machine learning" in result.lower()
@@ -396,8 +390,8 @@ class TestBM25DiskPersistence:
 
         # Verify disk file exists
         cache_dir = _ensure_cache_dir()
-        pkl_files = list(cache_dir.glob("*.pkl"))
-        assert len(pkl_files) == 1
+        json_files = list(cache_dir.glob("*.json"))
+        assert len(json_files) == 1
 
         # Clear memory cache to simulate cold start
         _bm25_indexes.clear()
@@ -483,13 +477,13 @@ class TestBM25DiskPersistence:
         _save_to_disk(_build_cache_key(["d2"]), index, chunks)
 
         cache_dir = _ensure_cache_dir()
-        assert len(list(cache_dir.glob("*.pkl"))) == 2
+        assert len(list(cache_dir.glob("*.json"))) == 2
 
         # Invalidate
         invalidate_bm25_index()
 
         # Disk cache should be empty
-        assert len(list(cache_dir.glob("*.pkl"))) == 0
+        assert len(list(cache_dir.glob("*.json"))) == 0
 
 
 # ── Edge Cases ───────────────────────────────────────────

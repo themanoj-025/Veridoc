@@ -35,9 +35,7 @@ async def _build_conversation_response(
     """Build a ConversationResponse using the repository."""
     conv = await conv_repo.find_by_id(conv_id)
     if not conv:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
     doc_ids, doc_titles = await conv_repo.get_document_ids_and_titles(conv_id)
     return ConversationResponse(
         id=conv.id,
@@ -152,9 +150,7 @@ async def get_conversation(
     conv = await conv_repo.find_by_id_and_user(conversation_id, user.id)
     if not conv:
         await session.close()
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
     result = await _build_conversation_response(conv_repo, conversation_id)
     await session.close()
     return result
@@ -175,9 +171,7 @@ async def delete_conversation(
     conv_repo = ConversationRepository(session)
     conv = await conv_repo.find_by_id_and_user(conversation_id, user.id)
     if not conv:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
     await conv_repo.delete(conv)
     await session.close()
 
@@ -199,9 +193,7 @@ async def get_messages(
     conv_repo = ConversationRepository(session)
     conv = await conv_repo.find_by_id_and_user(conversation_id, user.id)
     if not conv:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
 
     await session.close()
     return [MessageResponse.from_message(m) for m in conv.messages]

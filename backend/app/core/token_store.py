@@ -32,17 +32,13 @@ logger = structlog.get_logger(__name__)
 
 # ── In-memory fallback store ─────────────────────────────
 
-_in_memory: dict[str, dict[str, Any]] = (
-    {}
-)  # jti -> {"user_id": str, "expires_at": float}
+_in_memory: dict[str, dict[str, Any]] = {}  # jti -> {"user_id": str, "expires_at": float}
 
 
 def _cleanup_expired() -> None:
     """Remove expired entries from the in-memory store."""
     now = time.time()
-    expired = [
-        jti for jti, data in _in_memory.items() if data.get("expires_at", 0) < now
-    ]
+    expired = [jti for jti, data in _in_memory.items() if data.get("expires_at", 0) < now]
     for jti in expired:
         _in_memory.pop(jti, None)
 
@@ -84,9 +80,7 @@ async def _try_redis_get(jti: str) -> bool:
             result = await q._arq_pool.get(f"token:consumed:{jti}")
         except (OSError, ValueError) as e:
             logger.warning("Redis token-store get failed", error=str(e))
-            raise TokenStoreUnavailableError(
-                "Token store unavailable; cannot verify token."
-            ) from e
+            raise TokenStoreUnavailableError("Token store unavailable; cannot verify token.") from e
         return result is not None
     return False
 
@@ -104,9 +98,7 @@ def _memory_exists(jti: str) -> bool:
     return jti in _in_memory
 
 
-async def validate_and_consume(
-    jti: str, user_id: str, expires_at: float | None = None
-) -> bool:
+async def validate_and_consume(jti: str, user_id: str, expires_at: float | None = None) -> bool:
     """Validate that *jti* has NOT been consumed, then mark it as consumed.
 
     Returns ``True`` if the token was valid (not previously consumed).
@@ -122,9 +114,7 @@ async def validate_and_consume(
         # Fail CLOSED: we cannot verify the token's freshness, so deny the
         # refresh. Allowing it through would let a previously consumed token
         # be replayed during a Redis outage.
-        logger.warning(
-            "Token store unavailable; failing closed on refresh", jti=jti[:8]
-        )
+        logger.warning("Token store unavailable; failing closed on refresh", jti=jti[:8])
         return False
     if consumed or _memory_exists(jti):
         logger.warning("Refresh token reuse detected", jti=jti[:8])

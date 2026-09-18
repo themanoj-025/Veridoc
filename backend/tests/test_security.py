@@ -9,6 +9,7 @@ import pytest
 
 pytestmark = pytest.mark.unit
 
+
 class TestPasswordComplexity:
     """validate_password_complexity enforces minimum requirements."""
 

@@ -147,9 +147,7 @@ async def list_documents(
     )
 
 
-@router.get(
-    "/{document_id}", response_model=DocumentResponse, operation_id="documents_get"
-)
+@router.get("/{document_id}", response_model=DocumentResponse, operation_id="documents_get")
 async def get_document(
     document_id: uuid.UUID,
     user: User = Depends(get_current_user),
@@ -161,16 +159,12 @@ async def get_document(
     doc = await doc_repo.find_by_id_and_user(document_id, user.id)
     if not doc:
         await session.close()
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
     await session.close()
     return DocumentResponse.model_validate(doc)
 
 
-@router.patch(
-    "/{document_id}", response_model=DocumentResponse, operation_id="documents_update"
-)
+@router.patch("/{document_id}", response_model=DocumentResponse, operation_id="documents_update")
 async def update_document(
     document_id: uuid.UUID,
     body: DocumentUpdate,
@@ -182,9 +176,7 @@ async def update_document(
     doc_repo = DocumentRepository(session)
     doc = await doc_repo.find_by_id_and_user(document_id, user.id)
     if not doc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
     if body.title is not None:
         doc.title = body.title
@@ -204,9 +196,7 @@ async def get_document_content(
     doc_repo = DocumentRepository(session)
     doc = await doc_repo.find_by_id_and_user(document_id, user.id)
     if not doc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
     # Get chunks via repository
     chunk_repo = ChunkRepository(session)
@@ -248,9 +238,7 @@ async def delete_document(
     doc_repo = DocumentRepository(session)
     doc = await doc_repo.find_by_id_and_user(document_id, user.id)
     if not doc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
     # Delete file from disk + Chroma
     await doc_repo.delete_chroma_and_file(doc)
@@ -275,9 +263,7 @@ async def reindex_document(
     doc_repo = DocumentRepository(session)
     doc = await doc_repo.find_by_id_and_user(document_id, user.id)
     if not doc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
     # Reset status
     doc.status = "pending"

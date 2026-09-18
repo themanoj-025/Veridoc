@@ -13,6 +13,7 @@ from app.services.email_sender import (
 pytestmark = pytest.mark.slow
 pytestmark = pytest.mark.integration
 
+
 class TestGetBaseUrl:
     """Tests for _get_base_url helper."""
 

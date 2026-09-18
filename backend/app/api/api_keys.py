@@ -48,9 +48,7 @@ async def list_api_keys(
     Never returns the full key — only the prefix and metadata.
     """
     result = await session.execute(
-        select(ApiKey)
-        .where(ApiKey.user_id == user.id)
-        .order_by(ApiKey.created_at.desc())
+        select(ApiKey).where(ApiKey.user_id == user.id).order_by(ApiKey.created_at.desc())
     )
     keys = result.scalars().all()
     await session.close()
@@ -108,9 +106,7 @@ async def create_api_key(
     )
 
 
-@router.delete(
-    "/{key_id}", status_code=status.HTTP_204_NO_CONTENT, operation_id="api_keys_delete"
-)
+@router.delete("/{key_id}", status_code=status.HTTP_204_NO_CONTENT, operation_id="api_keys_delete")
 async def revoke_api_key(
     key_id: uuid.UUID,
     user: User = Depends(get_current_user),
@@ -119,9 +115,7 @@ async def revoke_api_key(
     """Revoke (delete) an API key. Irreversible."""
     key = await session.get(ApiKey, key_id)
     if not key or key.user_id != user.id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="API key not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="API key not found")
 
     await session.delete(key)
     await session.commit()
