@@ -6,6 +6,9 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: 1,
+  // Chat tests wait up to 60s for LLM responses (Ollama on CI is slow) — the
+  // 30s default test timeout would kill those waits before they resolve.
+  timeout: 120_000,
   reporter: process.env.CI
     ? [["html", { outputFolder: "playwright-report" }], ["list"]]
     : "list",
