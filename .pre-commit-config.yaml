@@ -14,10 +14,7 @@ repos:
       - id: check-yaml
       - id: check-added-large-files
         args: ['--maxkb=1000']
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.15.0
-    hooks:
-      - id: mypy
-        language: python
-        types: [python]
-        args: [--ignore-missing-imports]
+  # NOTE: mypy deliberately NOT here — the hook's isolated venv lacks repo deps,
+  # producing ~75 false findings (Any-leaks, alembic `op`). Type checking runs
+  # as an advisory CI job (ci.yml `mypy`) with the real environment instead;
+  # promote it to blocking once the pre-existing backlog is cleared.

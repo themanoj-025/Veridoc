@@ -30,6 +30,9 @@ RUN pip install --no-cache-dir --timeout 120 --retries 5 -r /tmp/requirements.tx
 
 # Application code
 COPY backend/ /app/
+# circuit_breaker.py is a portfolio-canonical module that lives at the repo root;
+# backend imports it as a top-level module, so the runtime image needs it too.
+COPY circuit_breaker.py /app/circuit_breaker.py
 ENV PYTHONPATH=/app
 
 EXPOSE 8000
