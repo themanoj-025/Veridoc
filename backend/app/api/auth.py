@@ -61,6 +61,7 @@ async def register(
         full_name=body.full_name,
     )
     await user_repo.create(user)
+    await session.commit()
 
     access_token = create_access_token(user.id)
     refresh_token = create_refresh_token(user.id)
@@ -209,6 +210,7 @@ async def change_password(
     user.hashed_password = hash_password(body.new_password)
     user_repo = UserRepository(session)
     await user_repo.update(user)
+    await session.commit()
     await session.close()
     return {"message": "Password changed successfully"}
 
@@ -232,6 +234,7 @@ async def request_verification_email(
     user.verification_token_expiry = datetime.now(UTC) + timedelta(hours=24)
     user_repo = UserRepository(session)
     await user_repo.update(user)
+    await session.commit()
     await session.close()
 
     await send_verification_email(user.email, token)
@@ -265,6 +268,7 @@ async def verify_email(
     user.verification_token = None
     user.verification_token_expiry = None
     await user_repo.update(user)
+    await session.commit()
     await session.close()
     return {"message": "Email verified successfully"}
 
@@ -327,5 +331,6 @@ async def reset_password(
     user.reset_token = None
     user.reset_token_expiry = None
     await user_repo.update(user)
+    await session.commit()
     await session.close()
     return {"message": "Password reset successfully"}
