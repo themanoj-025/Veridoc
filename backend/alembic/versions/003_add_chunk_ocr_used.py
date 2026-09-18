@@ -59,9 +59,7 @@ def upgrade() -> None:
 
     # Now make it non-nullable
     with op.batch_alter_table("chunks") as batch_op:
-        batch_op.alter_column(
-            "ocr_used", nullable=False, server_default=sa.text("false")
-        )
+        batch_op.alter_column("ocr_used", nullable=False, server_default=sa.text("false"))
 
 
 def downgrade() -> None:

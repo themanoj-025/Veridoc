@@ -379,6 +379,9 @@ jobs:
           # Throwaway CI-only credentials — the app fail-fasts on empty secrets
           JWT_SECRET: e2e-ci-only-throwaway-secret-0123456789abcdef
           FILE_ENCRYPTION_KEY: e2e-ci-only-throwaway-fernet-key-0123456789abcdef
+          # Matches the postgres service container's credentials (the app builds
+          # its connection URL from POSTGRES_* — DATABASE_URL is not read)
+          POSTGRES_PASSWORD: veridoc_local_dev
           # circuit_breaker.py is a portfolio-canonical module at the repo root
           PYTHONPATH: ${{ github.workspace }}
         run: |

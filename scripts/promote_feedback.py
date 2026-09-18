@@ -63,7 +63,9 @@ def status() -> None:
     if queue:
         down_count = sum(1 for e in queue if e.get("feedback") == "down")
         logger.info(f"  Thumbs-down:       {down_count}")
-        logger.info(f"  Avg faithfulness:  {sum(e.get('faithfulness_score', 0) or 0 for e in queue) / len(queue):.2f}")
+        logger.info(
+            f"  Avg faithfulness:  {sum(e.get('faithfulness_score', 0) or 0 for e in queue) / len(queue):.2f}"
+        )
 
 
 def auto_promote(threshold: float = 0.8) -> int:
@@ -168,9 +170,7 @@ def interactive_promote() -> int:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Promote feedback entries into the gold Q&A set."
-    )
+    parser = argparse.ArgumentParser(description="Promote feedback entries into the gold Q&A set.")
     parser.add_argument(
         "--auto",
         action="store_true",

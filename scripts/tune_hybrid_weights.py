@@ -145,9 +145,7 @@ def dense_search_simple(
     scores = []
     for c in corpus:
         c_vec = np.array(dummy_embedding(c["content"]))
-        sim = np.dot(q_vec, c_vec) / (
-            np.linalg.norm(q_vec) * np.linalg.norm(c_vec) + 1e-10
-        )
+        sim = np.dot(q_vec, c_vec) / (np.linalg.norm(q_vec) * np.linalg.norm(c_vec) + 1e-10)
         scores.append(sim)
     top_indices = np.argsort(scores)[-top_k:][::-1]
     results = []
@@ -203,17 +201,13 @@ def rrf_merge(
         cid = r.get("content", str(rank))
         if cid not in scores:
             scores[cid] = dict(r)
-        scores[cid]["rrf_score"] = scores[cid].get("rrf_score", 0.0) + bm25_weight / (
-            k + rank + 1
-        )
+        scores[cid]["rrf_score"] = scores[cid].get("rrf_score", 0.0) + bm25_weight / (k + rank + 1)
 
     for rank, r in enumerate(dense_results):
         cid = r.get("content", str(rank))
         if cid not in scores:
             scores[cid] = dict(r)
-        scores[cid]["rrf_score"] = scores[cid].get("rrf_score", 0.0) + dense_weight / (
-            k + rank + 1
-        )
+        scores[cid]["rrf_score"] = scores[cid].get("rrf_score", 0.0) + dense_weight / (k + rank + 1)
 
     sorted_results = sorted(
         scores.values(),
@@ -285,9 +279,7 @@ def evaluate_config(
         # Run retrieval
         bm25_res = bm25_search_simple(query, doc_corpus, top_k=top_k * 2)
         dense_res = dense_search_simple(query, doc_corpus, top_k=top_k * 2)
-        merged = rrf_merge(
-            bm25_res, dense_res, k=rrf_k, top_k=top_k, bm25_weight=bm25_weight
-        )
+        merged = rrf_merge(bm25_res, dense_res, k=rrf_k, top_k=top_k, bm25_weight=bm25_weight)
 
         # Get retrieved document_ids
         retrieved_ids = [r["document_id"] for r in merged]
@@ -318,8 +310,10 @@ def print_metrics_table(
         logger.info(f"{'Config':<40} {'P@5':>8} {'P@10':>8} {'R@5':>8} {'R@10':>8} {'MRR':>8}")
         logger.info("-" * 80)
     elif metrics:
-        logger.info(f"{label:<40} {metrics['precision@5']:>7.2%} {metrics['precision@10']:>7.2%} "
-            f"{metrics['recall@5']:>7.2%} {metrics['recall@10']:>7.2%} {metrics['MRR']:>7.3f}")
+        logger.info(
+            f"{label:<40} {metrics['precision@5']:>7.2%} {metrics['precision@10']:>7.2%} "
+            f"{metrics['recall@5']:>7.2%} {metrics['recall@10']:>7.2%} {metrics['MRR']:>7.3f}"
+        )
 
 
 def save_tuning_results(best_config: dict) -> None:
@@ -348,9 +342,7 @@ def main() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(description="Tune hybrid retrieval weights")
-    parser.add_argument(
-        "--quick", action="store_true", help="Smaller grid for faster runs"
-    )
+    parser.add_argument("--quick", action="store_true", help="Smaller grid for faster runs")
     args = parser.parse_args()
 
     logger.info("=" * 60)
@@ -380,7 +372,9 @@ def main() -> None:
         bm25_weights = [0.3, 0.5, 0.7, 1.0, 1.5, 2.0]
 
     configs = list(itertools.product(rrf_k_values, bm25_weights))
-    logger.info(f"\nGrid: {len(configs)} configurations ({len(rrf_k_values)} k × {len(bm25_weights)} weights)")
+    logger.info(
+        f"\nGrid: {len(configs)} configurations ({len(rrf_k_values)} k × {len(bm25_weights)} weights)"
+    )
 
     # 3. Evaluate default config
     logger.info(f"\nEvaluating default (k={DEFAULT_RRF_K}, w={DEFAULT_BM25_WEIGHT})...")
@@ -420,7 +414,9 @@ def main() -> None:
     # 5. Report
     logger.info("\n" + "=" * 60)
     logger.info(f"Best configuration: k={best_config[0]}, BM25 weight={best_config[1]}")
-    logger.info(f"  Composite score: {best_score:.4f} (vs default: {np.mean([default_metrics['precision@5'], default_metrics['recall@5'], default_metrics['MRR']]):.4f})")
+    logger.info(
+        f"  Composite score: {best_score:.4f} (vs default: {np.mean([default_metrics['precision@5'], default_metrics['recall@5'], default_metrics['MRR']]):.4f})"
+    )
 
     # 6. Show all configs sorted
     logger.info("\nAll configurations sorted by composite score:")
