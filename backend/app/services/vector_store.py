@@ -39,9 +39,14 @@ class VectorStore:
     @property
     def collection(self) -> None:
         if self._collection is None:
+            # chromadb >=0.5 raises NotFoundError for a missing collection;
+            # older versions raised ValueError. Handle both so a fresh
+            # (empty) server bootstraps correctly instead of crashing.
+            from chromadb.errors import NotFoundError
+
             try:
                 self._collection = self.client.get_collection(self.collection_name)
-            except ValueError:
+            except (ValueError, NotFoundError):
                 self._collection = self.client.create_collection(
                     self.collection_name,
                     metadata={"hnsw:space": "cosine"},

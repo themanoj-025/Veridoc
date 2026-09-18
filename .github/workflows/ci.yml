@@ -204,11 +204,11 @@ jobs:
           --health-timeout 5s
           --health-retries 5
       chroma:
-        image: chromadb/chroma:0.5.5
+        image: chromadb/chroma:1.5.9
         ports:
           - 8001:8000
         options: >-
-          --health-cmd "curl -f http://localhost:8000/api/v1/heartbeat || exit 1"
+          --health-cmd "curl -f http://localhost:8000/api/v2/heartbeat || exit 1"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -252,11 +252,11 @@ jobs:
           --health-timeout 5s
           --health-retries 5
       chroma:
-        image: chromadb/chroma:0.5.5
+        image: chromadb/chroma:1.5.9
         ports:
           - 8001:8000
         options: >-
-          --health-cmd "curl -f http://localhost:8000/api/v1/heartbeat || exit 1"
+          --health-cmd "curl -f http://localhost:8000/api/v2/heartbeat || exit 1"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -349,7 +349,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
       chroma:
-        image: chromadb/chroma:0.5.5
+        image: chromadb/chroma:1.5.9
         ports:
           - 8001:8000
         options: >-
