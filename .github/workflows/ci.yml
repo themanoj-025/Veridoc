@@ -415,7 +415,7 @@ jobs:
           print('MinIO bucket ready')"
           # Create the database schema (service Postgres starts empty)
           alembic upgrade head
-          uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+          uvicorn app.main:app --host 0.0.0.0 --port 8000 > /tmp/backend-e2e.log 2>&1 &
           # Wait for backend to be ready
           for i in $(seq 1 15); do
             if curl -sf http://localhost:8000/api/v1/health > /dev/null 2>&1; then
@@ -455,7 +455,16 @@ jobs:
           # Smoke tests only: e2e/visual.spec.ts needs baseline snapshots that
           # don't exist in the repo (generate with --update-snapshots locally
           # against a real stack, then commit the PNGs — tracked as follow-up)
-          npx playwright test e2e/smoke.spec.ts
+          npx playwright test e2e/smoke.spec.ts || TEST_EXIT=$?
+          # Dump backend log for post-mortem (background stdout is not kept
+          # in the job log once the 'Start backend' step ends)
+          tail -100 /tmp/backend-e2e.log > backend-e2e-tail.txt || true
+          grep -a -A40 "retrieval_pre_stream_error\|Traceback" /tmp/backend-e2e.log > backend-e2e-errors.txt || true
+          if [ -s backend-e2e-tail.txt ] || [ -s backend-e2e-errors.txt ]; then
+            echo "===== backend-e2e-tail ====="; cat backend-e2e-tail.txt
+            echo "===== backend-e2e-errors ====="; cat backend-e2e-errors.txt
+          fi
+          exit ${TEST_EXIT:-0}
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v7
