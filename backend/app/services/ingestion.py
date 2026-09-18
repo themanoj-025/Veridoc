@@ -67,9 +67,7 @@ async def process_document(
             doc.status = "chunking"
             await session.flush()
 
-            chunks = chunk_text(
-                text, doc_id=str(doc.id), doc_title=doc.title, pages=pages
-            )
+            chunks = chunk_text(text, doc_id=str(doc.id), doc_title=doc.title, pages=pages)
             doc.chunk_count = len(chunks)
 
             # Save chunks to DB via repository
@@ -107,9 +105,7 @@ async def process_document(
             # 5. Done
             doc.status = "indexed"
             doc.page_count = (
-                max(pages.values())
-                if pages
-                else len(set(pages.values())) if pages else None
+                max(pages.values()) if pages else len(set(pages.values())) if pages else None
             )
             await session.commit()
 

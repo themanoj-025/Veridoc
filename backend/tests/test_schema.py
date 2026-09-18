@@ -125,9 +125,9 @@ async def test_conversation_document_relationship(real_db_session: AsyncSession)
 
     # ── Verify junction: conversation → document_links ───
     await session.refresh(conv)
-    assert (
-        len(conv.document_links) == 2
-    ), f"Expected 2 document_links, got {len(conv.document_links)}"
+    assert len(conv.document_links) == 2, (
+        f"Expected 2 document_links, got {len(conv.document_links)}"
+    )
     linked_doc_ids = {link.document_id for link in conv.document_links}
     assert linked_doc_ids == {doc1.id, doc2.id}
 
@@ -166,9 +166,9 @@ async def test_conversation_document_relationship(real_db_session: AsyncSession)
 
     # ── Verify citation: message → citation_records ──────
     await session.refresh(msg)
-    assert (
-        len(msg.citation_records) == 2
-    ), f"Expected 2 citation_records, got {len(msg.citation_records)}"
+    assert len(msg.citation_records) == 2, (
+        f"Expected 2 citation_records, got {len(msg.citation_records)}"
+    )
     assert {c.chunk_id for c in msg.citation_records} == {"chunk-a1", "chunk-b2"}
     assert {c.text for c in msg.citation_records} == {
         "RAG systems use retrieval-augmented generation.",
@@ -203,17 +203,13 @@ async def test_conversation_document_relationship(real_db_session: AsyncSession)
     assert {c.score for c in resp.citations} == {0.88, 0.95}
 
     # ── Verify cascade: delete conversation removes junction ──
-    count_before = await session.scalar(
-        text("SELECT COUNT(*) FROM conversation_documents")
-    )
+    count_before = await session.scalar(text("SELECT COUNT(*) FROM conversation_documents"))
     assert count_before == 2
 
     await session.delete(conv)
     await session.flush()
 
-    count_after = await session.scalar(
-        text("SELECT COUNT(*) FROM conversation_documents")
-    )
+    count_after = await session.scalar(text("SELECT COUNT(*) FROM conversation_documents"))
     assert count_after == 0, "Cascade delete did not remove junction records"
 
     # Recreate conversation and message for citation cascade check
@@ -238,9 +234,7 @@ async def test_conversation_document_relationship(real_db_session: AsyncSession)
     await session.delete(conv2)
     await session.flush()
 
-    count_citations = await session.scalar(
-        text("SELECT COUNT(*) FROM citation_records")
-    )
+    count_citations = await session.scalar(text("SELECT COUNT(*) FROM citation_records"))
     assert count_citations == 0, "Cascade delete did not remove citation records"
 
 
@@ -309,6 +303,6 @@ async def test_message_citation_cascade(real_db_session: AsyncSession) -> None:
     await session.delete(msg)
     await session.flush()
 
-    assert (
-        await session.scalar(text("SELECT COUNT(*) FROM citation_records")) == 0
-    ), "Deleting message did not cascade to citation_records"
+    assert await session.scalar(text("SELECT COUNT(*) FROM citation_records")) == 0, (
+        "Deleting message did not cascade to citation_records"
+    )

@@ -77,14 +77,10 @@ class ResponseCache:
     async def init_redis(self) -> None:
         """Try to connect to Redis. Silently falls back to memory cache."""
         if not self._enabled:
-            logger.info(
-                "Response cache is disabled via config (redis_cache_enabled=False)"
-            )
+            logger.info("Response cache is disabled via config (redis_cache_enabled=False)")
             return
         if not settings.redis_url:
-            logger.info(
-                "No Redis URL configured — response cache uses in-memory fallback"
-            )
+            logger.info("No Redis URL configured — response cache uses in-memory fallback")
             return
         try:
             import redis.asyncio as aioredis  # redis.asyncio has no stubs
@@ -104,9 +100,7 @@ class ResponseCache:
                 self._ttl,
             )
         except (OSError, ValueError) as e:
-            logger.warning(
-                "Redis unavailable for response cache, using memory fallback: %s", e
-            )
+            logger.warning("Redis unavailable for response cache, using memory fallback: %s", e)
             self._redis = None
             self._redis_available = False
 

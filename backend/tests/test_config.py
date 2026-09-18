@@ -8,6 +8,8 @@ from unittest.mock import patch
 import pytest
 
 pytestmark = pytest.mark.slow
+
+
 class TestSettingsProperties:
     """Settings computed properties build correct URLs."""
 
@@ -136,39 +138,56 @@ class TestValidateConfig:
     def test_valid_config_passes(self) -> None:
         from app.core.config import Settings, validate_config
 
-        with patch("app.core.config.settings", Settings(
-            jwt_secret="real-secret-key",
-            file_encryption_key="real-encryption-key",
-        )):
+        with patch(
+            "app.core.config.settings",
+            Settings(
+                jwt_secret="real-secret-key",
+                file_encryption_key="real-encryption-key",
+            ),
+        ):
             # Should not raise
             validate_config()
 
     def test_missing_jwt_raises(self) -> None:
         from app.core.config import Settings, validate_config
 
-        with patch("app.core.config.settings", Settings(
-            jwt_secret="",
-            file_encryption_key="real-key",
-        )), pytest.raises(RuntimeError, match="JWT_SECRET"):
+        with (
+            patch(
+                "app.core.config.settings",
+                Settings(
+                    jwt_secret="",
+                    file_encryption_key="real-key",
+                ),
+            ),
+            pytest.raises(RuntimeError, match="JWT_SECRET"),
+        ):
             validate_config()
 
     def test_missing_encryption_key_raises(self) -> None:
         from app.core.config import Settings, validate_config
 
-        with patch("app.core.config.settings", Settings(
-            jwt_secret="real-key",
-            file_encryption_key="",
-        )), pytest.raises(RuntimeError, match="FILE_ENCRYPTION_KEY"):
+        with (
+            patch(
+                "app.core.config.settings",
+                Settings(
+                    jwt_secret="real-key",
+                    file_encryption_key="",
+                ),
+            ),
+            pytest.raises(RuntimeError, match="FILE_ENCRYPTION_KEY"),
+        ):
             validate_config()
 
     def test_both_missing_shows_both_errors(self) -> None:
         from app.core.config import Settings, validate_config
 
-
-        with patch("app.core.config.settings", Settings(
-            jwt_secret="",
-            file_encryption_key="",
-        )):
+        with patch(
+            "app.core.config.settings",
+            Settings(
+                jwt_secret="",
+                file_encryption_key="",
+            ),
+        ):
             with pytest.raises(RuntimeError) as exc_info:
                 validate_config()
             msg = str(exc_info.value)

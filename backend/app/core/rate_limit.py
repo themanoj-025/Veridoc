@@ -161,9 +161,7 @@ def build_rate_limit_headers(request: Request) -> dict[str, str]:
     except (AttributeError, TypeError) as exc:  # pragma: no cover - defensive
         import structlog
 
-        structlog.get_logger(__name__).debug(
-            "rate_limit_header_computation_failed", error=str(exc)
-        )
+        structlog.get_logger(__name__).debug("rate_limit_header_computation_failed", error=str(exc))
         return {}
 
 

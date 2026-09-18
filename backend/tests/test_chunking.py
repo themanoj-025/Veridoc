@@ -1,11 +1,10 @@
 """Tests for Veridoc text chunking service."""
 
-
 import pytest
-
 from app.services.chunking import recursive_chunk_text
 
 pytestmark = pytest.mark.unit
+
 
 class TestRecursiveChunkText:
     """Tests for recursive boundary-aware text chunking."""
@@ -61,7 +60,5 @@ class TestRecursiveChunkText:
 
     def test_custom_separators(self) -> None:
         text = "Part A | Part B | Part C"
-        chunks = recursive_chunk_text(
-            text, "doc1", "Test", chunk_size=15, separators=[" | "]
-        )
+        chunks = recursive_chunk_text(text, "doc1", "Test", chunk_size=15, separators=[" | "])
         assert len(chunks) >= 2

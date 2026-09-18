@@ -66,9 +66,7 @@ async def export_user_data(
     conversations_data = []
     for conv in conversations:
         msg_result = await session.execute(
-            select(Message)
-            .where(Message.conversation_id == conv.id)
-            .order_by(Message.created_at)
+            select(Message).where(Message.conversation_id == conv.id).order_by(Message.created_at)
         )
         messages = msg_result.scalars().all()
         conversations_data.append(
@@ -85,9 +83,7 @@ async def export_user_data(
                         "content": m.content,
                         "latency_ms": m.latency_ms,
                         "faithfulness_score": m.faithfulness_score,
-                        "created_at": (
-                            m.created_at.isoformat() if m.created_at else None
-                        ),
+                        "created_at": (m.created_at.isoformat() if m.created_at else None),
                     }
                     for m in messages
                 ],

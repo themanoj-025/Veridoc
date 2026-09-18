@@ -28,9 +28,7 @@ class TestF3_RBAC:
     """Admin endpoints must check the `role` column, not registration order."""
 
     @pytest.mark.asyncio
-    async def test_admin_role_required(
-        self, test_client: AsyncClient, sample_user, app
-    ) -> None:
+    async def test_admin_role_required(self, test_client: AsyncClient, sample_user, app) -> None:
         """A user with role='user' should be denied admin access with 403."""
         sample_user.role = "user"
         from app.core.dependencies import get_current_user
@@ -67,6 +65,7 @@ class TestF3_RBAC:
         mock_result.scalar = MagicMock(return_value=0)
         mock_result.scalar_one_or_none = MagicMock(return_value=None)
         mock_result.all = MagicMock(return_value=[])
+        mock_result.first = MagicMock(return_value=None)
         mock_db_session.execute = AsyncMock(return_value=mock_result)
 
         response = await test_client.get(
@@ -342,9 +341,7 @@ class TestF8_AdminAuditLog:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
-        factory = async_sessionmaker(
-            engine, class_=AsyncSession, expire_on_commit=False
-        )
+        factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
         async with factory() as session:
             # Create an audit log entry via ORM
             log = AdminAuditLog(
@@ -357,9 +354,7 @@ class TestF8_AdminAuditLog:
 
             # Read it back
             result = await session.execute(
-                select(AdminAuditLog).where(
-                    AdminAuditLog.action == "feedback_queue_accessed"
-                )
+                select(AdminAuditLog).where(AdminAuditLog.action == "feedback_queue_accessed")
             )
             loaded = result.scalar_one_or_none()
             assert loaded is not None
@@ -383,9 +378,7 @@ class TestF8_AdminAuditLog:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
-        factory = async_sessionmaker(
-            engine, class_=AsyncSession, expire_on_commit=False
-        )
+        factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
         async with factory() as session:
             actor_id = uuid.uuid4()
             actions = [
@@ -411,4 +404,3 @@ class TestF8_AdminAuditLog:
 # ════════════════════════════════════════════════════════════════
 # G2: Prompt version recording
 # ════════════════════════════════════════════════════════════════
-

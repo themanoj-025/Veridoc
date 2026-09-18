@@ -10,6 +10,7 @@ from pydantic import ValidationError
 
 pytestmark = pytest.mark.unit
 
+
 class TestUserCreate:
     """Tests for UserCreate schema."""
 

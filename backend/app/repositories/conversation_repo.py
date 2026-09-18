@@ -52,9 +52,7 @@ class ConversationRepository(BaseRepository[Conversation]):
         Returns (conversations, total_count).
         """
         # Total count
-        count_stmt = select(func.count(Conversation.id)).where(
-            Conversation.user_id == user_id
-        )
+        count_stmt = select(func.count(Conversation.id)).where(Conversation.user_id == user_id)
         if active_only:
             count_stmt = count_stmt.where(Conversation.is_active.is_(True))
         count_result = await self.session.execute(count_stmt)
@@ -99,9 +97,7 @@ class ConversationRepository(BaseRepository[Conversation]):
 
     # ── Document linking ─────────────────────────────────────
 
-    async def get_document_links(
-        self, conversation_id: uuid.UUID
-    ) -> list[ConversationDocument]:
+    async def get_document_links(self, conversation_id: uuid.UUID) -> list[ConversationDocument]:
         """Get all document links for a conversation."""
         result = await self.session.execute(
             select(ConversationDocument).where(
@@ -126,9 +122,7 @@ class ConversationRepository(BaseRepository[Conversation]):
 
         return doc_ids, doc_titles
 
-    async def add_document_link(
-        self, conversation_id: uuid.UUID, document_id: uuid.UUID
-    ) -> None:
+    async def add_document_link(self, conversation_id: uuid.UUID, document_id: uuid.UUID) -> None:
         """Create a junction record linking a conversation to a document."""
         link = ConversationDocument(
             conversation_id=conversation_id,
@@ -149,6 +143,4 @@ class ConversationRepository(BaseRepository[Conversation]):
         """Bulk delete all conversations owned by a user (for GDPR account deletion)."""
         from sqlalchemy import delete as sa_delete
 
-        await self.session.execute(
-            sa_delete(Conversation).where(Conversation.user_id == user_id)
-        )
+        await self.session.execute(sa_delete(Conversation).where(Conversation.user_id == user_id))

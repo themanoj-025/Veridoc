@@ -40,16 +40,12 @@ class UserRepository(BaseRepository[User]):
 
     async def find_by_verification_token(self, token: str) -> User | None:
         """Find a user by email verification token."""
-        result = await self.session.execute(
-            select(User).where(User.verification_token == token)
-        )
+        result = await self.session.execute(select(User).where(User.verification_token == token))
         return result.scalar_one_or_none()
 
     async def find_by_reset_token(self, token: str) -> User | None:
         """Find a user by password reset token."""
-        result = await self.session.execute(
-            select(User).where(User.reset_token == token)
-        )
+        result = await self.session.execute(select(User).where(User.reset_token == token))
         return result.scalar_one_or_none()
 
     async def count_all(self) -> int:

@@ -67,7 +67,7 @@ class AdminAnalyticsResponse(BaseModel):
 async def get_analytics(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-) -> dict[str, Any]:
+) -> AdminAnalyticsResponse:
     """Get admin analytics from the usage_logs table."""  # F3: RBAC admin check — explicit role column
     if user.role != "admin":
         raise HTTPException(
@@ -191,9 +191,7 @@ async def get_cache_stats(
     logger = structlog.get_logger(__name__)
 
     # F8: Log admin action
-    await _log_admin_action(
-        session, user.id, "cache_stats_accessed", "admin", None, None
-    )
+    await _log_admin_action(session, user.id, "cache_stats_accessed", "admin", None, None)
 
     cache = get_response_cache()
     stats = cache.stats
@@ -243,9 +241,7 @@ async def get_feedback_queue(
     logger = structlog.get_logger(__name__)
 
     # F8: Log admin action
-    await _log_admin_action(
-        session, user.id, "feedback_queue_accessed", "admin", None, None
-    )
+    await _log_admin_action(session, user.id, "feedback_queue_accessed", "admin", None, None)
 
     # Load the feedback queue from disk
     eval_dir = Path(__file__).resolve().parent.parent.parent.parent / "eval"

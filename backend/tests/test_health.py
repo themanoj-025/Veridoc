@@ -8,6 +8,7 @@ from httpx import AsyncClient
 pytestmark = pytest.mark.slow
 pytestmark = pytest.mark.integration
 
+
 @pytest.mark.asyncio
 async def test_health_endpoint_returns_ok(test_client: AsyncClient) -> None:
     """Test the health endpoint returns 200 when dependencies are reachable."""

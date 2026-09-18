@@ -19,6 +19,7 @@ from app.core.security import (
 
 pytestmark = pytest.mark.unit
 
+
 class TestPasswordComplexity:
     """Test validate_password_complexity."""
 
@@ -88,6 +89,7 @@ class TestJWT:
     @patch("app.core.security.settings")
     def test_access_token_roundtrip(self, mock_settings: object) -> None:
         from app.core.config import settings as real_settings
+
         mock_settings.jwt_secret = real_settings.jwt_secret
         mock_settings.jwt_algorithm = real_settings.jwt_algorithm
         mock_settings.access_token_expire_minutes = 30
@@ -102,6 +104,7 @@ class TestJWT:
     @patch("app.core.security.settings")
     def test_refresh_token_roundtrip(self, mock_settings: object) -> None:
         from app.core.config import settings as real_settings
+
         mock_settings.jwt_secret = real_settings.jwt_secret
         mock_settings.jwt_algorithm = real_settings.jwt_algorithm
         mock_settings.refresh_token_expire_days = 7

@@ -86,16 +86,16 @@ export default function Dashboard() {
 
   // Listen for citation-navigate events (F19): switch to the document viewer
   useEffect(() => {
-    const handler = (e: CustomEvent) => {
-      const docId = e.detail?.documentId;
+    const handler = (e: Event) => {
+      const docId = (e as CustomEvent).detail?.documentId;
       if (docId) {
         setSelectedDocId(docId);
         setMobileView("viewer");
       }
     };
-    window.addEventListener("citation-navigate" as EventListener, handler);
+    window.addEventListener("citation-navigate", handler);
     return () =>
-      window.removeEventListener("citation-navigate" as EventListener, handler);
+      window.removeEventListener("citation-navigate", handler);
   }, []);
 
   useEffect(() => {

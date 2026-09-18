@@ -54,6 +54,7 @@ class Settings(BaseSettings):
     chroma_host: str = "localhost"
     chroma_port: int = 8001
     chroma_collection: str = "veridoc_documents"
+    chroma_timeout: float = 10.0  # seconds; used for HTTP timeout + gRPC max message length
 
     @property
     def chroma_url(self) -> str:
@@ -79,9 +80,7 @@ class Settings(BaseSettings):
     llm_provider: Literal["ollama", "claude", "openai"] = "ollama"
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama3.1:8b"
-    llm_timeout: int = (
-        60  # seconds; used by chat_service, llm_provider, job_queue, worker
-    )
+    llm_timeout: int = 60  # seconds; used by chat_service, llm_provider, job_queue, worker
 
     # ── Optional API Keys ──
     anthropic_api_key: str | None = None
@@ -133,8 +132,7 @@ def _validate_secret(value: str, name: str) -> str:
     """Validate that a secret is not empty or a known placeholder."""
     if not value:
         raise ValueError(
-            f"{name} is not set. Set it in .env. "
-            f"See .env.example for generation instructions."
+            f"{name} is not set. Set it in .env. See .env.example for generation instructions."
         )
     lower = value.lower()
     for pattern in _PLACEHOLDER_PATTERNS:
@@ -159,9 +157,7 @@ def validate_config() -> None:
     except ValueError as e:
         errors.append(str(e))
     if errors:
-        raise RuntimeError(
-            "Security configuration validation failed:\n  " + "\n  ".join(errors)
-        )
+        raise RuntimeError("Security configuration validation failed:\n  " + "\n  ".join(errors))
 
 
 settings = Settings()  # pydantic-settings validates at init

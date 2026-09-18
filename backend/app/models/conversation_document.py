@@ -21,9 +21,7 @@ class ConversationDocument(Base):
 
     __tablename__ = "conversation_documents"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     conversation_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("conversations.id", ondelete="CASCADE"),
@@ -40,9 +38,7 @@ class ConversationDocument(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    __table_args__ = (
-        UniqueConstraint("conversation_id", "document_id", name="uq_conv_doc"),
-    )
+    __table_args__ = (UniqueConstraint("conversation_id", "document_id", name="uq_conv_doc"),)
 
     # Relationships
     conversation = relationship("Conversation", back_populates="document_links")

@@ -87,7 +87,9 @@ async def rewrite_query(query: str, history: list[dict]) -> str | None:
             return result
     except TimeoutError:
         logger.warning("Query rewrite timed out, using original query")
-    except (RuntimeError, ValueError) as e:
+    except Exception as e:
+        # Includes RuntimeError (no provider configured), httpx/ConnectionError
+        # (LLM backend unreachable) and provider-specific SDK errors.
         logger.warning("Query rewrite failed, using original query", error=str(e))
 
     return None
