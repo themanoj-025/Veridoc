@@ -45,7 +45,10 @@ ignore = [
 "backend/alembic/**/*.py" = ["SIM105"]  # migration scripts use try-except-pass for row-level error handling
 
 [tool.pytest.ini_options]
-addopts = "-m 'not slow' --cov --cov-fail-under=50"
+# NOTE: coverage flags (--cov/--cov-fail-under) must NOT live in global addopts —
+# they break any pytest invocation without pytest-cov installed (exit 4: usage error).
+# The CI unit-test job passes them explicitly; other jobs run plain pytest.
+addopts = "-m 'not slow'"
 testpaths = ["backend/tests", "scripts"]
 python_files = ["test_*.py"]
 pythonpath = ["."]
