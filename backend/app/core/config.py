@@ -81,6 +81,7 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama3.1:8b"
     llm_timeout: int = 60  # seconds; used by chat_service, llm_provider, job_queue, worker
+    retrieval_timeout: int = 60  # seconds; bounds hybrid retrieve + rerank in chat_service
 
     # ── Optional API Keys ──
     anthropic_api_key: str | None = None
