@@ -366,7 +366,7 @@ async def health_check() -> None:
             ):
                 with attempt:
                     async with httpx.AsyncClient(timeout=5.0) as client:
-                        resp = await client.get(f"{settings.chroma_url}/api/v1/heartbeat")
+                        resp = await client.get(f"{settings.chroma_url}/api/v2/heartbeat")
                         resp.raise_for_status()
             _chroma_cb.record_success()
             deps["chroma"] = {"status": "ok"}
