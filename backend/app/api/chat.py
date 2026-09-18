@@ -82,6 +82,7 @@ async def create_conversation(
 
     conv = Conversation(user_id=user.id, title=body.title)
     await conv_repo.create(conv)
+    await session.commit()
 
     # Create junction records for each document
     for doc_id in body.document_ids:
@@ -173,6 +174,7 @@ async def delete_conversation(
     if not conv:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
     await conv_repo.delete(conv)
+    await session.commit()
     await session.close()
 
 
