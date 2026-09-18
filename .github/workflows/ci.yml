@@ -353,10 +353,6 @@ jobs:
         ports:
           - 8001:8000
         options: >-
-          --health-cmd "curl -f http://localhost:8000/api/v1/heartbeat || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -381,6 +377,16 @@ jobs:
           done
           # Pull the small model
           docker exec ollama ollama pull tinyllama || echo "Model pull skipped"
+      - name: Start MinIO (object storage)
+        run: |
+          docker run -d --rm --name minio -p 9000:9000             -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin             minio/minio:latest server /data
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:9000/minio/health/live > /dev/null 2>&1; then
+              echo "MinIO ready"
+              break
+            fi
+            sleep 2
+          done
       - name: Start backend
         env:
           DATABASE_URL: postgresql+asyncpg://veridoc:veridoc_local_dev@localhost:5432/veridoc
@@ -394,11 +400,23 @@ jobs:
           # Matches the postgres service container's credentials (the app builds
           # its connection URL from POSTGRES_* — DATABASE_URL is not read)
           POSTGRES_PASSWORD: veridoc_local_dev
+          # Matches the minio service container's credentials
+          MINIO_ACCESS_KEY: minioadmin
+          MINIO_SECRET_KEY: minioadmin
           # circuit_breaker.py is a portfolio-canonical module at the repo root
           PYTHONPATH: ${{ github.workspace }}
         run: |
           cd backend
           pip install -r requirements.txt
+          # Create the document bucket (the app does not auto-create it)
+          python -c "
+          from minio import Minio
+          c = Minio('localhost:9000', access_key='minioadmin', secret_key='minioadmin', secure=False)
+          if not c.bucket_exists('veridoc-documents'):
+              c.make_bucket('veridoc-documents')
+          print('MinIO bucket ready')"
+          # Create the database schema (service Postgres starts empty)
+          alembic upgrade head
           uvicorn app.main:app --host 0.0.0.0 --port 8000 &
           # Wait for backend to be ready
           for i in $(seq 1 15); do
