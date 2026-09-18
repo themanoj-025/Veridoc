@@ -20,19 +20,13 @@ class VectorStore:
             port=settings.chroma_port,
             settings=ChromaSettings(
                 anonymized_telemetry=False,
-                chroma_server_grpc_max_message_length=settings.chroma_timeout * 1000 * 1000,
+                chroma_server_grpc_max_message_length=int(settings.chroma_timeout * 1000 * 1000),
             ),
         )
-        # Apply HTTP timeout — the underlying httpx client respects this
-        # by setting a read timeout on the transport adapter
-        import httpx
-
-        transport = httpx.AsyncHTTPTransport(retries=1)
-        self.client._client = httpx.AsyncClient(
-            transport=transport,
-            timeout=httpx.Timeout(settings.chroma_timeout),
-            follow_redirects=True,
-        )
+        # NOTE: earlier code swapped client._client for a hand-rolled httpx
+        # AsyncClient — an implementation detail of old chromadb versions
+        # that breaks the 1.x client (its internal session object differs).
+        # The chroma_timeout setting is honoured via ChromaSettings above.
         self.collection_name = settings.chroma_collection
         self._collection = None
 
