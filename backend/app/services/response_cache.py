@@ -20,6 +20,8 @@ import logging
 import time
 from typing import Any
 
+from redis.exceptions import RedisError
+
 from app.core import config as _config
 
 logger = logging.getLogger("veridoc.cache")
@@ -99,7 +101,7 @@ class ResponseCache:
                 settings.redis_port,
                 self._ttl,
             )
-        except (OSError, ValueError) as e:
+        except (OSError, ValueError, RedisError) as e:
             logger.warning("Redis unavailable for response cache, using memory fallback: %s", e)
             self._redis = None
             self._redis_available = False

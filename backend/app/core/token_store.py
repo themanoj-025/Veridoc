@@ -26,6 +26,7 @@ import time
 from typing import Any
 
 import structlog
+from redis.exceptions import RedisError
 
 logger = structlog.get_logger(__name__)
 
@@ -52,7 +53,7 @@ async def _try_redis_set(jti: str, user_id: str, ttl_seconds: int) -> bool:
         if q._arq_pool is not None:
             await q._arq_pool.set(f"token:consumed:{jti}", user_id, ex=ttl_seconds)
             return True
-    except (OSError, ValueError) as e:
+    except (OSError, ValueError, RedisError) as e:
         logger.warning("Redis token-store set failed", error=str(e))
     return False
 
@@ -78,7 +79,7 @@ async def _try_redis_get(jti: str) -> bool:
     if q._arq_pool is not None:
         try:
             result = await q._arq_pool.get(f"token:consumed:{jti}")
-        except (OSError, ValueError) as e:
+        except (OSError, ValueError, RedisError) as e:
             logger.warning("Redis token-store get failed", error=str(e))
             raise TokenStoreUnavailableError("Token store unavailable; cannot verify token.") from e
         return result is not None
