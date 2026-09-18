@@ -429,6 +429,12 @@ class ChatService:
                     "event": "error",
                     "data": json.dumps({"error": str(e)}),
                 }
+            except Exception:  # SSE boundary: degrade, never kill the stream
+                logger.exception("chat.stream_unhandled_error")
+                yield {
+                    "event": "error",
+                    "data": json.dumps({"error": "Internal error while generating the response"}),
+                }
             finally:
                 if session is not None:
                     with contextlib.suppress(OSError, ValueError):
