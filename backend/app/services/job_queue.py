@@ -13,6 +13,7 @@ from collections.abc import Callable
 from typing import Any
 
 import structlog
+from redis.exceptions import RedisError
 
 from app.core.config import settings
 
@@ -49,12 +50,14 @@ class JobQueue:
 
         if self.is_redis_available:
             try:
-                from arq.connections import create_pool
+                from arq.connections import RedisSettings, create_pool
 
-                pool = await create_pool(settings.redis_url)
+                # arq's create_pool expects a RedisSettings object, not a DSN
+                # string (a raw str triggers ``'str' object has no 'host'``).
+                pool = await create_pool(RedisSettings.from_dsn(settings.redis_url))
                 self._arq_pool = pool
                 logger.info("ARQ Redis pool established at %s", settings.redis_url)
-            except (OSError, ValueError, ImportError) as e:
+            except (OSError, ValueError, ImportError, RedisError) as e:
                 logger.warning(
                     "Redis unavailable at %s, falling back to sync execution: %s",
                     settings.redis_url,

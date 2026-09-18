@@ -81,7 +81,9 @@ async def test_process_document_end_to_end(
     async with test_factory() as session:
         session.add(user)
         session.add(doc)
-        await session.flush()
+        # Commit: process_document() opens its own session, which cannot see
+        # rows that are merely flushed inside this session's transaction.
+        await session.commit()
 
     # ── 2. Set up test Chroma + embedding mock ──────────────
     test_vs = _TestVectorStore()
@@ -282,9 +284,14 @@ async def test_postgres_user_scoped_queries(pg_session) -> None:
     from datetime import datetime
 
     from app.models.document import Document
+    from app.models.user import User
     from sqlalchemy import func, select
 
     user_id = uuid.uuid4()
+    user = User(id=user_id, email=f"scoped-{uuid.uuid4().hex[:8]}@example.com", role="user")
+    pg_session.add(user)
+    await pg_session.flush()
+
     now = datetime.now(UTC)
 
     for i in range(5):
