@@ -238,7 +238,9 @@ async def test_process_document_end_to_end(
     async with test_factory() as session:
         session.add(user)
         session.add(doc)
-        await session.flush()
+        # Commit: process_document() opens its own session, which cannot see
+        # rows that are merely flushed inside this session's transaction.
+        await session.commit()
 
     # ── 2. Set up test Chroma + embedding mock ──────────────
     test_vs = _TestVectorStore()
