@@ -65,14 +65,15 @@ class HybridRetriever:
         dense_results = await dense_search(query, document_ids, top_k=top_k * 2)
 
         # Load full chunk corpus for BM25 indexing (cached by document set)
-        # get_all_chunks is sync (ChromaDB get() is synchronous)
+        # get_all_chunks is async — forgetting the await hands bm25_search a
+        # coroutine object, which crashes at len(chunks) (TypeError).
         full_corpus = []
         try:
             import importlib
 
             vs_mod = importlib.import_module("app.services.vector_store")
             vs = vs_mod.get_vector_store()
-            full_corpus = vs.get_all_chunks(document_ids=document_ids)
+            full_corpus = await vs.get_all_chunks(document_ids=document_ids)
         except (OSError, ValueError, KeyError) as exc:
             logger.warning("Full corpus load failed — falling back to dense-only: %s", exc)
 
