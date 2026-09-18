@@ -114,7 +114,7 @@ test.describe("Veridoc E2E Smoke Test", () => {
     await page.waitForURL(/\/dashboard/, { timeout: 15000 });
 
     // Create a new conversation
-    await page.click("text=+ New Chat");
+    await page.getByRole("button", { name: "+ New" }).click();
     await page.waitForTimeout(1000);
 
     // Wait for the chat input to appear
@@ -172,7 +172,7 @@ test.describe("Veridoc E2E Smoke Test", () => {
     await page.waitForURL(/\/dashboard/, { timeout: 15000 });
 
     // Create a new conversation
-    await page.click("text=+ New Chat");
+    await page.getByRole("button", { name: "+ New" }).click();
     await page.waitForTimeout(1000);
 
     // Ask an unanswerable question about something not in the document
