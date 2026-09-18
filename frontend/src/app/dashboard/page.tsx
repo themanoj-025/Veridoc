@@ -606,6 +606,7 @@ export default function Dashboard() {
                   {t("dashboard.uploadFileLabel")}
                 </label>
                 <input
+                  name="file"
                   type="file"
                   accept=".pdf,.docx,.doc,.txt"
                   required
