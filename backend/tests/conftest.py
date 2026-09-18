@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -245,6 +246,137 @@ def mock_httpx() -> Any:
     yield mock_client
     for p in patches:
         p.stop()
+
+
+# ════════════════════════════════════════════════════════════════
+# Integration-test fixtures (shared by test_integration*.py — fixtures
+# defined in a test module are NOT visible to sibling modules)
+# ════════════════════════════════════════════════════════════════
+
+try:
+    from testcontainers.postgres import PostgresContainer as _PostgresContainer
+except ImportError:
+    _PostgresContainer = None
+
+
+def _docker_available() -> bool:
+    """Check if Docker is running and accessible."""
+    if _PostgresContainer is None:
+        return False
+    try:
+        import docker
+
+        client = docker.from_env()
+        client.ping()
+        return True
+    except (OSError, ImportError):
+        return False
+
+
+@pytest.fixture(scope="session")
+def postgres_container() -> None:
+    """Start a Postgres container for the test session.
+
+    Gracefully skips if Docker is not available or testcontainers
+    is not installed.
+    """
+    if _PostgresContainer is None:
+        pytest.skip("testcontainers not installed")
+    if not _docker_available():
+        pytest.skip("Docker not available or testcontainers not installed")
+    try:
+        with _PostgresContainer("postgres:16-alpine") as pg:
+            yield pg
+    except (OSError, RuntimeError) as exc:
+        pytest.skip(f"Docker container failed to start: {exc}")
+
+
+@pytest_asyncio.fixture
+async def pg_engine_and_factory(postgres_container) -> None:
+    """Create a SQLAlchemy async engine + session factory pointing to
+    the testcontainer Postgres.  All tables are created at setup and
+    dropped at teardown (or on engine dispose).
+    """
+    from sqlalchemy.ext.asyncio import (
+        AsyncSession,
+        async_sessionmaker,
+        create_async_engine,
+    )
+
+    url = postgres_container.get_connection_url()
+    # testcontainers 4.x returns postgresql+psycopg2:// (sync driver); the
+    # asyncio extension requires an async driver. Handle both URL shapes.
+    async_url = url.replace("postgresql+psycopg2://", "postgresql+asyncpg://").replace(
+        "postgresql://", "postgresql+asyncpg://"
+    )
+    engine = create_async_engine(async_url, echo=False, pool_pre_ping=True)
+
+    from app.core.database import Base
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    factory = async_sessionmaker(
+        engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
+    yield engine, factory
+    await engine.dispose()
+
+
+@pytest_asyncio.fixture
+async def pg_session(pg_engine_and_factory) -> None:
+    """A single Postgres session for the test."""
+    _engine, factory = pg_engine_and_factory
+    async with factory() as session:
+        yield session
+
+
+@pytest.fixture
+def temp_dir(tmp_path) -> Path:
+    """Create a temporary upload directory for test files."""
+    d = tmp_path / "uploads"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+@pytest.fixture
+def sample_text_file(temp_dir) -> Path:
+    """Create a sample .txt document with realistic multi-paragraph content."""
+    content = (
+        "Machine Learning Fundamentals\n\n"
+        "Machine learning is a subset of artificial intelligence that enables "
+        "systems to learn and improve from experience without being explicitly "
+        "programmed. It focuses on the development of computer programs that "
+        "can access data and use it to learn for themselves.\n\n"
+        "Types of Machine Learning\n\n"
+        "There are three main types of machine learning: supervised learning, "
+        "unsupervised learning, and reinforcement learning. Supervised learning "
+        "uses labeled data to train models. Unsupervised learning finds patterns "
+        "in unlabeled data. Reinforcement learning uses rewards and punishments "
+        "to train agents.\n\n"
+        "Supervised Learning Details\n\n"
+        "Supervised learning is the most common form of machine learning. In "
+        "this paradigm, the algorithm is trained on a labeled dataset, where "
+        "each training example is paired with an output label. The algorithm "
+        "learns to map inputs to outputs by finding patterns in the training data. "
+        "Common algorithms include linear regression, decision trees, random "
+        "forests, and neural networks.\n\n"
+        "Applications\n\n"
+        "Machine learning has numerous applications including image recognition, "
+        "natural language processing, recommendation systems, fraud detection, "
+        "and autonomous vehicles. Each application leverages different types of "
+        "machine learning algorithms depending on the specific requirements and "
+        "the nature of the available data.\n\n"
+        "Conclusion\n\n"
+        "Machine learning continues to evolve rapidly, with new techniques and "
+        "applications emerging regularly. Understanding the fundamentals is "
+        "essential for anyone working in modern technology."
+    )
+    f = temp_dir / "sample_document.txt"
+    f.write_text(content, encoding="utf-8")
+    return f
 
 
 @pytest.fixture
