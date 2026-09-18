@@ -207,11 +207,9 @@ jobs:
         image: chromadb/chroma:1.5.9
         ports:
           - 8001:8000
-        options: >-
-          --health-cmd "curl -f http://localhost:8000/api/v2/heartbeat || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+        # chroma 1.x images ship without curl, so a curl-based
+        # --health-cmd can never pass; readiness is handled by the
+        # backend's health-wait loop and test-level retries instead.
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -255,11 +253,9 @@ jobs:
         image: chromadb/chroma:1.5.9
         ports:
           - 8001:8000
-        options: >-
-          --health-cmd "curl -f http://localhost:8000/api/v2/heartbeat || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+        # chroma 1.x images ship without curl, so a curl-based
+        # --health-cmd can never pass; readiness is handled by the
+        # backend's health-wait loop and test-level retries instead.
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -352,7 +348,6 @@ jobs:
         image: chromadb/chroma:1.5.9
         ports:
           - 8001:8000
-        options: >-
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
