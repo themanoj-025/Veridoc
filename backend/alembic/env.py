@@ -5,6 +5,7 @@ from logging.config import fileConfig
 from alembic import context
 from app.core.config import settings
 from app.core.database import Base
+
 # Model imports are explicit (star-imports break ruff F403/F405 and hide the
 # dependency of Alembic autogenerate on the metadata being fully populated).
 from app.models import (  # noqa: F401 — imported for Alembic autogenerate side effects
