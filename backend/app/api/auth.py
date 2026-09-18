@@ -124,9 +124,7 @@ async def refresh(
 
     user_id = payload.get("sub")
     if user_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
     uid = uuid.UUID(user_id)
 
@@ -202,9 +200,7 @@ async def change_password(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, str]:
     """Change the current user's password."""
-    if not user.hashed_password or not verify_password(
-        body.current_password, user.hashed_password
-    ):
+    if not user.hashed_password or not verify_password(body.current_password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Current password is incorrect",
@@ -220,9 +216,7 @@ async def change_password(
 # ── F4: Email Verification ──────────────────────────────
 
 
-@router.post(
-    "/request-verification-email", operation_id="auth_request_verification_email"
-)
+@router.post("/request-verification-email", operation_id="auth_request_verification_email")
 async def request_verification_email(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
@@ -261,10 +255,7 @@ async def verify_email(
         )
 
     # F4: verification tokens expire after 24h (never replay old links)
-    if (
-        user.verification_token_expiry is None
-        or user.verification_token_expiry < datetime.now(UTC)
-    ):
+    if user.verification_token_expiry is None or user.verification_token_expiry < datetime.now(UTC):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Verification token has expired. Request a new one.",

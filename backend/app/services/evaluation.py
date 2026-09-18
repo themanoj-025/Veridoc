@@ -69,9 +69,7 @@ async def resolve_document_ids(doc_id: str) -> list[str] | None:
         from app.models.document import Document
 
         async with async_session_factory() as session:
-            result = await session.execute(
-                select(Document.id, Document.filename, Document.title)
-            )
+            result = await session.execute(select(Document.id, Document.filename, Document.title))
             rows = result.all()
 
         needle = _normalize_slug(doc_id)
@@ -185,10 +183,7 @@ async def run_single_eval(
 
     # Build context
     context = "\n\n".join(
-        [
-            f"[Doc: {c.get('document_title', 'unknown')}] {c['content']}"
-            for c in reranked
-        ]
+        [f"[Doc: {c.get('document_title', 'unknown')}] {c['content']}" for c in reranked]
     )
 
     # Generate answer
@@ -278,8 +273,7 @@ def compute_metrics(
         "total_questions": total,
         "answer_accuracy": correct_count / max(total - total_unanswerable, 1),
         "refusal_accuracy": correct_refusal / max(total_unanswerable, 1),
-        "mean_faithfulness": sum(faithfulness_scores)
-        / max(len(faithfulness_scores), 1),
+        "mean_faithfulness": sum(faithfulness_scores) / max(len(faithfulness_scores), 1),
         "p50_latency_ms": latencies[len(latencies) // 2] if latencies else 0,
         "p95_latency_ms": latencies[int(len(latencies) * 0.95)] if latencies else 0,
         "mean_latency_ms": sum(latencies) / max(len(latencies), 1),

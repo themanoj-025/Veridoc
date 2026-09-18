@@ -12,6 +12,7 @@ from httpx import AsyncClient
 pytestmark = pytest.mark.slow
 pytestmark = pytest.mark.integration
 
+
 def _override_get_user(app, user):
     async def override() -> None:
         return user
@@ -41,9 +42,7 @@ class TestDocumentSharing:
         """A non-owner must get 404 when listing shares of a document."""
         _override_get_user(app, sample_user)
         # DocumentRepository.find_by_id_and_user returns None → not found
-        mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
-            return_value=None
-        )
+        mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=None)
 
         doc_id = uuid.uuid4()
         response = await test_client.get(
@@ -65,9 +64,7 @@ class TestDocumentSharing:
     ) -> None:
         """A non-owner must get 404 when trying to share a document."""
         _override_get_user(app, sample_user)
-        mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
-            return_value=None
-        )
+        mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=None)
 
         doc_id = uuid.uuid4()
         response = await test_client.post(
@@ -95,9 +92,7 @@ class TestDocumentSharing:
         share = MagicMock()
         share.document_id = uuid.uuid4()
         mock_db_session.get = AsyncMock(return_value=share)
-        mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
-            return_value=None
-        )
+        mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=None)
 
         response = await test_client.patch(
             f"/api/v1/shares/{uuid.uuid4()}",
@@ -135,9 +130,7 @@ class TestApiKeys:
     ) -> None:
         """Creating a key returns vid_<hex> once and never stores plaintext."""
         _override_get_user(app, sample_user)
-        mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(
-            return_value=None
-        )
+        mock_db_session.execute.return_value.scalar_one_or_none = MagicMock(return_value=None)
 
         response = await test_client.post(
             "/api/v1/api-keys/",

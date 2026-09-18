@@ -54,7 +54,8 @@ slowapi==0.1.10
 
 # ── Job Queue (ARQ + Redis) ──
 arq==0.28.0
-redis[hiredis]==8.1.0
+# redis must stay <6: arq 0.28.0 declares redis<6,>=4.2.0 (pip ResolutionImpossible otherwise)
+redis[hiredis]==5.2.1
 
 # ── Monitoring / Metrics ──
 prometheus-fastapi-instrumentator==8.1.0  # 8.1 required for fastapi>=0.116 router handling (was ==7.0.1); exact pin per repo convention
@@ -68,7 +69,8 @@ openai==3.13.0
 
 # ── Testing ──
 aiosqlite==0.22.1  # sqlite+aiosqlite in-memory DB used by the test suite (tests/conftest.py etc.)
-pytest==8.3.3
+# pytest>=8.4 required by pytest-asyncio 1.4.0 (pytest<10,>=8.4)
+pytest==8.4.2
 pytest-asyncio==1.4.0
 pytest-timeout==2.4.0
 testcontainers==4.15.0

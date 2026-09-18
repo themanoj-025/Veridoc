@@ -6,6 +6,7 @@ from app.core.config import _PLACEHOLDER_PATTERNS, Settings, _validate_secret
 pytestmark = pytest.mark.slow
 pytestmark = pytest.mark.integration
 
+
 class TestSettings:
     """Test Settings model defaults and properties."""
 
@@ -20,8 +21,10 @@ class TestSettings:
 
     def test_database_url_property(self) -> None:
         s = Settings(
-            postgres_user="test", postgres_password="pass",
-            postgres_host="localhost", postgres_port=5432,
+            postgres_user="test",
+            postgres_password="pass",
+            postgres_host="localhost",
+            postgres_port=5432,
             postgres_db="testdb",
         )
         url = s.database_url
@@ -30,8 +33,10 @@ class TestSettings:
 
     def test_database_url_sync_property(self) -> None:
         s = Settings(
-            postgres_user="test", postgres_password="pass",
-            postgres_host="localhost", postgres_port=5432,
+            postgres_user="test",
+            postgres_password="pass",
+            postgres_host="localhost",
+            postgres_port=5432,
             postgres_db="testdb",
         )
         url = s.database_url_sync
@@ -42,8 +47,7 @@ class TestSettings:
         assert s.chroma_url == "http://localhost:8001"
 
     def test_redis_url_with_password(self) -> None:
-        s = Settings(redis_host="localhost", redis_port=6379,
-                     redis_password="secret", redis_db=0)
+        s = Settings(redis_host="localhost", redis_port=6379, redis_password="secret", redis_db=0)
         url = s.redis_url
         assert ":secret@" in url
 
@@ -66,16 +70,19 @@ class TestValidateSecret:
 
     def test_empty_secret_raises(self) -> None:
         import pytest
+
         with pytest.raises(ValueError, match="is not set"):
             _validate_secret("", "TEST_KEY")
 
     def test_placeholder_raises(self) -> None:
         import pytest
+
         with pytest.raises(ValueError, match="placeholder"):
             _validate_secret("change-me-please", "TEST_KEY")
 
     def test_all_placeholders_blocked(self) -> None:
         import pytest
+
         for pattern in _PLACEHOLDER_PATTERNS:
             secret = f"{pattern}-value"
             with pytest.raises(ValueError):

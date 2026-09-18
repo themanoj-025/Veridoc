@@ -213,9 +213,11 @@ app = FastAPI(
 # --- OpenTelemetry distributed tracing (OTEL_ENABLED=true) ---
 try:
     from app.tracing import setup_tracing
+
     _otel_ok = setup_tracing("veridoc-api")
     if _otel_ok:
         from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+
         FastAPIInstrumentor.instrument_app(app)
 except ImportError:
     pass
@@ -233,6 +235,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # ── Security Headers ─────────────────────────────────────
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next) -> None:
@@ -245,9 +248,7 @@ async def add_security_headers(request: Request, call_next) -> None:
     response.headers["Permissions-Policy"] = (
         "camera=(), microphone=(), geolocation=(), interest-cohort=()"
     )
-    response.headers["Content-Security-Policy"] = (
-        "default-src 'none'; frame-ancestors 'none';"
-    )
+    response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none';"
     return response
 
 
@@ -260,9 +261,7 @@ if _slowapi_available:
     app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
     # G6: middleware injects X-RateLimit-* headers on every limited response
     app.middleware("http")(rate_limit_headers_middleware)
-    logger.info(
-        "Rate limiting enabled (%d req/min general)", settings.rate_limit_per_minute
-    )
+    logger.info("Rate limiting enabled (%d req/min general)", settings.rate_limit_per_minute)
 else:
     logger.warning("slowapi not installed, rate limiting disabled")
 
@@ -277,9 +276,7 @@ try:
         should_respect_env_var=True,
         env_var_name="ENABLE_METRICS",
     )
-    instrumentator.instrument(app).expose(
-        app, endpoint="/metrics", include_in_schema=False
-    )
+    instrumentator.instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
     logger.info("Prometheus metrics enabled at /metrics")
 except ImportError:
     logger.warning("prometheus-fastapi-instrumentator not installed, metrics disabled")
@@ -351,7 +348,7 @@ async def health_check() -> None:
                     timeout=5.0,
                 )
             deps["postgres"] = {"status": "ok"}
-        except (OSError, ValueError) as e:
+        except Exception as e:  # health check: report any failure, never crash
             deps["postgres"] = {"status": "error", "error": str(e)}
 
     async def _check_chroma() -> None:
@@ -373,7 +370,7 @@ async def health_check() -> None:
                         resp.raise_for_status()
             _chroma_cb.record_success()
             deps["chroma"] = {"status": "ok"}
-        except (OSError, ValueError) as e:
+        except Exception as e:  # health check: report any failure, never crash
             _chroma_cb.record_failure()
             deps["chroma"] = {"status": "error", "error": str(e)}
 
@@ -393,7 +390,7 @@ async def health_check() -> None:
             client.bucket_exists(settings.minio_bucket)
             _minio_cb.record_success()
             deps["minio"] = {"status": "ok"}
-        except (OSError, ValueError) as e:
+        except Exception as e:  # health check: report any failure, never crash
             _minio_cb.record_failure()
             deps["minio"] = {"status": "error", "error": str(e)}
 
@@ -435,7 +432,7 @@ async def health_check() -> None:
                     "status": "ok",
                     "note": f"Provider health not checked: {llm.model_name}",
                 }
-        except (OSError, ValueError, ImportError) as e:
+        except Exception as e:  # health check: report any failure, never crash
             _llm_cb.record_failure()
             deps["llm"] = {"status": "error", "error": str(e)}
 
@@ -449,7 +446,7 @@ async def health_check() -> None:
                 "status": "ok" if status.get("connected", False) else "unavailable",
                 "mode": status.get("mode", "unknown"),
             }
-        except (OSError, ValueError) as e:
+        except Exception as e:  # health check: report any failure, never crash
             deps["redis"] = {"status": "error", "error": str(e)}
 
     await asyncio.gather(

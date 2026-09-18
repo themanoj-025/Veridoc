@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 from pathlib import Path
 from typing import Any
 
@@ -60,20 +59,20 @@ def _disk_cache_path(cache_key: str) -> Path:
     return _ensure_cache_dir() / f"{cache_key}.json"
 
 
-def _save_to_disk(cache_key: str, index: Any, chunks: list[dict]) -> None:
-    """Persist BM25 index and chunk data to disk as JSON.
+def _save_to_disk(cache_key: str, tokenized_corpus: list[list[str]], chunks: list[dict]) -> None:
+    """Persist BM25 index data to disk as JSON.
 
     Instead of pickling the BM25Okapi object (which allows arbitrary code
     execution), we save the tokenized corpus that built it. On load, we
     reconstruct the BM25Okapi instance from the saved corpus.
+
+    Note: BM25Okapi does not retain the tokenized corpus as an attribute,
+    so the corpus must be captured by the caller at build time.
     """
     try:
         path = _disk_cache_path(cache_key)
-        # Extract the tokenized corpus from the BM25 index internals.
-        # rank_bm25.BM25Okapi stores the corpus in self.corpus after __init__.
-        tokenized_corpus = getattr(index, "corpus", None)
-        if tokenized_corpus is None:
-            logger.warning("BM25 index has no corpus attribute — skipping disk persist")
+        if not tokenized_corpus:
+            logger.warning("Empty tokenized corpus — skipping disk persist")
             return
 
         data = {
@@ -109,7 +108,7 @@ def _load_from_disk(cache_key: str) -> tuple[Any, list[dict]] | None:
     try:
         from rank_bm25 import BM25Okapi
 
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             data = json.load(f)
 
         tokenized_corpus = data["tokenized_corpus"]
@@ -212,7 +211,7 @@ def get_bm25_index(
     _bm25_indexes[cache_key] = (index, chunks)
 
     # 4. Persist to disk for next cold start (JSON, not pickle)
-    _save_to_disk(cache_key, index, chunks)
+    _save_to_disk(cache_key, tokenized, chunks)
 
     return index, chunks
 

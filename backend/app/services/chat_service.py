@@ -76,10 +76,7 @@ class ChatService:
 
     def get_history(self, conv: Conversation, max_messages: int = 10) -> list[dict]:
         """Extract recent conversation history."""
-        return [
-            {"role": m.role, "content": m.content}
-            for m in conv.messages[-max_messages:]
-        ]
+        return [{"role": m.role, "content": m.content} for m in conv.messages[-max_messages:]]
 
     async def search_query(self, message: str, history: list[dict]) -> str:
         """Apply query rewriting for vague follow-ups."""
@@ -276,9 +273,7 @@ class ChatService:
             )
 
             cached_content = cached_response.get("content", "")
-            cached_citations = [
-                Citation(**c) for c in cached_response.get("citations", [])
-            ]
+            cached_citations = [Citation(**c) for c in cached_response.get("citations", [])]
             cached_msg = await self.save_assistant_message(
                 conv=conv,
                 content=cached_content,
@@ -317,9 +312,7 @@ class ChatService:
                                 "faithfulness_score": cached_response.get(
                                     "faithfulness_score", 1.0
                                 ),
-                                "model_used": cached_response.get(
-                                    "model_used", "cache"
-                                ),
+                                "model_used": cached_response.get("model_used", "cache"),
                                 "fallback_used": False,
                                 "cache_hit": True,
                             }
@@ -429,9 +422,7 @@ class ChatService:
             except TimeoutError:
                 yield {
                     "event": "error",
-                    "data": json.dumps(
-                        {"error": "Request timed out during LLM generation"}
-                    ),
+                    "data": json.dumps({"error": "Request timed out during LLM generation"}),
                 }
             except (RuntimeError, ValueError) as e:
                 yield {

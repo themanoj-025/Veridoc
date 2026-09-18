@@ -53,9 +53,7 @@ class TestG2_PromptVersion:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
-        factory = async_sessionmaker(
-            engine, class_=AsyncSession, expire_on_commit=False
-        )
+        factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
         async with factory() as session:
             user = User(email="prompt@test.com", hashed_password="x" * 60)
             session.add(user)
@@ -75,9 +73,7 @@ class TestG2_PromptVersion:
             await session.commit()
 
             # Read it back
-            result = await session.execute(
-                select(Message).where(Message.prompt_version == "1.0.0")
-            )
+            result = await session.execute(select(Message).where(Message.prompt_version == "1.0.0"))
             loaded = result.scalar_one_or_none()
             assert loaded is not None
             assert loaded.prompt_version == "1.0.0"
@@ -89,9 +85,7 @@ class TestG2_PromptVersion:
         import json
         from pathlib import Path
 
-        registry_path = (
-            Path(__file__).resolve().parent.parent.parent / "prompts" / "registry.json"
-        )
+        registry_path = Path(__file__).resolve().parent.parent.parent / "prompts" / "registry.json"
         assert registry_path.exists(), f"Registry file not found at {registry_path}"
 
         with open(registry_path) as f:
@@ -142,9 +136,7 @@ class TestG2_PromptVersion:
 
         # Capture the Message object passed to session.add
         added = []
-        mock_db_session.add = MagicMock(
-            side_effect=lambda obj: added.append(obj) or None
-        )
+        mock_db_session.add = MagicMock(side_effect=lambda obj: added.append(obj) or None)
         mock_db_session.flush = AsyncMock()
         mock_db_session.commit = AsyncMock()
 
@@ -235,9 +227,7 @@ class TestG4_SecretRotation:
         """Unset SECRET_ROTATED_AT → warning (status=never_recorded)."""
         logger = self._call_with(None)
         warnings = [
-            c
-            for c in logger.warning.call_args_list
-            if c[0][0] == "security.secret_rotation"
+            c for c in logger.warning.call_args_list if c[0][0] == "security.secret_rotation"
         ]
         assert len(warnings) == 1
         assert warnings[0][1]["status"] == "never_recorded"
@@ -249,9 +239,7 @@ class TestG4_SecretRotation:
         old = (datetime.now(UTC) - timedelta(days=200)).date().isoformat()
         logger = self._call_with(old, window_days=90)
         warnings = [
-            c
-            for c in logger.warning.call_args_list
-            if c[0][0] == "security.secret_rotation"
+            c for c in logger.warning.call_args_list if c[0][0] == "security.secret_rotation"
         ]
         assert len(warnings) == 1
         assert warnings[0][1]["status"] == "stale"
@@ -264,11 +252,7 @@ class TestG4_SecretRotation:
         fresh = datetime.now(UTC).date().isoformat()
         logger = self._call_with(fresh, window_days=90)
         assert not logger.warning.called
-        infos = [
-            c
-            for c in logger.info.call_args_list
-            if c[0][0] == "security.secret_rotation"
-        ]
+        infos = [c for c in logger.info.call_args_list if c[0][0] == "security.secret_rotation"]
         assert len(infos) == 1
         assert infos[0][1]["status"] == "fresh"
 
@@ -276,9 +260,7 @@ class TestG4_SecretRotation:
         """A malformed SECRET_ROTATED_AT → warning (status=invalid_date)."""
         logger = self._call_with("not-a-date")
         warnings = [
-            c
-            for c in logger.warning.call_args_list
-            if c[0][0] == "security.secret_rotation"
+            c for c in logger.warning.call_args_list if c[0][0] == "security.secret_rotation"
         ]
         assert len(warnings) == 1
         assert warnings[0][1]["status"] == "invalid_date"
@@ -326,9 +308,7 @@ class TestG4_SecretRotation:
 
         try:
             settings.jwt_secret = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"
-            settings.file_encryption_key = (
-                "x1y2z3x1y2z3x1y2z3x1y2z3x1y2z3x1y2z3x1y2z3x1y"
-            )
+            settings.file_encryption_key = "x1y2z3x1y2z3x1y2z3x1y2z3x1y2z3x1y2z3x1y2z3x1y"
             # Should not raise
             validate_config()
         finally:

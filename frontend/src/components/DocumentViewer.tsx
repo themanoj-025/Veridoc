@@ -21,12 +21,12 @@ export function DocumentViewer({ documentId }: DocumentViewerProps) {
   // Register citation-highlight listener once on mount (F19)
   // We use a state setter so the event is captured even if content hasn't loaded yet
   useEffect(() => {
-    const handler = (e: CustomEvent) => {
-      setPendingChunkId(e.detail?.chunkId || null);
+    const handler = (e: Event) => {
+      setPendingChunkId((e as CustomEvent).detail?.chunkId || null);
     };
-    window.addEventListener("citation-highlight" as EventListener, handler);
+    window.addEventListener("citation-highlight", handler);
     return () =>
-      window.removeEventListener("citation-highlight" as EventListener, handler);
+      window.removeEventListener("citation-highlight", handler);
   }, []);
 
   // Scroll to chunk once both pendingChunkId AND content are available

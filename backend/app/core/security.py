@@ -73,9 +73,7 @@ def hash_password(password: str) -> str:
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a plaintext password against its bcrypt hash."""
     try:
-        return bcrypt.checkpw(
-            _bcrypt_bytes(plain_password), hashed_password.encode("utf-8")
-        )
+        return bcrypt.checkpw(_bcrypt_bytes(plain_password), hashed_password.encode("utf-8"))
     except ValueError:
         # Malformed hash (bad prefix or salt) — treat as failed verification.
         return False
@@ -116,9 +114,7 @@ def create_refresh_token(user_id: uuid.UUID) -> str:
 def decode_token(token: str) -> dict | None:
     """Decode and validate a JWT token. Returns payload or None."""
     try:
-        payload = jwt.decode(
-            token, settings.jwt_secret, algorithms=[settings.jwt_algorithm]
-        )
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
         return payload
     except JWTError:
         return None

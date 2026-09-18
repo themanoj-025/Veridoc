@@ -31,9 +31,7 @@ class DocumentRepository(BaseRepository[Document]):
     ) -> Document | None:
         """Find a document by ID, scoped to the owning user."""
         result = await self.session.execute(
-            select(Document).where(
-                Document.id == document_id, Document.user_id == user_id
-            )
+            select(Document).where(Document.id == document_id, Document.user_id == user_id)
         )
         return result.scalar_one_or_none()
 
@@ -67,9 +65,7 @@ class DocumentRepository(BaseRepository[Document]):
     async def list_all_by_user(self, user_id: uuid.UUID) -> list[Document]:
         """Get ALL documents for a user (no pagination). Used by GDPR export."""
         result = await self.session.execute(
-            select(Document)
-            .where(Document.user_id == user_id)
-            .order_by(Document.created_at.desc())
+            select(Document).where(Document.user_id == user_id).order_by(Document.created_at.desc())
         )
         return list(result.scalars().all())
 
@@ -104,9 +100,7 @@ class DocumentRepository(BaseRepository[Document]):
 
     async def list_ids_by_user(self, user_id: uuid.UUID) -> list[uuid.UUID]:
         """Get all document IDs for a user."""
-        result = await self.session.execute(
-            select(Document.id).where(Document.user_id == user_id)
-        )
+        result = await self.session.execute(select(Document.id).where(Document.user_id == user_id))
         return [row[0] for row in result.all()]
 
     async def delete_all_by_user(self, user_id: uuid.UUID) -> None:
@@ -119,9 +113,7 @@ class DocumentRepository(BaseRepository[Document]):
             await self.delete_chroma_and_file(doc)
         from sqlalchemy import delete as sa_delete
 
-        await self.session.execute(
-            sa_delete(Document).where(Document.user_id == user_id)
-        )
+        await self.session.execute(sa_delete(Document).where(Document.user_id == user_id))
 
     async def delete_chroma_and_file(self, doc: Document) -> None:
         """Delete associated vector-store entries and the on-disk file."""
