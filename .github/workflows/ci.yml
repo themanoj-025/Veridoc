@@ -363,7 +363,7 @@ jobs:
         run: |
           docker run -d --rm --name ollama -p 11434:11434 ollama/ollama:latest
           # Wait for Ollama to start
-          for i in $(seq 1 30); do
+          for _ in $(seq 1 30); do
             if curl -sf http://localhost:11434/api/tags > /dev/null 2>&1; then
               echo "Ollama ready"
               break
@@ -375,7 +375,7 @@ jobs:
       - name: Start MinIO (object storage)
         run: |
           docker run -d --rm --name minio -p 9000:9000             -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin             quay.io/minio/minio:latest server /data
-          for i in $(seq 1 30); do
+          for _ in $(seq 1 30); do
             if curl -sf http://localhost:9000/minio/health/live > /dev/null 2>&1; then
               echo "MinIO ready"
               break
@@ -464,7 +464,7 @@ jobs:
             echo "===== backend-e2e-tail ====="; cat backend-e2e-tail.txt
             echo "===== backend-e2e-errors ====="; cat backend-e2e-errors.txt
           fi
-          exit ${TEST_EXIT:-0}
+          exit "${TEST_EXIT:-0}"
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v7
