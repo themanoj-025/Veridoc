@@ -10,6 +10,12 @@ updates:
     labels:
       - "dependencies"
       - "python"
+    ignore:
+      # arq 0.28.0 declares redis<6,>=4.2.0 — redis>=6 is a hard pip
+      # ResolutionImpossible (re-introduced by PR #106 and re-broke all
+      # 6 CI jobs). Re-evaluate this ignore when arq supports redis 6+.
+      - dependency-name: "redis"
+        versions: [">=6"]
 
   # GitHub Actions
   - package-ecosystem: "github-actions"

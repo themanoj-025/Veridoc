@@ -54,8 +54,11 @@ slowapi==0.1.10
 
 # ── Job Queue (ARQ + Redis) ──
 arq==0.28.0
-# redis must stay <6: arq 0.28.0 declares redis<6,>=4.2.0 (pip ResolutionImpossible otherwise)
-redis[hiredis]==8.1.0
+# redis must stay <6: arq 0.28.0 declares redis<6,>=4.2.0 (pip ResolutionImpossible otherwise).
+# DO NOT BUMP past 5.x — Dependabot PR #106 bumped to 8.1.0 and re-broke all 6 CI jobs;
+# a matching ignore rule now blocks redis>=6 in dependabot.yml.
+# Revisit only when arq ships support for redis>=6.
+redis[hiredis]==5.2.1
 
 # ── Monitoring / Metrics ──
 prometheus-fastapi-instrumentator==8.1.0  # 8.1 required for fastapi>=0.116 router handling (was ==7.0.1); exact pin per repo convention
