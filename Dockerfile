@@ -46,7 +46,7 @@ CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --
 # ════════════════════════════════════════════════════════════════════════════
 # FRONTEND — Next.js
 # ════════════════════════════════════════════════════════════════════════════
-FROM node:20-alpine AS frontend-build
+FROM node:25-alpine AS frontend-build
 
 WORKDIR /app
 COPY frontend/package.json frontend/package-lock.json* ./
@@ -56,7 +56,7 @@ COPY frontend/ .
 RUN mkdir -p /app/public && npm run build
 
 # Production runner
-FROM node:20-alpine AS frontend
+FROM node:25-alpine AS frontend
 
 WORKDIR /app
 ENV NODE_ENV=production
