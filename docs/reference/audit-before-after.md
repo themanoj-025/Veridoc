@@ -85,7 +85,7 @@
 
 ## Score Summary
 
-```
+```text
 Before:  8.3/10  (16 categories averaged)
 After:   9.3/10  (16 categories averaged)
 Δ:       +1.0    (12 of 16 categories improved)

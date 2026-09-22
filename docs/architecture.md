@@ -8,7 +8,7 @@ harness.
 
 ## High-level components
 
-```
+```text
                  ┌───────────────────────────────────────────────┐
                  │         frontend/  (Next.js 14 app)           │
                  │  app/ pages · components/ · lib/ (api, store) │

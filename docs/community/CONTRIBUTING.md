@@ -85,7 +85,7 @@ npm run dev
 
 Use conventional commits:
 
-```
+```text
 feat: add hybrid search with cross-encoder reranking
 fix: resolve SSE streaming session lifecycle bug
 docs: add evaluation report with accuracy metrics
