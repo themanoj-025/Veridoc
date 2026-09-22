@@ -5,7 +5,7 @@
 
 ## Measured Bundle Sizes (2026-07-31)
 
-```
+```text
 Route (app)                              Size     First Load JS
 ┌ ○ /                                    1.29 kB        88.7 kB
 ├ ○ /_not-found                          873 B          88.3 kB

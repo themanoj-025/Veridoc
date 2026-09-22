@@ -5,7 +5,7 @@
 Dependencies flow **downward**: `api/` → `services/` → `repositories/` →
 `models/`; `core/` is cross-cutting and imported by all layers.
 
-```
+```text
 core/config.py            ← imported by every module (env settings)
 core/database.py          ← used by repositories, alembic env, services
 core/di.py / dependencies.py ← wires routers → services → repositories (composition root)
@@ -41,7 +41,7 @@ repositories/*.py         → core.database, models
 
 ## Frontend
 
-```
+```text
 frontend/src/lib/api.ts        → backend REST /api/* (JWT bearer)
 frontend/src/lib/queries.ts    → TanStack Query wrappers over api.ts
 frontend/src/lib/store.ts      → Zustand client state (auth, toasts)

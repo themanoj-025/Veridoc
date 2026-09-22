@@ -1,6 +1,6 @@
 # Veridoc — Folder Structure
 
-```
+```text
 Veridoc/
 ├── backend/                       # FastAPI service (all backend code)
 │   ├── app/

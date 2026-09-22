@@ -64,7 +64,7 @@ Base URL (dev): `http://localhost:8000`. All routes prefixed `/api/v1/`. List en
 
 **Response 200 — SSE stream**
 
-```
+```text
 event: token
 data: {"delta": "The "}
 
