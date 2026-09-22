@@ -26,7 +26,7 @@
 - **Naming:** snake_case (py), camelCase (TS), descriptive.
 - **Structure:**
 
-```
+```text
 Veridoc/
 ├── backend/
 │   ├── app/

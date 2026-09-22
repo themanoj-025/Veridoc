@@ -114,7 +114,7 @@ graph TD
 
 ## 4. Complete Folder Structure Tree
 
-```
+```text
 Veridoc/
 ├── .dockerignore
 ├── .github/
@@ -454,7 +454,7 @@ docker compose up --build
 
 ## 11. Dependency Graph Summary
 
-```
+```text
 frontend/* → backend/app/api/* → backend/app/services/*
 backend/app/services/retrieval/* → ChromaDB + BM25
 backend/app/services/chat_service.py → LLM + retrieval
