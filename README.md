@@ -342,7 +342,7 @@ Once those are done, this project is genuinely pinnable. The repo demonstrates f
 
 ## 🧱 Project Structure
 
-```
+```text
 veridoc/
 ├── backend/
 │   ├── app/
