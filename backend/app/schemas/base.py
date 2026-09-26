@@ -17,14 +17,10 @@ and mutation endpoints return their specific response types directly.
 
 from __future__ import annotations
 
-from typing import Generic, TypeVar
-
 from pydantic import BaseModel
 
-T = TypeVar("T")
 
-
-class PaginatedResponse(BaseModel, Generic[T]):
+class PaginatedResponse[T](BaseModel):
     """Unified envelope for paginated list responses.
 
     Every list endpoint returns this type.  The ``items`` field type

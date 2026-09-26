@@ -7,16 +7,14 @@ and provide a consistent, testable interface for database access.
 from __future__ import annotations
 
 import uuid
-from typing import Any, Generic, TypeVar
+from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 
-ModelT = TypeVar("ModelT", bound=DeclarativeBase)
 
-
-class BaseRepository(Generic[ModelT]):
+class BaseRepository[ModelT: DeclarativeBase]:
     """Generic repository with common query patterns.
 
     Usage::
