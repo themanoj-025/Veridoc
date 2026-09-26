@@ -19,7 +19,6 @@
     <img src="https://img.shields.io/badge/Next.js-14-black.svg" alt="Next.js 14" />
     <img src="https://img.shields.io/badge/PostgreSQL-16-blue.svg" alt="PostgreSQL 16" />
     <img src="https://img.shields.io/badge/RAG-Hybrid%20Search-brightgreen.svg" alt="Hybrid RAG" />
-    <img src="https://img.shields.io/badge/tests-105%20passed-blue.svg" alt="Tests: 105 passed" />
     <img src="https://img.shields.io/badge/security-8/8%20red%20team-important" alt="Security: 8/8 red team" />
     <img src="https://img.shields.io/badge/eval-standalone-green" alt="Evaluation: standalone pipeline" />
     <img src="https://img.shields.io/badge/status-production%20ready-success" alt="Status: Production Ready" />
