@@ -1,12 +1,12 @@
 # ── Core Web Framework ──
-fastapi==0.141.1  # bumped: 0.115.0 breaks UploadFile param with `from __future__ import annotations` (ForwardRef error); host runs 0.139.2
+fastapi==0.142.2  # bumped: 0.115.0 breaks UploadFile param with `from __future__ import annotations` (ForwardRef error); host runs 0.139.2
 uvicorn[standard]==0.53.0
 pydantic==2.13.5
 pydantic-settings==2.15.0
 python-multipart==0.0.32
 
 # ── Database ──
-sqlalchemy==2.0.54
+sqlalchemy==2.1.2
 alembic==1.20.0
 asyncpg==0.31.0
 psycopg2-binary==2.9.13
@@ -21,7 +21,7 @@ email-validator==2.3.0  # required by pydantic EmailStr (pydantic.networks) — 
 # ONNX Runtime would require replacing sentence-transformers with a different
 # embedding/reranking library — evaluated and documented in DECISIONS.md.
 sentence-transformers==6.1.0
-torch==2.14.0+cpu
+torch==2.14.1+cpu
 --extra-index-url https://download.pytorch.org/whl/cpu
 
 # ── Vector DB ──
@@ -68,7 +68,7 @@ structlog==24.4.0
 
 # ── Optional: Claude / OpenAI API ──
 anthropic==1.6.0
-openai==3.15.0
+openai==3.23.0
 
 # ── Testing ──
 aiosqlite==0.22.1  # sqlite+aiosqlite in-memory DB used by the test suite (tests/conftest.py etc.)
@@ -79,7 +79,7 @@ pytest-timeout==2.4.0
 testcontainers==4.15.0
 
 # ── Dev ──
-python-dotenv==1.2.3
+python-dotenv==1.2.4
 
 # Retry with exponential backoff
 tenacity>=8.0,<10.0
