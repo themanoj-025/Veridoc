@@ -1,0 +1,50 @@
+# Git
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+
+# Node
+node_modules/
+.next/
+.vite/
+
+# Data (volumes, not images)
+data/pgdata/
+data/chroma/
+data/minio/
+data/ollama/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Docs
+BUILD_LOG.md
+*.drawio
+*.excalidraw

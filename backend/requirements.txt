@@ -1,0 +1,85 @@
+# ── Core Web Framework ──
+fastapi==0.142.2  # bumped: 0.115.0 breaks UploadFile param with `from __future__ import annotations` (ForwardRef error); host runs 0.139.2
+uvicorn[standard]==0.53.0
+pydantic==2.13.5
+pydantic-settings==2.15.0
+python-multipart==0.0.32
+
+# ── Database ──
+sqlalchemy==2.1.2
+alembic==1.20.0
+asyncpg==0.31.0
+psycopg2-binary==2.9.13
+
+# ── Auth ──
+python-jose[cryptography]==3.5.0
+bcrypt==5.0.0  # used directly (app/core/security.py) — passlib 1.7.4 is incompatible with bcrypt>=4.1
+email-validator==2.3.0  # required by pydantic EmailStr (pydantic.networks) — missing dep broke test-backend
+
+# ── ML / Embeddings ──
+# sentence-transformers uses torch internally; torchvision is NOT required.
+# ONNX Runtime would require replacing sentence-transformers with a different
+# embedding/reranking library — evaluated and documented in DECISIONS.md.
+sentence-transformers==6.1.0
+torch==2.14.1+cpu
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+# ── Vector DB ──
+chromadb==1.5.9
+
+# ── Document Parsing ──
+pypdf==6.19.0
+python-docx==1.2.0
+pytesseract==0.3.13
+Pillow==12.3.0
+pdf2image==1.17.0
+
+# ── Search / NLP ──
+rank-bm25==0.2.2
+nltk==3.10.3
+
+# ── MinIO (S3 client) ──
+minio==7.2.20
+
+# ── HTTP Client ──
+httpx==0.28.1
+httpx-sse==0.4.3
+aiofiles==25.1.0
+
+# ── SSE Streaming ──
+sse-starlette==3.4.11
+
+# ── Rate Limiting ──
+slowapi==0.1.10
+
+# ── Job Queue (ARQ + Redis) ──
+arq==0.28.0
+# redis must stay <6: arq 0.28.0 declares redis<6,>=4.2.0 (pip ResolutionImpossible otherwise).
+# DO NOT BUMP past 5.x — Dependabot PR #106 bumped to 8.1.0 and re-broke all 6 CI jobs;
+# a matching ignore rule now blocks redis>=6 in dependabot.yml.
+# Revisit only when arq ships support for redis>=6.
+redis[hiredis]==5.3.1
+
+# ── Monitoring / Metrics ──
+prometheus-fastapi-instrumentator==8.1.0  # 8.1 required for fastapi>=0.116 router handling (was ==7.0.1); exact pin per repo convention
+
+# ── Structured Logging ──
+structlog==24.4.0
+
+# ── Optional: Claude / OpenAI API ──
+anthropic==1.6.0
+openai==3.23.0
+
+# ── Testing ──
+aiosqlite==0.22.1  # sqlite+aiosqlite in-memory DB used by the test suite (tests/conftest.py etc.)
+# pytest>=8.4 required by pytest-asyncio 1.4.0; >=9.0.3 fixes GHSA-6w46-j5rx-g56g (tmpdir)
+pytest==9.0.3
+pytest-asyncio==1.4.0
+pytest-timeout==2.4.0
+testcontainers==4.15.0
+
+# ── Dev ──
+python-dotenv==1.2.4
+
+# Retry with exponential backoff
+tenacity>=8.0,<10.0

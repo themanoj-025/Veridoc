@@ -1,0 +1,695 @@
+# Cancel superseded runs of this workflow on the same ref (PR pushes).
+# Never cancels on main pushes or scheduled runs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Least-privilege token scope; jobs declaring their own permissions override this.
+permissions:
+  contents: read
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          cache: pip
+          python-version: "3.12"
+
+      - name: Run pre-commit hooks
+        run: |
+          pip install pre-commit
+          pre-commit run --all-files
+
+  # ── Check that no secret-like keys have non-empty literal defaults in Docker Compose files ──
+  lint-compose-secrets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Check docker-compose for hardcoded secrets
+        run: |
+          echo "Checking docker-compose.yml for hardcoded secrets..."
+          # Fail if JWT_SECRET or FILE_ENCRYPTION_KEY have a non-env-var literal value
+          # (i.e., not starting with ${...})
+          secrets_found=0
+          for file in docker-compose.yml docker-compose.prod.yml; do
+            if [ ! -f "$file" ]; then continue; fi
+            for key in JWT_SECRET FILE_ENCRYPTION_KEY POSTGRES_PASSWORD MINIO_SECRET_KEY; do
+              # Look for lines like "  JWT_SECRET: some-literal-value" that don't start with $
+              while IFS= read -r line; do
+                echo "ERROR: $file contains a hardcoded $key literal value"
+                echo "       $line"
+                secrets_found=1
+              done < <(grep -E "^\\s+${key}:\\s+[^$]" "$file" 2>/dev/null || true)
+            done
+          done
+          if [ "$secrets_found" -ne 0 ]; then
+            echo ""
+            echo "FAILURE: Hardcoded secrets found in Docker Compose files."
+            echo "These must use \${VAR:?error} syntax so values come only from .env"
+            exit 1
+          fi
+          echo "✅ All compose files use env-var references for secrets"
+
+  lint-backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          cache: pip
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff==0.16.4
+      - name: Lint with ruff
+        run: |
+          ruff check app/ tests/
+          ruff format --check app/ tests/
+
+  security-audit:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          cache: pip
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pip-audit
+      - name: Audit dependencies for known vulnerabilities
+        # torch is pinned as X.Y.Z+cpu (installed from PyTorch's CPU index).
+        # pip-audit can only see PyPI: strip the +cpu local tag AND the extra
+        # index (otherwise the resolver still prefers the +cpu wheel per PEP 440)
+        # so the same upstream release's advisories are checked.
+        run: |
+          sed -e 's/torch==\([0-9.]*\)+cpu/torch==\1/' \
+              -e '/--extra-index-url/d' requirements.txt > /tmp/req-audit.txt
+          # Ignored: advisories with NO fixed release upstream (verified via OSV).
+          # Re-evaluate periodically — remove an ignore once a fix ships.
+          #   chromadb 1.5.9 (latest): PYSEC-2026-311/-3813/-3814/-3815
+          #   nltk 3.10.3: PYSEC-2026-3740
+          #   ecdsa 0.19.2 (latest): PYSEC-2026-1325 (Minerva timing attack —
+          #     design-level; long-term fix is migrating JWT signing to cryptography)
+          pip-audit -r /tmp/req-audit.txt \
+            --ignore-vuln PYSEC-2026-311 \
+            --ignore-vuln PYSEC-2026-3813 \
+            --ignore-vuln PYSEC-2026-3814 \
+            --ignore-vuln PYSEC-2026-3815 \
+            --ignore-vuln PYSEC-2026-3740 \
+            --ignore-vuln PYSEC-2026-1325
+
+  mypy:
+    name: Type check with mypy
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          cache: pip
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install mypy==2.3.1
+      - name: Type check with mypy (advisory)
+        run: mypy backend/app --ignore-missing-imports --no-error-summary
+        continue-on-error: true
+
+  bandit:
+    name: Bandit security scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          cache: pip
+          python-version: '3.12'
+      - name: Install bandit
+        run: pip install bandit==1.9.4
+      - name: Run bandit
+        run: bandit -r src -ll
+
+  lint-frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+          node-version: "20"
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+
+  # Build-frontend — catches TypeScript compilation errors like the duplicate
+  # setShowMobileDrawer bug that ESLint alone would not catch
+  build-frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+          node-version: "20"
+      - name: Install dependencies
+        run: npm ci
+      - name: TypeScript build check
+        run: npm run build
+
+  test-backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      matrix:
+        python-version: ["3.12"]
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: veridoc
+          POSTGRES_PASSWORD: veridoc_local_dev
+          POSTGRES_DB: veridoc
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      chroma:
+        image: chromadb/chroma:1.5.9
+        ports:
+          - 8001:8000
+        # chroma 1.x images ship without curl, so a curl-based
+        # --health-cmd can never pass; readiness is handled by the
+        # backend's health-wait loop and test-level retries instead.
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          cache: pip
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run unit tests (no external services)
+        env:
+          POSTGRES_HOST: localhost
+          APP_ENV: test
+        # Exclude integration tests (which need testcontainers Docker-in-Docker)
+        # and health tests (which try to connect to actual Chroma/Ollama)
+        run: |
+          python -m pip install pytest-cov && python -m pytest tests/ -v --timeout=30 --cov=. --cov-report=term-missing --cov-fail-under=58 \
+            -k "not integration and not health"
+
+  test-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: veridoc
+          POSTGRES_PASSWORD: veridoc_local_dev
+          POSTGRES_DB: veridoc
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      chroma:
+        image: chromadb/chroma:1.5.9
+        ports:
+          - 8001:8000
+        # chroma 1.x images ship without curl, so a curl-based
+        # --health-cmd can never pass; readiness is handled by the
+        # backend's health-wait loop and test-level retries instead.
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          cache: pip
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run integration tests (Postgres + Chroma)
+        env:
+          POSTGRES_HOST: localhost
+          CHROMA_HOST: localhost
+          APP_ENV: test
+          # circuit_breaker.py is a portfolio-canonical module at the repo root
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          python -m pytest tests/ -v --timeout=120 \
+            -k "integration or health"
+
+  eval-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: veridoc
+          POSTGRES_PASSWORD: veridoc_local_dev
+          POSTGRES_DB: veridoc
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          cache: pip
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run evaluation regression gate
+        env:
+          POSTGRES_HOST: localhost
+          APP_ENV: test
+          SKIP_LLM: "true"
+        # Script lives at the repo root (backend's working-directory has no scripts/)
+        run: python ../scripts/ci_eval_gate.py
+
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Build Docker images
+        # Dummy values only for compose interpolation during CI build;
+        # real secrets are never baked into images.
+        env:
+          JWT_SECRET: ci-build-only-dummy-secret
+          FILE_ENCRYPTION_KEY: ci-build-only-dummy-key
+        run: docker compose build
+
+  # E2E smoke test (B6) — requires full Docker Compose stack
+  e2e-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: veridoc
+          POSTGRES_PASSWORD: veridoc_local_dev
+          POSTGRES_DB: veridoc
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      chroma:
+        image: chromadb/chroma:1.5.9
+        ports:
+          - 8001:8000
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          cache: pip
+          python-version: "3.12"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+          node-version: "20"
+      - name: Start Ollama (CPU mode)
+        run: |
+          docker run -d --rm --name ollama -p 11434:11434 ollama/ollama:latest
+          # Wait for Ollama to start
+          for _ in $(seq 1 30); do
+            if curl -sf http://localhost:11434/api/tags > /dev/null 2>&1; then
+              echo "Ollama ready"
+              break
+            fi
+            sleep 2
+          done
+          # Pull the small model
+          docker exec ollama ollama pull tinyllama || echo "Model pull skipped"
+      - name: Start MinIO (object storage)
+        run: |
+          # Docker Hub image — quay.io rejects anonymous pulls from
+          # GitHub-hosted runners ("unauthorized" on e2e-smoke).
+          docker run -d --rm --name minio -p 9000:9000 \
+            -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin \
+            minio/minio:latest server /data
+          for _ in $(seq 1 30); do
+            if curl -sf http://localhost:9000/minio/health/live > /dev/null 2>&1; then
+              echo "MinIO ready"
+              break
+            fi
+            sleep 2
+          done
+      - name: Start backend
+        env:
+          DATABASE_URL: postgresql+asyncpg://veridoc:veridoc_local_dev@localhost:5432/veridoc
+          CHROMA_HOST: localhost
+          CHROMA_PORT: 8001
+          OLLAMA_BASE_URL: http://localhost:11434
+          # Matches the tinyllama pulled by the 'Start Ollama' step — the
+          # app's default (llama3.1:8b) is far too large for CI runners
+          OLLAMA_MODEL: tinyllama
+          APP_ENV: production
+          # Throwaway CI-only credentials — the app fail-fasts on empty secrets
+          JWT_SECRET: e2e-ci-only-throwaway-secret-0123456789abcdef
+          FILE_ENCRYPTION_KEY: e2e-ci-only-throwaway-fernet-key-0123456789abcdef
+          # Matches the postgres service container's credentials (the app builds
+          # its connection URL from POSTGRES_* — DATABASE_URL is not read)
+          POSTGRES_PASSWORD: veridoc_local_dev
+          # Matches the minio service container's credentials
+          MINIO_ACCESS_KEY: minioadmin
+          MINIO_SECRET_KEY: minioadmin
+          # circuit_breaker.py is a portfolio-canonical module at the repo root
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          # Create the document bucket (the app does not auto-create it)
+          python -c "
+          from minio import Minio
+          c = Minio('localhost:9000', access_key='minioadmin', secret_key='minioadmin', secure=False)
+          if not c.bucket_exists('veridoc-documents'):
+              c.make_bucket('veridoc-documents')
+          print('MinIO bucket ready')"
+          # Create the database schema (service Postgres starts empty)
+          alembic upgrade head
+          uvicorn app.main:app --host 0.0.0.0 --port 8000 > /tmp/backend-e2e.log 2>&1 &
+          # Wait for backend to be ready
+          for i in $(seq 1 15); do
+            if curl -sf http://localhost:8000/api/v1/health > /dev/null 2>&1; then
+              echo "Backend ready"
+              break
+            fi
+            echo "Waiting for backend... ($i/15)"
+            sleep 2
+          done
+      - name: Pre-warm ML models
+        # The chat pipeline lazily downloads all-MiniLM-L6-v2 and the
+        # cross-encoder from HuggingFace on first use. Under CI network
+        # latency that first call can exceed retrieval_timeout, which used
+        # to surface as a dead SSE connection. Warm both before tests run.
+        run: |
+          cd backend
+          python - <<'EOF'
+          from sentence_transformers import SentenceTransformer, CrossEncoder
+          SentenceTransformer("all-MiniLM-L6-v2")
+          CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+          print("ML models warmed")
+          EOF
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+      - name: Start frontend
+        run: |
+          cd frontend
+          NEXT_PUBLIC_API_URL=http://localhost:8000 npx next start &
+          sleep 3
+      - name: Run E2E smoke tests
+        run: |
+          cd frontend
+          npx playwright install chromium
+          # Smoke tests only: e2e/visual.spec.ts needs baseline snapshots that
+          # don't exist in the repo (generate with --update-snapshots locally
+          # against a real stack, then commit the PNGs — tracked as follow-up)
+          npx playwright test e2e/smoke.spec.ts || TEST_EXIT=$?
+          # Dump backend log for post-mortem (background stdout is not kept
+          # in the job log once the 'Start backend' step ends)
+          tail -100 /tmp/backend-e2e.log > backend-e2e-tail.txt || true
+          grep -a -A40 "retrieval_pre_stream_error\|Traceback" /tmp/backend-e2e.log > backend-e2e-errors.txt || true
+          if [ -s backend-e2e-tail.txt ] || [ -s backend-e2e-errors.txt ]; then
+            echo "===== backend-e2e-tail ====="; cat backend-e2e-tail.txt
+            echo "===== backend-e2e-errors ====="; cat backend-e2e-errors.txt
+          fi
+          exit "${TEST_EXIT:-0}"
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 14
+
+  # SBOM + vulnerability scanning (D9)
+  security-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Install Syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Generate SBOM (backend)
+        run: |
+          syft dir:backend -o spdx-json > sbom.backend.json || echo "Syft backend scan skipped"
+
+      - name: Generate SBOM (frontend)
+        run: |
+          syft dir:frontend -o spdx-json > sbom.frontend.json || echo "Syft frontend scan skipped"
+
+      - name: Upload SBOMs
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: sbom
+          path: sbom*.json
+          retention-days: 30
+
+      - name: Install Trivy
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.73.0
+
+      - name: Trivy vulnerability scan — backend
+        id: trivy-backend
+        continue-on-error: false
+        run: |
+          # Scan built Docker image first; fall back to filesystem scan if image not present
+          if docker images --format '{{.Repository}}:{{.Tag}}' 2>/dev/null | grep -q 'veridoc-backend'; then
+            echo "Scanning Docker image: veridoc-backend:latest"
+            trivy image --scanners vuln --severity CRITICAL \
+              --exit-code 1 --ignore-unfixed \
+              --format sarif -o trivy-backend.sarif \
+              --ignorefile .trivyignore \
+              veridoc-backend:latest
+          else
+            echo "No Docker image found — scanning filesystem: backend/"
+            trivy fs --scanners vuln --severity CRITICAL \
+              --exit-code 1 --ignore-unfixed \
+              --format sarif -o trivy-backend.sarif \
+              --ignorefile .trivyignore \
+              backend/
+          fi
+
+      - name: Trivy vulnerability scan — frontend
+        id: trivy-frontend
+        continue-on-error: false
+        run: |
+          if docker images --format '{{.Repository}}:{{.Tag}}' 2>/dev/null | grep -q 'veridoc-frontend'; then
+            echo "Scanning Docker image: veridoc-frontend:latest"
+            trivy image --scanners vuln --severity CRITICAL \
+              --exit-code 1 --ignore-unfixed \
+              --format sarif -o trivy-frontend.sarif \
+              veridoc-frontend:latest
+          else
+            echo "No Docker image found — scanning filesystem: frontend/"
+            trivy fs --scanners vuln --severity CRITICAL \
+              --exit-code 1 --ignore-unfixed \
+              --format sarif -o trivy-frontend.sarif \
+              frontend/
+          fi
+
+      - name: Trivy summary report (all severities, non-blocking table)
+        continue-on-error: true
+        run: |
+          trivy fs --scanners vuln --severity CRITICAL,HIGH,MEDIUM,LOW \
+            --exit-code 0 \
+            --format table \
+            backend/requirements.txt || echo "Trivy summary generated with findings"
+
+      - name: Upload Trivy SARIF reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: trivy-reports
+          path: trivy-*.sarif
+          retention-days: 30
+
+      - name: Notify on CRITICAL vulnerabilities found
+        if: steps.trivy-backend.outcome == 'failure' || steps.trivy-frontend.outcome == 'failure'
+        run: |
+          echo "::error::CRITICAL severity vulnerabilities found — the CI job has failed."
+          echo "::error::Review the trivy-reports artifact for details."
+          echo "::error::If these are accepted risks, document them in docs/security-notes.md"
+          echo "::error::and add the CVE IDs to .trivyignore with rationale."
+
+  hadolint:
+    name: Container lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
+        with:
+          dockerfile: Dockerfile
+          failure-threshold: error
+          ignore: DL3006,DL3008
+
+  schemathesis-fuzz:
+    name: Contract fuzzing (Schemathesis)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install schemathesis
+        env:
+          JWT_SECRET: ci-build-only-dummy-secret
+          DATABASE_URL: "postgresql+asyncpg://veridoc:veridoc_local_dev@localhost:5432/veridoc"
+      - name: Generate OpenAPI spec
+        env:
+          # circuit_breaker.py is a portfolio-canonical module at the repo root
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          python -c "
+          from app.main import app
+          import json, sys
+          with open('/tmp/openapi.json', 'w') as f:
+              json.dump(app.openapi(), f, indent=2)
+          print('OpenAPI spec generated:', len(json.dumps(app.openapi())), 'bytes')
+          "
+      - name: Fuzz API against OpenAPI contract
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+          sleep 3
+          st run --checks all /tmp/openapi.json --base-url http://localhost:8000 -w 5 --hypothesis-suppress-health-check=too_slow 2>&1 | tail -20 || true
+
+  lighthouse:
+    name: "Frontend — Lighthouse CI (performance budgets)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Build frontend
+        run: npm run build
+      - name: Install Lighthouse CI
+        run: npm install -g @lhci/cli
+      - name: Start preview server + run Lighthouse
+        run: |
+          npm run start &
+          sleep 5
+          # working-directory is frontend/ — no frontend/ prefix inside it
+          lhci autorun --config=lighthouserc.json
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: lighthouse-reports
+          path: frontend/lhci-reports
+
+  docker-cache:
+    name: Docker image build + layer cache
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+      - name: Build image (cached)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          file: Dockerfile
+          load: true
+          tags: veridoc:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

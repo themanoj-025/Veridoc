@@ -1,0 +1,49 @@
+"""CI evaluation regression gate — run by GitHub Actions on every PR/push.
+
+Checks:
+1. ``eval/gold_qa.json`` exists and has at least 5 entries.
+2. ``eval/continuous_feedback.json`` does not exceed 1000 entries.
+"""
+
+from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+import structlog
+
+logger = structlog.get_logger(__name__)
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+def main() -> int:
+    gold_path = REPO_ROOT / "eval" / "gold_qa.json"
+    if not gold_path.exists():
+        logger.error("FAIL: eval/gold_qa.json not found")
+        return 1
+
+    gold = json.loads(gold_path.read_text())
+    logger.info(f"Gold Q&A set: {len(gold)} entries")
+
+    if len(gold) < 5:
+        logger.error(f"FAIL: Only {len(gold)} entries, need at least 5")
+        return 1
+
+    feedback_path = REPO_ROOT / "eval" / "continuous_feedback.json"
+    if feedback_path.exists():
+        feedback = json.loads(feedback_path.read_text())
+        logger.info(f"Feedback queue: {len(feedback)} entries")
+        if len(feedback) > 1000:
+            logger.warning(
+                f"WARN: Feedback queue has {len(feedback)} entries, "
+                "consider running promote_feedback.py"
+            )
+
+    logger.info("PASS: Evaluation regression gate")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

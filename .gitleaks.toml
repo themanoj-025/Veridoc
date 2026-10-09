@@ -1,0 +1,17 @@
+# Gitleaks configuration
+# Extends gitleaks' default ruleset with repository-specific allowlists.
+# NOTE: allowlists here are for NON-PRODUCTION test fixtures only.
+title = "gitleaks config for Veridoc"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Env-template example + RBAC test fixtures (dummy values by design)"
+regexes = [
+  # .env.example "e.g." illustration of a generated 64-char hex secret
+  # (the real JWT_SECRET= line is empty). Two dummy hexes are also reused
+  # by the backend RBAC/rate-limit test suites.
+  '''a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2''',
+  '''a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4''',
+]
