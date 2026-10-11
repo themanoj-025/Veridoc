@@ -1,4 +1,4 @@
-# Rules — Veridoc: Coding Standards & AI-Agent Operating Rules
+# Rules — Veridoc: Coding Standards & Engineering Operating Rules
 
 | Field | Value |
 | --- | --- |
@@ -56,7 +56,7 @@ Veridoc/
 - MUST have: security suite (8/8), faithfulness-gate tests, row-isolation tests, ingestion lifecycle tests, migration round-trips.
 - Frontend: component tests for 5 components (AuthProvider, ChatPanel, DocumentList, DocumentViewer, ErrorBoundary).
 
-## 5. AI Agent Operating Rules
+## 5. Engineering Operating Rules
 
 - Read Tracker.md and ImplementationPlan.md before starting a task.
 - Never mark a task 🟢 Done without tests passing.
