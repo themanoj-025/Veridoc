@@ -1,0 +1,14 @@
+{
+  "repository": "Veridoc",
+  "mode": "AUDIT_ONLY",
+  "aggressiveness": 3,
+  "phase": 9,
+  "status": "COMPLETED_AUDIT",
+  "baseline_sha": "86a146d60e4a423e3de70b09d122dac11f8db51f",
+  "total_candidates": 95,
+  "t0_count": 58,
+  "t1_count": 0,
+  "t2_count": 37,
+  "t3_count": 0,
+  "updated_at": "2026-10-11T07:40:03.427Z"
+}
