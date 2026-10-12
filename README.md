@@ -206,12 +206,12 @@ Verdict: **Go** — ready to evaluate on your own documents, with a standalone e
 | --- | --- |
 | [docs/technical/TechSpec.md](docs/technical/TechSpec.md) | Architecture spec |
 | [docs/technical/security-notes.md](docs/technical/security-notes.md) | Security red-team report |
-| [docs/development.md](docs/development.md) | Local dev setup |
+| [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md) | Local dev setup |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute |
 
 ## 🧱 Project structure
 
-```
+```text
 Veridoc/
 ├── backend/
 │   ├── main.py               # FastAPI app
@@ -252,3 +252,4 @@ Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md).
 ## 📄 License
 
 MIT License — see [LICENSE](LICENSE).
+
