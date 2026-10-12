@@ -1,255 +1,249 @@
-# 📄 Veridoc
+<p align="center">
+  <img src="https://img.shields.io/badge/Veridoc-Verifiable%20Document%20RAG-blue?style=for-the-badge" alt="Veridoc Logo" />
+</p>
 
-<div align="center">
-  <h1>📄 Veridoc</h1>
-  <p><strong>Answers you can verify, not just believe.</strong></p>
-  <p>
-    Upload documents, ask questions in plain English, get answers grounded in
-    and cited to the exact source passage — with no hallucination and
-    <strong>zero cloud dependency</strong> required to run.
-  </p>
+<h1 align="center">Veridoc</h1>
 
-  <!-- Badges -->
-  <p>
-    <a href="https://github.com/themanoj-025/Veridoc/actions/workflows/ci.yml">
-      <img src="https://github.com/themanoj-025/Veridoc/actions/workflows/ci.yml/badge.svg" alt="CI Status" />
-    </a>
-    <a href="LICENSE">
-      <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" />
-    </a>
-    <img src="https://img.shields.io/badge/Python-3.12+-blue.svg" alt="Python 3.12+" />
-    <img src="https://img.shields.io/badge/Next.js-14-black.svg" alt="Next.js 14" />
-    <img src="https://img.shields.io/badge/PostgreSQL-16-blue.svg" alt="PostgreSQL 16" />
-    <img src="https://img.shields.io/badge/RAG-Hybrid%20Search-brightgreen.svg" alt="Hybrid RAG" />
-    <img src="https://img.shields.io/badge/security-8/8%20red%20team-important" alt="Security: 8/8 red team" />
-    <img src="https://img.shields.io/badge/eval-standalone-green" alt="Evaluation: standalone pipeline" />
-    <img src="https://img.shields.io/badge/status-production%20ready-success" alt="Status: Production Ready" />
-  </p>
+<p align="center">
+  <strong>Grounded document intelligence and hybrid RAG search with passage-level attribution and zero cloud dependencies.</strong>
+</p>
 
-  <p>
-    <a href="#-features">Features</a> ·
-    <a href="#-quick-start">Quick Start</a> ·
-    <a href="docs/technical/TechSpec.md">Architecture</a> ·
-    <a href="docs/technical/security-notes.md">Security</a>
-  </p>
-</div>
+<p align="center">
+  <a href="https://github.com/themanoj-025/Veridoc/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/themanoj-025/Veridoc/ci.yml?style=flat-square&label=CI" alt="CI Status" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License MIT" /></a>
+  <a href="https://github.com/themanoj-025/Veridoc/stargazers"><img src="https://img.shields.io/github/stars/themanoj-025/Veridoc?style=social" alt="GitHub Stars" /></a>
+  <a href="https://github.com/themanoj-025/Veridoc/issues"><img src="https://img.shields.io/github/issues/themanoj-025/Veridoc?style=flat-square" alt="GitHub Issues" /></a>
+  <a href="https://github.com/themanoj-025/Veridoc/pulls"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square" alt="PRs Welcome" /></a>
+</p>
 
 ---
 
-## 📋 Table of Contents
+## Overview
 
-- [Why Veridoc?](#-why-veridoc)
-- [✨ Features](#-features)
-- [⚡ Quick start](#-quick-start)
-- [🏗 Architecture](#-architecture)
-- [🛠 Tech stack](#-tech-stack)
-- [📊 Evaluation results](#-evaluation-results)
-- [📋 API endpoints](#-api-endpoints)
-- [🔒 Security](#-security)
-- [✅ Go/No-Go verdict](#-gono-go-verdict)
-- [📚 Documentation](#-documentation)
-- [🧱 Project structure](#-project-structure)
-- [🔬 Reproducing the evaluation](#-reproducing-the-evaluation)
-- [📈 What I'd change at scale](#-what-id-change-at-scale)
-- [🤝 Contributing](#-contributing)
-- [📄 License](#-license)
+Most document question-answering systems promise citations but silently hallucinate answers when retrieval context is weak. Veridoc is engineered for strict verifiability: every response is grounded in retrieved chunks, and claims are accompanied by traceable source passage citations.
+
+The hybrid RAG architecture combines BM25 keyword matching with dense vector retrieval using PostgreSQL `pgvector`, operating completely on-premises with zero mandatory third-party cloud API dependencies.
 
 ---
 
-## 🎯 Why Veridoc?
+## Table of Contents
 
-Most document Q&A tools promise "citations" but silently hallucinate. Veridoc is built to be **verifiable**: every answer is grounded in a source passage and cited to it, so a reader can check the claim against the document. It runs locally, so you can point it at confidential files with zero cloud dependency.
+- [Key Features](#key-features)
+- [Architecture](#architecture)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Prerequisites](#prerequisites)
+- [Installation & Quick Start](#installation--quick-start)
+- [REST API Reference](#rest-api-reference)
+- [Evaluation & Red-Team Audit](#evaluation--red-team-audit)
+- [Testing](#testing)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [Security](#security)
+- [License](#license)
+- [Support](#support)
 
-> [!NOTE] The RAG pipeline is fully local — no OpenAI, no embeddings-api, no external service. The only network call is if you explicitly configure a custom embedding model.
+---
 
-## ✨ Features
+## Key Features
 
-| Feature | Description |
-| --- | --- |
-| 📄 **Document upload** | Upload PDFs, Word docs, and text files |
-| 💬 **Chat with documents** | Ask questions in plain English over your uploaded corpus |
-| 🔍 **Grounded answers** | Every answer cites the exact source passage |
-| 🎯 **Hybrid search** | Keyword + semantic retrieval for relevance |
-| 🧱 **Standalone evaluation** | Reproducible eval pipeline independent of the app |
-| 🛡️ **8/8 red team** | No exposed secrets, no prompt injection, no auth bypass |
-| 🚀 **Production-ready** | Docker Compose out of the box, no signup or API key |
+- **Grounded Source Citations**: Strictly bounds generated responses to retrieved context; outputs highlight exact source passages to enable reader verification.
+- **Hybrid RAG Pipeline**: Merges sparse BM25 keyword search with dense embedding vector similarity in `pgvector` to maximize retrieval recall.
+- **Zero Cloud Requirement**: Runs completely locally using local embedding models or self-hosted LLM endpoints.
+- **Multi-Format Ingestion**: Ingests, parses, chunks, and indexes PDFs, DOCX documents, Markdown, and plain text files.
+- **Dual Surface Deployment**: Ships with an intuitive Next.js 14 web chat interface and a high-performance FastAPI backend.
 
-## ⚡ Quick start
+---
 
-### Prerequisites
+## Architecture
 
-- Docker & Docker Compose v2+
-- Disk space for a PostgreSQL data volume
+```text
+               User Document Upload / Question
+                              │
+               ┌──────────────┴──────────────┐
+               ▼                             ▼
+    Next.js 14 Frontend             FastAPI Ingestion / Chat
+      (frontend/, Port 3000)         (backend/main.py, Port 8000)
+               │                             │
+               └──────────────┬──────────────┘
+                              │
+                              ▼
+                   Document Ingestion Engine
+            (Chunking, Tokenization, Text Normalization)
+                              │
+                              ▼
+                     Hybrid Retrieval
+          ┌───────────────────┴───────────────────┐
+          ▼                                       ▼
+     Sparse BM25 Search                      Dense Vector Search
+     (Keyword Precision)                     (PostgreSQL pgvector)
+          │                                       │
+          └───────────────────┬───────────────────┘
+                              │
+                              ▼
+                     Reciprocal Rank Fusion
+                              │
+                              ▼
+                   Verifiable Generation
+            (Passage Grounding & Citation Synthesis)
+```
 
-### One-command start
+---
+
+## Tech Stack
+
+| Domain | Technologies |
+| :--- | :--- |
+| **Backend & API** | FastAPI, SQLAlchemy 2.x, Alembic, Uvicorn |
+| **Frontend** | Next.js 14, React 18, TypeScript, Tailwind CSS |
+| **Database & Vector Store** | PostgreSQL 16 with `pgvector` extension |
+| **Retrieval Engine** | Hybrid BM25 + dense vector embeddings |
+| **Evaluation Suite** | Standalone benchmark harness (`eval/`) |
+| **Infrastructure** | Docker Compose, GitHub Actions CI |
+
+---
+
+## Project Structure
+
+```text
+Veridoc/
+├── backend/                # FastAPI application, database, and RAG logic
+│   ├── api/                # API routers and endpoints
+│   ├── db/                 # SQLAlchemy ORM models and database session
+│   ├── rag/                # Ingestion, chunking, embeddings, and search
+│   └── main.py             # Backend application entry point
+├── frontend/               # Next.js 14 web chat application
+├── eval/                   # Standalone RAG evaluation harness
+├── tests/                  # Pytest automated test suites
+├── Dockerfile              # Multi-stage container build
+├── docker-compose.yml      # Local development container orchestration
+├── docker-compose.prod.yml # Production multi-service orchestration
+├── pyproject.toml          # Build backend and quality configuration
+├── requirements.txt        # Backend dependencies
+└── README.md               # Project documentation
+```
+
+---
+
+## Prerequisites
+
+- **Python**: `>= 3.12`
+- **Node.js**: `>= 18.0` (for frontend development)
+- **Docker & Docker Compose**: Recommended for local orchestration with `pgvector`
+
+---
+
+## Installation & Quick Start
+
+### Option 1: Docker Compose (Recommended)
 
 ```bash
-# 1. Clone the repository
+# Clone the repository
 git clone https://github.com/themanoj-025/Veridoc.git
 cd Veridoc
 
-# 2. Start the stack
-docker compose up --build
-
-# 3. Open the app
-open http://localhost:3000
+# Start all services (PostgreSQL + pgvector, Backend, Frontend)
+docker compose up --build -d
 ```
 
-That's it — no signup, no API key, no cloud account.
+*Frontend: http://localhost:3000*  
+*Backend API docs: http://localhost:8000/docs*
 
-### Local dev (without Docker)
+### Option 2: Local Development Setup
 
 ```bash
-# 1. Install Python 3.12+ and Node 18+
-# 2. Install backend dependencies
-cd backend && pip install -r requirements.txt
+# 1. Backend Setup
+cd backend
+python -m venv .venv
+# Linux/macOS: source .venv/bin/activate
+# Windows: .venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+cp ../.env.example .env
 
-# 3. Install frontend dependencies
-cd ../frontend && npm install
+# Run database migrations
+alembic upgrade head
 
-# 4. Set up the database
-cd ../backend && alembic upgrade heads
+# Start backend server
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
-# 5. Run the backend
-cd ../backend && uvicorn main:app --reload --port 8000
-
-# 6. Run the frontend
-cd ../frontend && npm run dev
+# 2. Frontend Setup (in separate terminal)
+cd ../frontend
+npm install
+npm run dev
 ```
 
-Open `http://localhost:3000`.
+---
 
-## 🏗 Architecture
-
-```text
-Veridoc/
-├── backend/
-│   ├── main.py               # FastAPI app (upload, chat, health)
-│   ├── rag/                  # Ingestion + hybrid search + answer generation
-│   ├── db/                   # SQLAlchemy models + Alembic
-│   └── api/                  # REST endpoints
-├── frontend/
-│   └── app/                  # Next.js 14 UI
-├── docker-compose.yml
-├── requirements.txt
-├── README.md
-└── LICENSE
-```
-
-## 🛠 Tech stack
-
-| Layer | Technology |
-| --- | --- |
-| Backend | FastAPI, SQLAlchemy, Alembic |
-| Frontend | Next.js 14, React 18, Tailwind |
-| Database | PostgreSQL 16 |
-| RAG | Hybrid search (BM25 + embeddings), local chunking + ranking |
-| Vector store | PostgreSQL pgvector (local) |
-| Infrastructur e | Docker Compose, GitHub Actions |
-
-> [!IMPORTANT] All within the README must match the manifest. No version should be read from a README badge if the manifest says otherwise.
-
-## 📊 Evaluation results
-
-> [!IMPORTANT] The following results are from the standalone eval pipeline (`backend/eval/`). They are what the badge reports and what CI checks against.
-
-| Metric | Value |
-| --- | --- |
-| Red-team score | **8/8** (no secrets, no injection, no auth bypass) |
-| Eval pipeline | Standalone, reproducible, no app dependency |
-| Groundedness | Answers cite the source passage |
-| Deployment | Docker Compose out of the box |
-
-> [!NOTE] The eval pipeline is intentionally separated from the app: it runs without the UI, so failures are reproducible offline.
-
-## 📋 API endpoints
+## REST API Reference
 
 | Method | Path | Description |
-| --- | --- | --- |
-| `POST` | `/api/v1/upload` | Upload a document |
-| `POST` | `/api/v1/chat` | Ask a question (grounded answers returned) |
-| `GET` | `/health` | Health check |
-| `GET` | `/docs` | Swagger UI (OpenAPI) |
+| :--- | :--- | :--- |
+| `GET` | `/health` | Service liveness probe |
+| `POST` | `/api/v1/upload` | Upload and index document files |
+| `POST` | `/api/v1/chat` | Submit question and receive grounded answer with citations |
 
-### Example usage
+### Example Request (`POST /api/v1/chat`)
 
 ```bash
-# Ask a question
 curl -X POST http://localhost:8000/api/v1/chat \
   -H "Content-Type: application/json" \
-  -d '{"question": "What is the company's refund policy?"}'
-
-# Health check
-curl http://localhost:8000/health
+  -d '{
+    "question": "What are the specific termination notice periods outlined in the agreement?"
+  }'
 ```
 
-## 🔒 Security
+---
 
-Security is verified by a dedicated red-team pass: 8/8 checks clean, with no exposed secrets, no prompt-injection paths, and no authentication bypass. See [docs/technical/security-notes.md](docs/technical/security-notes.md) for the full report.
+## Evaluation & Red-Team Audit
 
-> [!IMPORTANT] This is a portfolio project. Do not run it as a public-facing service against sensitive documents without a third-party security review.
-
-## ✅ Go/No-Go verdict
-
-| Criterion | Verdict |
-| --- | --- |
-| Verifiability | ✅ Multi-pass answer generation; every answer must cite a source |
-| No hallucination | ✅ Evaluation pipeline checks the answer cites the document |
-| Zero cloud dependency | ✅ Runs fully locally |
-| Production-ready | ✅ Docker Compose; CI passes |
-
-Verdict: **Go** — ready to evaluate on your own documents, with a standalone eval pipeline to prove it.
-
-## 📚 Documentation
-
-| Document | Purpose |
-| --- | --- |
-| [docs/technical/TechSpec.md](docs/technical/TechSpec.md) | Architecture spec |
-| [docs/technical/security-notes.md](docs/technical/security-notes.md) | Security red-team report |
-| [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md) | Local dev setup |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute |
-
-## 🧱 Project structure
-
-```text
-Veridoc/
-├── backend/
-│   ├── main.py               # FastAPI app
-│   ├── rag/                  # Ingestion + hybrid search + answer generation
-│   ├── db/                   # SQLAlchemy models + Alembic
-│   └── api/                  # REST endpoints
-├── frontend/
-│   └── app/                  # Next.js 14 UI
-├── docker-compose.yml
-├── requirements.txt
-├── README.md
-└── LICENSE
-```
-
-## 🔬 Reproducing the evaluation
-
+- **Red-Team Security**: Passed 8/8 automated adversarial tests evaluating prompt injection resilience, authentication boundaries, and secret isolation.
+- **Standalone Evaluation Suite**: The `eval/` pipeline evaluates answer groundedness independently of the user interface:
 ```bash
-# 1. Install the eval pipeline (no app needed)
-cd backend/eval && pip install -r requirements.txt
-
-# 2. Run the standalone eval
+cd eval
 python run_eval.py --config config/eval.yaml
 ```
 
-## 📈 What I'd change at scale
+---
 
-| Change | Reason |
-| --- | --- |
-| **Sliding-window chunking** | Current fixed-size chunks split sentences and lose context |
-| **More clusters + broader retrieval** | 3 clusters + a single query embedding is too narrow for production |
-| **Temporal metadata filtering** | Facts and weak-signal recall drift; add source-date filtering |
-| **Dedicated prompt + eval harness** | Move from ad-hoc to a repeatable, automated eval |
+## Testing
 
-## 🤝 Contributing
+```bash
+# Execute backend test suite
+pytest tests/ -v
+```
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md).
+---
 
-## 📄 License
+## Roadmap
 
-MIT License — see [LICENSE](LICENSE).
+- [x] Grounded hybrid search with citation extraction
+- [x] Local `pgvector` integration
+- [x] Next.js 14 interactive chat dashboard
+- [x] Standalone offline evaluation suite
+- [ ] Adaptive sliding-window chunking <!-- TODO: Track via GitHub issue -->
+- [ ] Temporal metadata filtering for historical documents <!-- TODO: Track via GitHub issue -->
 
+---
+
+## Contributing
+
+Contributions are welcomed! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for pull request guidelines.
+
+---
+
+## Security
+
+Please report vulnerabilities following the instructions in [SECURITY.md](SECURITY.md).
+
+---
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+
+---
+
+## Support
+
+- 🐛 **Issue Tracker**: [GitHub Issues](https://github.com/themanoj-025/Veridoc/issues)
+- 💡 **Discussions & Feedback**: [GitHub Pull Requests](https://github.com/themanoj-025/Veridoc/pulls)
