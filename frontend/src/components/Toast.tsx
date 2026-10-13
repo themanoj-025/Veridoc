@@ -2,7 +2,7 @@
 
 import { useToastStore, type Toast as ToastType, type ToastType as ToastVariant } from "@/lib/toast-store";
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const iconMap: Record<ToastVariant, React.ReactNode> = {
   success: (
@@ -38,10 +38,10 @@ function ToastItem({ toast }: { toast: ToastType }) {
   const { removeToast } = useToastStore();
   const [isExiting, setIsExiting] = useState(false);
 
-  const handleDismiss = () => {
+  const handleDismiss = useCallback(() => {
     setIsExiting(true);
     setTimeout(() => removeToast(toast.id), 200);
-  };
+  }, [toast.id, removeToast]);
 
   // Auto-dismiss handler
   useEffect(() => {
@@ -50,7 +50,7 @@ function ToastItem({ toast }: { toast: ToastType }) {
       const timer = setTimeout(handleDismiss, duration);
       return () => clearTimeout(timer);
     }
-  }, [toast.id, toast.duration]);
+  }, [toast.duration, handleDismiss]);
 
   return (
     <div

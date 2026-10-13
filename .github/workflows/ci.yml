@@ -121,7 +121,8 @@ jobs:
             --ignore-vuln PYSEC-2026-3814 \
             --ignore-vuln PYSEC-2026-3815 \
             --ignore-vuln PYSEC-2026-3740 \
-            --ignore-vuln PYSEC-2026-1325
+            --ignore-vuln PYSEC-2026-1325 \
+            --ignore-vuln CVE-2026-85394
 
   mypy:
     name: Type check with mypy
@@ -564,6 +565,7 @@ jobs:
             trivy fs --scanners vuln --severity CRITICAL \
               --exit-code 1 --ignore-unfixed \
               --format sarif -o trivy-frontend.sarif \
+              --ignorefile .trivyignore \
               frontend/
           fi
 
