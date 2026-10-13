@@ -33,7 +33,7 @@ services:
 
   # ── MinIO (S3-compatible object storage) ─────────────
   minio:
-    image: quay.io/minio/minio:latest
+    image: cgr.dev/chainguard/minio:latest
     container_name: veridoc-minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
