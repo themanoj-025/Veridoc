@@ -17,14 +17,12 @@ const sourceSerif4 = Source_Serif_4({
   subsets: ["latin"],
   variable: "--font-source-serif",
   display: "swap",
-  weight: ["400", "600", "700"],
 });
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-jetbrains-mono",
   display: "swap",
-  weight: ["400", "500"],
 });
 
 export const metadata: Metadata = {
