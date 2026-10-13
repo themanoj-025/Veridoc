@@ -83,4 +83,4 @@ testcontainers==4.15.0
 python-dotenv==1.2.4
 
 # Retry with exponential backoff
-tenacity>=8.0,<10.0
+tenacity>=9.2.1,<10.0
