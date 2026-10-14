@@ -1,254 +1,307 @@
-# 📄 Veridoc
+# Veridoc
 
-<div align="center">
-  <h1>📄 Veridoc</h1>
-  <p><strong>Answers you can verify, not just believe.</strong></p>
-  <p>
-    Upload documents, ask questions in plain English, get answers grounded in
-    and cited to the exact source passage — with no hallucination and
-    <strong>zero cloud dependency</strong> required to run.
-  </p>
+[![CI](https://github.com/themanoj-025/Veridoc/actions/workflows/ci.yml/badge.svg)](https://github.com/themanoj-025/Veridoc/actions)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.143+-009688.svg)](https://fastapi.tiangolo.com)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org)
+[![Tests](https://img.shields.io/badge/tests-322%20collected-success.svg)](backend/tests/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-  <!-- Badges -->
-  <p>
-    <a href="https://github.com/themanoj-025/Veridoc/actions/workflows/ci.yml">
-      <img src="https://github.com/themanoj-025/Veridoc/actions/workflows/ci.yml/badge.svg" alt="CI Status" />
-    </a>
-    <a href="LICENSE">
-      <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" />
-    </a>
-    <img src="https://img.shields.io/badge/Python-3.12+-blue.svg" alt="Python 3.12+" />
-    <img src="https://img.shields.io/badge/Next.js-14-black.svg" alt="Next.js 14" />
-    <img src="https://img.shields.io/badge/PostgreSQL-16-blue.svg" alt="PostgreSQL 16" />
-    <img src="https://img.shields.io/badge/RAG-Hybrid%20Search-brightgreen.svg" alt="Hybrid RAG" />
-    <img src="https://img.shields.io/badge/security-8/8%20red%20team-important" alt="Security: 8/8 red team" />
-    <img src="https://img.shields.io/badge/eval-standalone-green" alt="Evaluation: standalone pipeline" />
-    <img src="https://img.shields.io/badge/status-production%20ready-success" alt="Status: Production Ready" />
-  </p>
-
-  <p>
-    <a href="#-features">Features</a> ·
-    <a href="#-quick-start">Quick Start</a> ·
-    <a href="docs/technical/TechSpec.md">Architecture</a> ·
-    <a href="docs/technical/security-notes.md">Security</a>
-  </p>
-</div>
+> A local-first, zero-cloud Retrieval-Augmented Generation (RAG) platform that pairs hybrid retrieval (BM25 + dense search + Reciprocal Rank Fusion) and cross-encoder reranking with automated faithfulness verification and clickable document citations.
 
 ---
 
-## 📋 Table of Contents
+## Quick Facts
 
-- [Why Veridoc?](#-why-veridoc)
-- [✨ Features](#-features)
-- [⚡ Quick start](#-quick-start)
-- [🏗 Architecture](#-architecture)
-- [🛠 Tech stack](#-tech-stack)
-- [📊 Evaluation results](#-evaluation-results)
-- [📋 API endpoints](#-api-endpoints)
-- [🔒 Security](#-security)
-- [✅ Go/No-Go verdict](#-gono-go-verdict)
-- [📚 Documentation](#-documentation)
-- [🧱 Project structure](#-project-structure)
-- [🔬 Reproducing the evaluation](#-reproducing-the-evaluation)
-- [📈 What I'd change at scale](#-what-id-change-at-scale)
-- [🤝 Contributing](#-contributing)
-- [📄 License](#-license)
-
----
-
-## 🎯 Why Veridoc?
-
-Most document Q&A tools promise "citations" but silently hallucinate. Veridoc is built to be **verifiable**: every answer is grounded in a source passage and cited to it, so a reader can check the claim against the document. It runs locally, so you can point it at confidential files with zero cloud dependency.
-
-> [!NOTE] The RAG pipeline is fully local — no OpenAI, no embeddings-api, no external service. The only network call is if you explicitly configure a custom embedding model.
-
-## ✨ Features
-
-| Feature | Description |
+| Dimension | Details |
 | --- | --- |
-| 📄 **Document upload** | Upload PDFs, Word docs, and text files |
-| 💬 **Chat with documents** | Ask questions in plain English over your uploaded corpus |
-| 🔍 **Grounded answers** | Every answer cites the exact source passage |
-| 🎯 **Hybrid search** | Keyword + semantic retrieval for relevance |
-| 🧱 **Standalone evaluation** | Reproducible eval pipeline independent of the app |
-| 🛡️ **8/8 red team** | No exposed secrets, no prompt injection, no auth bypass |
-| 🚀 **Production-ready** | Docker Compose out of the box, no signup or API key |
+| **Core Architecture** | Decoupled Next.js 16 SPA + FastAPI REST service with Server-Sent Events (SSE) streaming |
+| **Retrieval Engine** | Hybrid BM25 lexical search + 384-dim dense embeddings (`all-MiniLM-L6-v2`) via ChromaDB |
+| **Rank Fusion & Reranking** | Reciprocal Rank Fusion (RRF) merged into Cross-Encoder (`ms-marco-MiniLM-L-6-v2`) top-5 selection |
+| **Inference Runtime** | Local-first Ollama LLM execution with zero external cloud dependencies or API keys required |
+| **Document Ingestion** | Multi-format parser (PDF, DOCX, TXT) with Tesseract OCR fallback for scanned documents |
+| **Security Hardening** | 8/8 Red Team audit pass: SSRF protection, Fernet file encryption at rest, rate limits, RBAC |
+| **Test Verification** | 322 collected pytest tests covering ingestion, security, retrieval, and API contracts |
 
-## ⚡ Quick start
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [System Architecture](#system-architecture)
+- [Hybrid Retrieval Pipeline](#hybrid-retrieval-pipeline)
+- [Security and Red Team Audit](#security-and-red-team-audit)
+- [Repository Structure](#repository-structure)
+- [Quick Start](#quick-start)
+- [API Reference](#api-reference)
+- [Configuration](#configuration)
+- [Verification and Testing](#verification-and-testing)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
+
+## Overview
+
+Most document Q&A tools generate persuasive answers that cannot be audited, frequently hallucinating assertions and lacking transparent attribution. **Veridoc** solves this through verifiable retrieval-augmented generation: every factual response is grounded in and cited directly to the exact source passage in your documents.
+
+The platform executes entirely within your local environment. Document files are encrypted at rest with Fernet, vector embeddings are generated on-device, and local inference runs via Ollama—ensuring confidential files never leave the host infrastructure.
+
+---
+
+## Key Features
+
+- **Hybrid Lexical & Semantic Retrieval**: Merges keyword-exact BM25 scoring with dense semantic similarity using Reciprocal Rank Fusion (RRF), eliminating keyword-miss blindspots.
+- **Cross-Encoder Precision Reranking**: Evaluates top-20 retrieved candidates with `ms-marco-MiniLM-L-6-v2` to select the 5 most informative passages prior to generation.
+- **Clickable Grounded Citations**: Answers return bracketed passage citations linking directly to exact character offsets and visual coordinates in the document viewer.
+- **Faithfulness Verification Check**: Employs an automated validation pass that inspects generated output against retrieved context to block hallucinations before delivery.
+- **Multi-Format Parsing & OCR**: Parses `.pdf`, `.docx`, and `.txt` files with automatic Tesseract OCR fallback for scanned page images.
+- **Hardened Security Architecture**: Implements role-based access control (RBAC), per-user rate limiting via SlowAPI, SSRF IP blocking, and Fernet file encryption at rest.
+
+---
+
+## System Architecture
+
+```mermaid
+flowchart TD
+    subgraph Client["Presentation Layer (Next.js 16)"]
+        UI["Chat & Document Workspace"]
+        DOC["Document Viewer & Citations"]
+        STREAM["SSE Stream Consumer"]
+    end
+
+    subgraph Gateway["API Gateway (FastAPI)"]
+        AUTH["JWT Auth & Refresh Rotation"]
+        RATE["SlowAPI Rate Limiter"]
+        SSRF["SSRF Upload Guard"]
+        API["REST & SSE Endpoints (backend/app/main.py)"]
+    end
+
+    subgraph Retrieval["RAG Retrieval Engine"]
+        PARSE["Multi-Format Parser (OCR Fallback)"]
+        CHUNK["Recursive Boundary Chunker"]
+        EMBED["sentence-transformers (all-MiniLM-L6-v2)"]
+        BM25["BM25 Lexical Index"]
+        CHROMA[("ChromaDB Vector Store")]
+        RRF["Reciprocal Rank Fusion"]
+        RERANK["Cross-Encoder Reranker"]
+    end
+
+    subgraph Generation["Inference & Verification"]
+        LLM["Ollama Local LLM (or Claude / OpenAI)"]
+        FAITH["Faithfulness Judge Gate"]
+    end
+
+    UI --> AUTH --> API
+    API --> SSRF --> PARSE --> CHUNK --> EMBED
+    CHUNK --> BM25
+    EMBED --> CHROMA
+
+    UI --> RATE --> API
+    API --> BM25 & CHROMA
+    BM25 & CHROMA --> RRF --> RERANK --> LLM --> FAITH --> STREAM --> UI
+```
+
+---
+
+## Hybrid Retrieval Pipeline
+
+1. **Boundary-Aware Chunking**: Documents are split using recursive separators (paragraphs, sentence endings, punctuation) with overlapping context windows to avoid mid-thought truncation.
+2. **Dual-Index Search**:
+   - **Lexical Stream**: BM25 scores exact vocabulary matches, part numbers, acronyms, and proper nouns.
+   - **Dense Stream**: `all-MiniLM-L6-v2` generates 384-dimensional dense vectors to capture conceptual semantics.
+3. **Reciprocal Rank Fusion (RRF)**: Merges candidates across streams using the ranking formula:
+   $$RRF(d) = \sum_{m \in M} \frac{1}{k + r_m(d)}$$
+4. **Cross-Encoder Reranking**: The top 20 fused candidates are scored jointly against the query using `ms-marco-MiniLM-L-6-v2`, distilling the list down to the 5 highest-relevance passages.
+5. **Streaming Generation & Verification**: Synthesizes the response with bracketed passage citations and passes through a faithfulness verification gate before streaming to the client.
+
+---
+
+## Security and Red Team Audit
+
+Veridoc completed an 8/8 red-team security verification suite:
+
+- **SSRF Protection**: Upload URLs are validated against private IP ranges (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `127.0.0.0/8`, link-local) before retrieval.
+- **At-Rest Encryption**: User document files are encrypted with symmetric Fernet keys before writing to local disk volumes.
+- **Authentication & RBAC**: Password hashing via bcrypt, signed JWT access tokens with strict refresh rotation, and Admin/User role separation on all endpoints.
+- **Zero Exposed Secrets**: Codebase verified clear of hardcoded API tokens, keys, and private certificates.
+
+---
+
+## Repository Structure
+
+```text
+Veridoc/
+├── backend/                   # FastAPI backend application
+│   ├── alembic/               # PostgreSQL database migrations
+│   ├── app/                   # Core application package
+│   │   ├── api/               # Router endpoints (auth, chat, documents, admin)
+│   │   ├── core/              # Dependencies, security, rate limiting, and config
+│   │   ├── models/            # SQLAlchemy database entity models
+│   │   ├── repositories/      # Database access layers
+│   │   ├── schemas/           # Pydantic request and response schemas
+│   │   ├── services/          # RAG pipeline, parsing, chunking, and retrieval
+│   │   └── main.py            # FastAPI entry point
+│   ├── tests/                 # Automated pytest suite (322 tests)
+│   └── requirements.txt       # Backend dependencies manifest
+├── frontend/                  # Next.js 16 web application
+│   ├── app/                   # App Router pages and layout hierarchy
+│   ├── components/            # Document viewer, citation popovers, chat UI
+│   └── package.json           # Frontend dependencies (Next 16, React 18, Tailwind)
+├── eval/                      # Standalone RAG evaluation harness
+├── scripts/                   # Load testing, benchmark, and red-team scripts
+├── docker-compose.yml         # Full local orchestration
+└── Dockerfile                 # Multi-stage production container build
+```
+
+---
+
+## Quick Start
 
 ### Prerequisites
 
-- Docker & Docker Compose v2+
-- Disk space for a PostgreSQL data volume
+- Python 3.12+
+- Node.js 20+ and npm
+- Ollama installed locally (for offline LLM inference)
 
-### One-command start
+### Automated Docker Deployment
+
+Launch the complete self-hosted environment with Docker Compose:
 
 ```bash
-# 1. Clone the repository
+# Clone the repository
 git clone https://github.com/themanoj-025/Veridoc.git
 cd Veridoc
 
-# 2. Start the stack
+# Configure environment variables
+cp .env.example .env
+
+# Build and start all services
 docker compose up --build
-
-# 3. Open the app
-open http://localhost:3000
 ```
 
-That's it — no signup, no API key, no cloud account.
+Access the web interface at `http://localhost:3000`.
 
-### Local dev (without Docker)
+### Manual Local Development
 
 ```bash
-# 1. Install Python 3.12+ and Node 18+
-# 2. Install backend dependencies
-cd backend && pip install -r requirements.txt
+# 1. Backend setup
+python -m venv .venv
 
-# 3. Install frontend dependencies
-cd ../frontend && npm install
+# On Linux/macOS:
+source .venv/bin/activate
+# On Windows:
+.venv\Scripts\Activate.ps1
 
-# 4. Set up the database
-cd ../backend && alembic upgrade heads
+# Install backend dependencies and editable package
+pip install -r backend/requirements.txt --index-strategy unsafe-best-match
+pip install -e .
 
-# 5. Run the backend
-cd ../backend && uvicorn main:app --reload --port 8000
+# Run database migrations
+cd backend && alembic upgrade head && cd ..
 
-# 6. Run the frontend
-cd ../frontend && npm run dev
+# Start FastAPI server (available at http://localhost:8000)
+uvicorn backend.app.main:app --reload --port 8000
+
+# 2. Frontend setup (in a separate terminal)
+cd frontend
+npm install
+npm run dev
 ```
 
-Open `http://localhost:3000`.
+---
 
-## 🏗 Architecture
+## API Reference
 
-```text
-Veridoc/
-├── backend/
-│   ├── main.py               # FastAPI app (upload, chat, health)
-│   ├── rag/                  # Ingestion + hybrid search + answer generation
-│   ├── db/                   # SQLAlchemy models + Alembic
-│   └── api/                  # REST endpoints
-├── frontend/
-│   └── app/                  # Next.js 14 UI
-├── docker-compose.yml
-├── requirements.txt
-├── README.md
-└── LICENSE
-```
+The FastAPI service exposes REST and Server-Sent Events (SSE) endpoints under `/api/v1`.
 
-## 🛠 Tech stack
+### Endpoints
 
-| Layer | Technology |
-| --- | --- |
-| Backend | FastAPI, SQLAlchemy, Alembic |
-| Frontend | Next.js 14, React 18, Tailwind |
-| Database | PostgreSQL 16 |
-| RAG | Hybrid search (BM25 + embeddings), local chunking + ranking |
-| Vector store | PostgreSQL pgvector (local) |
-| Infrastructur e | Docker Compose, GitHub Actions |
+| Method | Endpoint | Description | Auth Required |
+| --- | --- | --- | --- |
+| `POST` | `/api/v1/auth/register` | Register new user account | No |
+| `POST` | `/api/v1/auth/login` | Authenticate and obtain JWT access token | No |
+| `POST` | `/api/v1/auth/refresh` | Rotate and refresh access token | Refresh Token |
+| `POST` | `/api/v1/documents/upload` | Upload `.pdf`, `.docx`, or `.txt` file | Bearer Token |
+| `GET` | `/api/v1/documents/` | List uploaded user documents | Bearer Token |
+| `DELETE` | `/api/v1/documents/{id}` | Delete document and vector index | Bearer Token |
+| `POST` | `/api/v1/chat/stream` | Stream grounded answer via SSE | Bearer Token |
+| `GET` | `/api/v1/health` | Comprehensive dependency health probe | No |
 
-> [!IMPORTANT] All within the README must match the manifest. No version should be read from a README badge if the manifest says otherwise.
-
-## 📊 Evaluation results
-
-> [!IMPORTANT] The following results are from the standalone eval pipeline (`backend/eval/`). They are what the badge reports and what CI checks against.
-
-| Metric | Value |
-| --- | --- |
-| Red-team score | **8/8** (no secrets, no injection, no auth bypass) |
-| Eval pipeline | Standalone, reproducible, no app dependency |
-| Groundedness | Answers cite the source passage |
-| Deployment | Docker Compose out of the box |
-
-> [!NOTE] The eval pipeline is intentionally separated from the app: it runs without the UI, so failures are reproducible offline.
-
-## 📋 API endpoints
-
-| Method | Path | Description |
-| --- | --- | --- |
-| `POST` | `/api/v1/upload` | Upload a document |
-| `POST` | `/api/v1/chat` | Ask a question (grounded answers returned) |
-| `GET` | `/health` | Health check |
-| `GET` | `/docs` | Swagger UI (OpenAPI) |
-
-### Example usage
+### Sample Request: Streaming Chat
 
 ```bash
-# Ask a question
-curl -X POST http://localhost:8000/api/v1/chat \
+curl -X POST "http://localhost:8000/api/v1/chat/stream" \
+  -H "Authorization: Bearer <YOUR_ACCESS_TOKEN>" \
   -H "Content-Type: application/json" \
-  -d '{"question": "What is the company's refund policy?"}'
-
-# Health check
-curl http://localhost:8000/health
+  -d '{
+    "query": "What are the standard payment terms outlined in section 4?",
+    "document_ids": ["doc_4a7b8c"]
+  }'
 ```
 
-## 🔒 Security
+---
 
-Security is verified by a dedicated red-team pass: 8/8 checks clean, with no exposed secrets, no prompt-injection paths, and no authentication bypass. See [docs/technical/security-notes.md](docs/technical/security-notes.md) for the full report.
+## Configuration
 
-> [!IMPORTANT] This is a portfolio project. Do not run it as a public-facing service against sensitive documents without a third-party security review.
+Settings are managed via environment variables or a local `.env` file (copied from `.env.example`).
 
-## ✅ Go/No-Go verdict
+| Variable | Description | Default | Required |
+| --- | --- | --- | --- |
+| `JWT_SECRET` | Secret key used for signing JWT authentication tokens | *None* | Yes |
+| `FILE_ENCRYPTION_KEY` | 32-byte url-safe base64 key for Fernet file encryption | *None* | Yes |
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql+asyncpg://...` | Yes |
+| `REDIS_URL` | Redis connection URL for background jobs and rate limits | `redis://localhost:6379/0` | Yes |
+| `OLLAMA_BASE_URL` | Base URL for local Ollama server | `http://localhost:11434` | No |
+| `LLM_PROVIDER` | Active LLM inference driver (`ollama`, `claude`, `openai`) | `ollama` | No |
+| `EMBEDDING_MODEL` | HuggingFace embedding checkpoint | `all-MiniLM-L6-v2` | No |
 
-| Criterion | Verdict |
-| --- | --- |
-| Verifiability | ✅ Multi-pass answer generation; every answer must cite a source |
-| No hallucination | ✅ Evaluation pipeline checks the answer cites the document |
-| Zero cloud dependency | ✅ Runs fully locally |
-| Production-ready | ✅ Docker Compose; CI passes |
+---
 
-Verdict: **Go** — ready to evaluate on your own documents, with a standalone eval pipeline to prove it.
+## Verification and Testing
 
-## 📚 Documentation
-
-| Document | Purpose |
-| --- | --- |
-| [docs/technical/TechSpec.md](docs/technical/TechSpec.md) | Architecture spec |
-| [docs/technical/security-notes.md](docs/technical/security-notes.md) | Security red-team report |
-| [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md) | Local dev setup |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute |
-
-## 🧱 Project structure
-
-```text
-Veridoc/
-├── backend/
-│   ├── main.py               # FastAPI app
-│   ├── rag/                  # Ingestion + hybrid search + answer generation
-│   ├── db/                   # SQLAlchemy models + Alembic
-│   └── api/                  # REST endpoints
-├── frontend/
-│   └── app/                  # Next.js 14 UI
-├── docker-compose.yml
-├── requirements.txt
-├── README.md
-└── LICENSE
-```
-
-## 🔬 Reproducing the evaluation
+Veridoc maintains an automated test suite executed via pytest.
 
 ```bash
-# 1. Install the eval pipeline (no app needed)
-cd backend/eval && pip install -r requirements.txt
+# Run backend test suite
+pytest backend/tests/ -v
 
-# 2. Run the standalone eval
-python run_eval.py --config config/eval.yaml
+# Run standalone RAG evaluation harness
+python scripts/run_standalone_eval.py
 ```
 
-## 📈 What I'd change at scale
+- **Collected Tests**: 322 tests
+- **Verification Suites**:
+  - Boundary-aware recursive text chunking and overlap verification.
+  - SSRF URL validation across private, loopback, and unresolvable hostnames.
+  - Reciprocal Rank Fusion (RRF) mathematical tie-breaking.
+  - File encryption at rest roundtrip integrity.
+  - Anti-enumeration authentication error responses.
 
-| Change | Reason |
-| --- | --- |
-| **Sliding-window chunking** | Current fixed-size chunks split sentences and lose context |
-| **More clusters + broader retrieval** | 3 clusters + a single query embedding is too narrow for production |
-| **Temporal metadata filtering** | Facts and weak-signal recall drift; add source-date filtering |
-| **Dedicated prompt + eval harness** | Move from ad-hoc to a repeatable, automated eval |
+---
 
-## 🤝 Contributing
+## Roadmap
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md).
+- [x] Hybrid BM25 and dense embedding retrieval with RRF fusion
+- [x] Cross-encoder reranking integration
+- [x] Multi-format document parser with Tesseract OCR fallback
+- [x] Automated faithfulness verification gate
+- [x] 8/8 Red Team security audit hardening
+- [x] Next.js 16 streaming chat interface with interactive citations
+- [ ] Multi-tenant organization shared document workspaces
+- [ ] GPU-accelerated local cross-encoder batching
+- [ ] Direct cloud storage connectors (S3, Google Drive, OneDrive)
 
-## 📄 License
+---
 
-MIT License — see [LICENSE](LICENSE).
+## Contributing
+
+Contributions are welcomed. Please review [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md) before submitting pull requests.
+
+---
+
+## License
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for complete details.
