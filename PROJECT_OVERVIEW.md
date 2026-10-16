@@ -708,55 +708,55 @@ Production deployment is containerized via Docker Compose:
 
 ## <a id="exam"></a>§EXAM — Cold-Reader Verification Exam (25 Questions)
 
-1. **Q: What is the primary architectural domain of Veridoc?**  
+1. **Q: What is the primary architectural domain of Veridoc?**
    *A:* Local-first, zero-cloud Retrieval-Augmented Generation (RAG) platform with faithfulness verification. Reference: [§TLDR](#tldr).
-2. **Q: What two search mechanisms are combined in the hybrid retrieval pipeline?**  
+2. **Q: What two search mechanisms are combined in the hybrid retrieval pipeline?**
    *A:* BM25 lexical keyword search and dense vector embeddings (`all-MiniLM-L6-v2`) via ChromaDB. Reference: [§WHAT](#what).
-3. **Q: What algorithm fuses the candidate rank lists from BM25 and vector search?**  
+3. **Q: What algorithm fuses the candidate rank lists from BM25 and vector search?**
    *A:* Reciprocal Rank Fusion (RRF). Reference: [§WHAT](#what).
-4. **Q: Which model provides precision cross-encoder reranking over the top candidates?**  
+4. **Q: Which model provides precision cross-encoder reranking over the top candidates?**
    *A:* `ms-marco-MiniLM-L-6-v2`. Reference: [§WHAT](#what).
-5. **Q: How many passages are selected by the reranker for prompt synthesis?**  
+5. **Q: How many passages are selected by the reranker for prompt synthesis?**
    *A:* Top-5 passages (distilled from top-20 candidates). Reference: [§WHAT](#what).
-6. **Q: What local model runtime executes inference without cloud dependencies?**  
+6. **Q: What local model runtime executes inference without cloud dependencies?**
    *A:* Ollama. Reference: [§TLDR](#tldr).
-7. **Q: What encryption algorithm secures document files at rest on local disk?**  
+7. **Q: What encryption algorithm secures document files at rest on local disk?**
    *A:* Symmetric Fernet encryption (`cryptography` library). Reference: [§WHAT](#what).
-8. **Q: What optical character recognition tool provides fallback parsing for scanned pages?**  
+8. **Q: What optical character recognition tool provides fallback parsing for scanned pages?**
    *A:* Tesseract OCR via `pytesseract`. Reference: [§WHAT](#what).
-9. **Q: What protocol streams generated tokens from FastAPI to the Next.js frontend?**  
+9. **Q: What protocol streams generated tokens from FastAPI to the Next.js frontend?**
    *A:* Server-Sent Events (SSE). Reference: [§TLDR](#tldr).
-10. **Q: What total lines of code exist in the Veridoc codebase?**  
+10. **Q: What total lines of code exist in the Veridoc codebase?**
     *A:* 81,471 lines of code. Reference: [§META](#meta).
-11. **Q: What git commit hash was verified for this documentation?**  
+11. **Q: What git commit hash was verified for this documentation?**
     *A:* `5769105` (`57691055553ebdca58a53c5fb6e29a0138ae770e`). Reference: [§META](#meta).
-12. **Q: What git tree hash represents the verified repository state?**  
+12. **Q: What git tree hash represents the verified repository state?**
     *A:* `97922487f5ae4f683b7ba220954b4259eff7c613`. Reference: [§META](#meta).
-13. **Q: How many automated tests are collected across the backend test suite?**  
+13. **Q: How many automated tests are collected across the backend test suite?**
     *A:* 473 tests across 43 test files. Reference: [§TEST-CATALOG](#test-catalog).
-14. **Q: What open-source license governs the Veridoc repository?**  
+14. **Q: What open-source license governs the Veridoc repository?**
     *A:* MIT License. Reference: [`LICENSE`](LICENSE).
-15. **Q: What score did Veridoc achieve on its Red Team security verification audit?**  
+15. **Q: What score did Veridoc achieve on its Red Team security verification audit?**
     *A:* 8/8 audit pass. Reference: [§TLDR](#tldr).
-16. **Q: What IP ranges are blocked by the SSRF upload protection guard?**  
+16. **Q: What IP ranges are blocked by the SSRF upload protection guard?**
     *A:* Private IPv4 ranges (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `127.0.0.0/8`) and link-local addresses. Reference: [§SEC-MODEL](#sec-model).
-17. **Q: What mechanism prevents hallucinations before responses are delivered to users?**  
+17. **Q: What mechanism prevents hallucinations before responses are delivered to users?**
     *A:* Automated faithfulness verification gate auditing claims against source chunks. Reference: [§WHAT](#what).
-18. **Q: What frontend framework and version power the user interface?**  
+18. **Q: What frontend framework and version power the user interface?**
     *A:* Next.js 16 with the App Router. Reference: [§DEPENDENCIES](#dependencies).
-19. **Q: What rate limiting middleware is configured in the API gateway?**  
+19. **Q: What rate limiting middleware is configured in the API gateway?**
     *A:* SlowAPI. Reference: [§SEC-MODEL](#sec-model).
-20. **Q: What script executes the automated Red Team security audit?**  
+20. **Q: What script executes the automated Red Team security audit?**
     *A:* `scripts/red_team_audit.py`. Reference: [`scripts/red_team_audit.py`](scripts/red_team_audit.py).
-21. **Q: What directory houses the standalone RAG evaluation harness?**  
+21. **Q: What directory houses the standalone RAG evaluation harness?**
     *A:* `eval/`. Reference: [`eval/`](eval/).
-22. **Q: What is the measured hybrid retrieval latency?**  
+22. **Q: What is the measured hybrid retrieval latency?**
     *A:* 34 ms (target < 80 ms). Reference: [§PERF](#perf).
-23. **Q: What password hashing algorithm is employed?**  
+23. **Q: What password hashing algorithm is employed?**
     *A:* bcrypt with salt rounds >= 12. Reference: [§AUTH](#auth).
-24. **Q: How are interactive document citations connected to the original text?**  
+24. **Q: How are interactive document citations connected to the original text?**
     *A:* Using character-level start and end offsets linked to visual passage coordinates. Reference: [§WHAT](#what).
-25. **Q: How many total tracked files are cataloged with 100% manifest coverage in Appendix A?**  
+25. **Q: How many total tracked files are cataloged with 100% manifest coverage in Appendix A?**
     *A:* All 288 tracked files. Reference: [§APP](#app).
 
 ---
