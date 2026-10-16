@@ -1,68 +1,165 @@
-# Python
+# ==============================================================================
+# Veridoc - Security & Production .gitignore
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. SECRETS & ENVIRONMENT VARIABLES (CRITICAL)
+# ------------------------------------------------------------------------------
+.env
+.env.*
+*.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.staging
+.env.production
+!.env.example
+!.env.production.example
+!.env.template
+!.env.sample
+
+# Private keys, certificates & credentials
+*.pem
+*.key
+*.keystore
+*.jks
+*.p12
+*.pfx
+*.pkcs12
+*.cer
+*.crt
+*.der
+*.id_rsa
+id_rsa*
+id_ed25519*
+id_ecdsa*
+id_dsa*
+
+# Cloud & service credentials
+credentials.json
+client_secret*.json
+service-account*.json
+service_account*.json
+serviceAccountKey*.json
+google-services.json
+GoogleService-Info.plist
+.aws/
+.azure/
+.gcp/
+gcloud/
+.act-secrets
+*.publishsettings
+
+# Authentication tokens & configs
+.netrc
+.pypirc
+.npmrc
+*token*.json
+token.pickle
+auth*.json
+
+# ------------------------------------------------------------------------------
+# 2. PYTHON RUNTIME, BUILDS & VIRTUAL ENVIRONMENTS
+# ------------------------------------------------------------------------------
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
+.Python
 *.egg-info/
 dist/
 build/
 .eggs/
 *.egg
+
+# Virtual environments
 .venv/
 venv/
 env/
-.pytest_cache/
+ENV/
+.venv*/
+env.bak/
+venv.bak/
 
-# Node
+# ------------------------------------------------------------------------------
+# 3. NODE & NEXT.JS ARTIFACTS
+# ------------------------------------------------------------------------------
 node_modules/
 .next/
 out/
-
-# TypeScript build artifacts
 *.tsbuildinfo
 next-env.d.ts
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# Environment
-.env
-.env.local
-*.pem
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Docker volumes
+# ------------------------------------------------------------------------------
+# 4. DOCKER VOLUMES & LOCAL DATA
+# ------------------------------------------------------------------------------
 data/pgdata/
 data/chroma/
 data/minio/
 data/ollama/
 backend/data/
 
-# Large data files
+# Large evaluation datasets
 eval/squad_dev_v2.0.json
 
-# Logs
+# ------------------------------------------------------------------------------
+# 5. LOGS & DATABASE FILES
+# ------------------------------------------------------------------------------
+logs/
 *.log
+*.dump
+*.stackdump
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+*.sqlite
+*.sqlite3
 
-# Cache
+# ------------------------------------------------------------------------------
+# 6. TESTING & CODE QUALITY
+# ------------------------------------------------------------------------------
+.cache/
+.pytest_cache/
 .mypy_cache/
-
-# Test coverage artifacts
+.ruff_cache/
 .coverage
 .coverage.*
 htmlcov/
 coverage.xml
-
-# ── Portfolio-standard ignores (sweep 2026-09) ──────────────
 radar_balance.txt
-*.db
-*.db-shm
-*.db-wal
+
+# ------------------------------------------------------------------------------
+# 7. IDE, EDITORS & OS
+# ------------------------------------------------------------------------------
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.vscode/*.local.*
+.vscode/mcp.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+*.tmp
+*.temp
+*.bak
 
 # =====================================================================
 # KEEP: AI provenance & transparency files — these must remain

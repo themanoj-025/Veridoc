@@ -1,5 +1,5 @@
 # Auto-detect text files and normalize line endings
-* text=auto
+* text=auto eol=lf
 
 # Python source
 *.py text diff=python
@@ -10,8 +10,11 @@
 # CSS stylesheets
 *.css text
 
-# JavaScript
+# JavaScript & TypeScript
 *.js text
+*.ts text
+*.jsx text
+*.tsx text
 
 # Markdown documentation
 *.md text
@@ -24,18 +27,31 @@
 *.json text
 *.cfg text
 *.ini text
-*.env text
+
+# Security: prevent secret files from appearing in diffs if accidentally created
+*.env -diff
+*.pem -diff
+*.key -diff
+*.cert -diff
+*.p12 -diff
+*.pfx -diff
+*.pkcs12 -diff
 
 # Shell / batch scripts
 *.sh text eol=lf
 *.bat text eol=crlf
+*.ps1 text eol=crlf
 
 # Docker
 Dockerfile text
 Dockerfile.* text
+docker-compose*.yml text
+.dockerignore text
 
 # Requirements
 requirements.txt text
+requirements*.txt text
+pyproject.toml text
 
 # License / changelog
 LICENSE text
@@ -49,3 +65,7 @@ CHANGELOG.md text
 *.ico binary
 *.pdf binary
 *.zip binary
+*.tar.gz binary
+*.db binary
+*.sqlite binary
+*.sqlite3 binary
