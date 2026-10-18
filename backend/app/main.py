@@ -349,7 +349,8 @@ async def health_check() -> None:
                 )
             deps["postgres"] = {"status": "ok"}
         except Exception as e:  # health check: report any failure, never crash
-            deps["postgres"] = {"status": "error", "error": str(e)}
+            logger.warning("Postgres health check failed: %s", e)
+            deps["postgres"] = {"status": "error", "error": "postgres check failed"}
 
     async def _check_chroma() -> None:
         if _chroma_cb.is_open():
@@ -372,7 +373,8 @@ async def health_check() -> None:
             deps["chroma"] = {"status": "ok"}
         except Exception as e:  # health check: report any failure, never crash
             _chroma_cb.record_failure()
-            deps["chroma"] = {"status": "error", "error": str(e)}
+            logger.warning("Chroma health check failed: %s", e)
+            deps["chroma"] = {"status": "error", "error": "chroma check failed"}
 
     async def _check_minio() -> None:
         if _minio_cb.is_open():
@@ -392,7 +394,8 @@ async def health_check() -> None:
             deps["minio"] = {"status": "ok"}
         except Exception as e:  # health check: report any failure, never crash
             _minio_cb.record_failure()
-            deps["minio"] = {"status": "error", "error": str(e)}
+            logger.warning("MinIO health check failed: %s", e)
+            deps["minio"] = {"status": "error", "error": "minio check failed"}
 
     async def _check_llm() -> None:
         if _llm_cb.is_open():
@@ -434,7 +437,8 @@ async def health_check() -> None:
                 }
         except Exception as e:  # health check: report any failure, never crash
             _llm_cb.record_failure()
-            deps["llm"] = {"status": "error", "error": str(e)}
+            logger.warning("LLM health check failed: %s", e)
+            deps["llm"] = {"status": "error", "error": "llm check failed"}
 
     async def _check_redis() -> None:
         try:
@@ -447,7 +451,8 @@ async def health_check() -> None:
                 "mode": status.get("mode", "unknown"),
             }
         except Exception as e:  # health check: report any failure, never crash
-            deps["redis"] = {"status": "error", "error": str(e)}
+            logger.warning("Redis health check failed: %s", e)
+            deps["redis"] = {"status": "error", "error": "redis check failed"}
 
     await asyncio.gather(
         _check_postgres(),
