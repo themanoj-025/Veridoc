@@ -68,7 +68,7 @@ prometheus-fastapi-instrumentator==8.1.0  # 8.1 required for fastapi>=0.116 rout
 structlog==24.4.0
 
 # ── Optional: Claude / OpenAI API ──
-anthropic==1.13.0
+anthropic==1.15.0
 openai==3.28.0
 
 # ── Testing ──
