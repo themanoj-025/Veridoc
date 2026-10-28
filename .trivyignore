@@ -20,3 +20,8 @@
 # ── Accepted: Pillow / image processing ─────────────────────────────
 # The app only handles PDF, DOCX, TXT files — not arbitrary image uploads.
 # The PDF→image conversion (pdf2image) is only used for OCR fallback.
+
+# CVE-2026-114613: msgpack memory leak in Python base image dist-packages
+CVE-2026-114613
+# CVE-2026-112940: filelock arbitrary file overwrite via database reopening in base image
+CVE-2026-112940
