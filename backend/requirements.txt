@@ -21,7 +21,7 @@ email-validator==2.3.0  # required by pydantic EmailStr (pydantic.networks) — 
 # sentence-transformers uses torch internally; torchvision is NOT required.
 # ONNX Runtime would require replacing sentence-transformers with a different
 # embedding/reranking library — evaluated and documented in DECISIONS.md.
-sentence-transformers==6.1.0
+sentence-transformers==6.2.0
 torch==2.14.1+cpu
 --extra-index-url https://download.pytorch.org/whl/cpu
 
@@ -37,7 +37,7 @@ pdf2image==1.17.0
 
 # ── Search / NLP ──
 rank-bm25==0.2.2
-nltk==3.10.3
+nltk==3.10.4
 
 # ── MinIO (S3 client) ──
 minio==7.2.20
@@ -68,8 +68,8 @@ prometheus-fastapi-instrumentator==8.1.0  # 8.1 required for fastapi>=0.116 rout
 structlog==24.4.0
 
 # ── Optional: Claude / OpenAI API ──
-anthropic==1.15.0
-openai==3.31.0
+anthropic==2.2.0
+openai==3.37.0
 
 # ── Testing ──
 aiosqlite==0.22.1  # sqlite+aiosqlite in-memory DB used by the test suite (tests/conftest.py etc.)
