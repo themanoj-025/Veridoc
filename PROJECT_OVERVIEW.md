@@ -845,8 +845,6 @@ Total tracked files in repository tree: 288
 | [`.mailmap`](.mailmap) | `no-ext` | 6 | 298 | Configuration or static asset |
 | [`.pre-commit-config.yaml`](.pre-commit-config.yaml) | `.yaml` | 20 | 738 | Configuration or static asset |
 | [`.trivyignore`](.trivyignore) | `no-ext` | 22 | 1209 | Configuration or static asset |
-| [`AGENTS.md`](AGENTS.md) | `.md` | 75 | 1956 | Documentation asset |
-| [`AI_DISCLOSURE.md`](AI_DISCLOSURE.md) | `.md` | 68 | 2643 | Documentation asset |
 | [`BUILD_LOG.md`](BUILD_LOG.md) | `.md` | 47 | 2135 | Documentation asset |
 | [`CHANGELOG.md`](CHANGELOG.md) | `.md` | 44 | 1803 | Documentation asset |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | `.md` | 34 | 1175 | Documentation asset |
@@ -858,7 +856,6 @@ Total tracked files in repository tree: 288
 | [`PROJECT_ANALYSIS.md`](PROJECT_ANALYSIS.md) | `.md` | 18 | 721 | Documentation asset |
 | [`README.md`](README.md) | `.md` | 307 | 12919 | Documentation asset |
 | [`SECURITY.md`](SECURITY.md) | `.md` | 25 | 1041 | Documentation asset |
-| [`ai-provenance.json`](ai-provenance.json) | `.json` | 64 | 1677 | Configuration or static asset |
 | [`audit/dependabot-agent/2026-08-13-run.md`](audit/dependabot-agent/2026-08-13-run.md) | `.md` | 37 | 3010 | Documentation asset |
 | [`audit/dependabot-agent/2026-08-15-run.md`](audit/dependabot-agent/2026-08-15-run.md) | `.md` | 47 | 3799 | Documentation asset |
 | [`backend/Dockerfile`](backend/Dockerfile) | `no-ext` | 36 | 1464 | Configuration or static asset |
