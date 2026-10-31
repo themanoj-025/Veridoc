@@ -856,8 +856,8 @@ Total tracked files in repository tree: 288
 | [`PROJECT_ANALYSIS.md`](PROJECT_ANALYSIS.md) | `.md` | 18 | 721 | Documentation asset |
 | [`README.md`](README.md) | `.md` | 307 | 12919 | Documentation asset |
 | [`SECURITY.md`](SECURITY.md) | `.md` | 25 | 1041 | Documentation asset |
-| [`audit/dependabot-agent/2026-08-13-run.md`](audit/dependabot-agent/2026-08-13-run.md) | `.md` | 37 | 3010 | Documentation asset |
-| [`audit/dependabot-agent/2026-08-15-run.md`](audit/dependabot-agent/2026-08-15-run.md) | `.md` | 47 | 3799 | Documentation asset |
+| [`docs/audit/dependabot-agent/2026-08-13-run.md`](docs/audit/dependabot-agent/2026-08-13-run.md) | `.md` | 37 | 3010 | Documentation asset |
+| [`docs/audit/dependabot-agent/2026-08-15-run.md`](docs/audit/dependabot-agent/2026-08-15-run.md) | `.md` | 47 | 3799 | Documentation asset |
 | [`backend/Dockerfile`](backend/Dockerfile) | `no-ext` | 36 | 1464 | Configuration or static asset |
 | [`backend/alembic.ini`](backend/alembic.ini) | `.ini` | 37 | 649 | Configuration or static asset |
 | [`backend/alembic/env.py`](backend/alembic/env.py) | `.py` | 69 | 2057 | Alembic database schema migration script |
@@ -1097,3 +1097,4 @@ Total tracked files in repository tree: 288
 | [`scripts/run_redteam_live.py`](scripts/run_redteam_live.py) | `.py` | 422 | 16362 | Load testing, benchmark, or operational script |
 | [`scripts/run_standalone_eval.py`](scripts/run_standalone_eval.py) | `.py` | 489 | 20845 | Load testing, benchmark, or operational script |
 | [`scripts/tune_hybrid_weights.py`](scripts/tune_hybrid_weights.py) | `.py` | 471 | 16646 | Load testing, benchmark, or operational script |
+
