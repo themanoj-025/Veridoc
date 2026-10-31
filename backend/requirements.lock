@@ -18,7 +18,7 @@ email-validator==2.3.0
 sentence-transformers==6.2.0
 torch==2.13.0+cpu
 chromadb==0.5.5
-pypdf==6.15.0
+pypdf==6.21.4
 python-docx==1.2.0
 pytesseract==0.3.13
 Pillow==13.0.0
