@@ -39,7 +39,7 @@ Veridoc/
 ├── Makefile                       # test / lint / run / migrate targets
 ├── pyproject.toml
 ├── .trivyignore                   # Container-scan suppressions
-└── README.md · LICENSE · AGENTS.md · BUILD_LOG.md · LOOP_LOG.md · .env.example(s)
+└── README.md · LICENSE · BUILD_LOG.md · LOOP_LOG.md · .env.example(s)
 ```
 
 ## Layout rules
