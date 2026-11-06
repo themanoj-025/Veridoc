@@ -7,8 +7,8 @@ git_commit_full: "57691055553ebdca58a53c5fb6e29a0138ae770e"
 git_tree_hash: "97922487f5ae4f683b7ba220954b4259eff7c613"
 document_version: "3.0.0"
 generated_at: "2026-10-15T17:30:00+05:30"
-author: "Antigravity Autonomous Forensics Engine"
-verification_status: "VERIFIED_CANONICAL"
+author: "Manoj Jana"
+verification_status: "VERIFIED"
 manifests_sha256:
   pyproject.toml: "fa9518b52bd1ef80551f09a5ad756f59a493bd9e2e606c8e6bc9846fcd379cf6"
   backend/requirements.txt: "1d9f2075e82131adb0c039dbbb08d7d4610fb0366ed099c5ed2739d2ab111924"
@@ -802,7 +802,7 @@ Production deployment is containerized via Docker Compose:
 
 | Version | Date | Author | Revision Scope |
 | :--- | :--- | :--- | :--- |
-| **3.0.0** | 2026-10-15 | Antigravity Autonomous Forensics Engine | Full forensic ledger generation adhering to Universal Master Ultra Prompt v3.0 |
+| **3.0.0** | 2026-10-15 | Manoj Jana | Full technical architecture ledger |
 
 ---
 
@@ -851,9 +851,7 @@ Total tracked files in repository tree: 288
 | [`Dockerfile`](Dockerfile) | `no-ext` | 79 | 3578 | Configuration or static asset |
 | [`LICENSE`](LICENSE) | `no-ext` | 21 | 1064 | Configuration or static asset |
 | [`LOOP_LOG.md`](LOOP_LOG.md) | `.md` | 254 | 13832 | Documentation asset |
-| [`MODERNIZATION_AUDIT.md`](MODERNIZATION_AUDIT.md) | `.md` | 50 | 1993 | Documentation asset |
 | [`Makefile`](Makefile) | `no-ext` | 47 | 1387 | Configuration or static asset |
-| [`PROJECT_ANALYSIS.md`](PROJECT_ANALYSIS.md) | `.md` | 18 | 721 | Documentation asset |
 | [`README.md`](README.md) | `.md` | 307 | 12919 | Documentation asset |
 | [`SECURITY.md`](SECURITY.md) | `.md` | 25 | 1041 | Documentation asset |
 | [`docs/audit/dependabot-agent/2026-08-13-run.md`](docs/audit/dependabot-agent/2026-08-13-run.md) | `.md` | 37 | 3010 | Documentation asset |
