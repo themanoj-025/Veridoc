@@ -3,7 +3,7 @@ fastapi==0.165.0  # bumped: 0.115.0 breaks UploadFile param with `from __future_
 uvicorn[standard]==0.53.0
 pydantic==2.14.4
 pydantic-settings==2.16.3
-python-multipart==0.0.33
+python-multipart==0.0.34
 
 # ── Database ──
 sqlalchemy==2.1.9
