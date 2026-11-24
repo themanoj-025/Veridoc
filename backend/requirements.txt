@@ -13,7 +13,8 @@ psycopg2-binary==2.9.13
 greenlet==3.5.6
 
 # ── Auth ──
-PyJWT[cryptography]==2.15.1  # replaced python-jose (unmaintained, CVE-2026-85394 & ecdsa PYSEC-2026-1325)
+PyJWT[crypto]==2.15.1  # replaced python-jose (unmaintained, CVE-2026-85394 & ecdsa PYSEC-2026-1325)
+cryptography>=44.0.0  # Fernet file encryption + PyJWT RS256/ECDSA backend
 bcrypt==5.0.0  # used directly (app/core/security.py) — passlib 1.7.4 is incompatible with bcrypt>=4.1
 email-validator==2.4.0  # required by pydantic EmailStr (pydantic.networks) — missing dep broke test-backend
 
