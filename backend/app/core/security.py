@@ -7,8 +7,9 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 import bcrypt
+import jwt
 from cryptography.fernet import Fernet
-from jose import JWTError, jwt
+from jwt.exceptions import PyJWTError
 
 from app.core.config import settings
 
@@ -116,7 +117,7 @@ def decode_token(token: str) -> dict | None:
     try:
         payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
         return payload
-    except JWTError:
+    except PyJWTError:
         return None
 
 

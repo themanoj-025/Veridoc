@@ -211,8 +211,8 @@ async def test_refresh_expired_token(test_client: AsyncClient) -> None:
     """Test refresh with expired token returns 401."""
     from datetime import datetime, timedelta
 
+    import jwt
     from app.core.config import settings
-    from jose import jwt
 
     expired_payload = {
         "sub": str(uuid.uuid4()),

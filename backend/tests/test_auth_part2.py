@@ -34,8 +34,8 @@ class TestNegativeSecurity:
         """An expired JWT must be rejected with 401."""
         from datetime import datetime, timedelta
 
+        import jwt
         from app.core.config import settings
-        from jose import jwt
 
         expired_payload = {
             "sub": str(uuid.uuid4()),
