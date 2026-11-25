@@ -643,7 +643,9 @@ jobs:
             curl -fsS http://127.0.0.1:8000/docs >/dev/null 2>&1 && break
             sleep 1
           done
-          st run --checks all /tmp/openapi.json --url http://localhost:8000 \n            -w 5 \n            --suppress-health-check=too_slow
+          st run --checks all /tmp/openapi.json --url http://localhost:8000 \
+            -w 5 \
+            --suppress-health-check=too_slow
 
   lighthouse:
     name: "Frontend — Lighthouse CI (performance budgets)"
