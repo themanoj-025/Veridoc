@@ -23,12 +23,16 @@ from httpx import ASGITransport, AsyncClient
 @pytest.fixture(autouse=True)
 def patch_settings() -> Any:
     """Override settings for testing."""
-    with patch("app.core.config.settings") as mock_settings:
+    with (
+        patch("app.core.config.settings") as mock_settings,
+        patch("app.core.security.settings", new=mock_settings),
+    ):
         mock_settings.app_env = "test"
         mock_settings.jwt_secret = "test-secret-key-for-testing-only"
         mock_settings.jwt_algorithm = "HS256"
         mock_settings.access_token_expire_minutes = 30
         mock_settings.refresh_token_expire_days = 7
+        mock_settings.file_encryption_key = "test-file-encryption-key-for-testing-only"
         mock_settings.database_url = "sqlite+aiosqlite:///:memory:"
         mock_settings.log_level = "ERROR"
         mock_settings.cors_origins = "*"
