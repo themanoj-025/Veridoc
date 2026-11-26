@@ -120,8 +120,15 @@ class HybridRetriever:
         list[dict]
             Top-k chunks sorted by cross-encoder score descending.
         """
+        # Nothing to rank: return before touching get_reranker(), which
+        # lazily downloads the cross-encoder weights.  Loading a model to
+        # re-rank an empty list is pure waste, and in an offline/CI
+        # environment the download blocks until it times out.
+        if not chunks:
+            return []
+
         reranker = get_reranker()
-        if reranker is None or not chunks:
+        if reranker is None:
             # Fallback: sort by existing score
             chunks.sort(key=lambda x: x.get("score", 0), reverse=True)
             return chunks[:top_k]
