@@ -155,7 +155,7 @@ jobs:
       - name: Install bandit
         run: pip install bandit==1.9.4
       - name: Run bandit
-        run: bandit -r src -ll
+        run: bandit -r app -ll
 
   lint-frontend:
     runs-on: ubuntu-latest
